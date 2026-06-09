@@ -57,6 +57,7 @@ class PenjualanController extends Controller
             'tanggal_penjualan' => 'required|date',
             'id_customer' => 'required|exists:customers,id_customer',
             'persentase_pajak' => 'nullable|numeric|min:0|max:100',
+            'pajak_ditambahkan' => 'nullable|in:0,1',
             'metode_pembayaran' => 'required|in:tunai,kredit',
             'tanggal_jatuh_tempo' => 'nullable|required_if:metode_pembayaran,kredit|date',
             'catatan' => 'nullable|string',
@@ -75,7 +76,10 @@ class PenjualanController extends Controller
             $subtotalPenjualan = 0;
 
             foreach ($request->id_barang as $index => $idBarang) {
-                $barang = Barang::findOrFail($idBarang);
+                $barang = Barang::where('id_barang', $idBarang)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
                 $jumlah = (int) $request->jumlah[$index];
 
                 if ($jumlah > $barang->stok_saat_ini) {
@@ -88,21 +92,37 @@ class PenjualanController extends Controller
                 $subtotalPenjualan += $jumlah * $hargaJual;
             }
 
-            $persentasePajak = $request->persentase_pajak ?? 0;
+            $persentasePajak = (float) ($request->persentase_pajak ?? 0);
             $nilaiPajak = $subtotalPenjualan * ($persentasePajak / 100);
-            $totalAkhir = $subtotalPenjualan + $nilaiPajak;
+
+            /*
+             * pajak_ditambahkan = 1
+             * Pajak ditampilkan dan ditambahkan ke total akhir.
+             *
+             * pajak_ditambahkan = 0
+             * Pajak tetap ditampilkan di invoice,
+             * tetapi total akhir tetap memakai subtotal penjualan saja.
+             */
+            $pajakDitambahkan = (bool) $request->boolean('pajak_ditambahkan');
+
+            $totalAkhir = $pajakDitambahkan
+                ? $subtotalPenjualan + $nilaiPajak
+                : $subtotalPenjualan;
 
             $statusPembayaran = $request->metode_pembayaran === 'tunai'
                 ? 'lunas'
                 : 'belum_lunas';
 
+            $nomorInvoice = $this->generateNomorInvoice(true);
+
             $penjualan = Penjualan::create([
-                'nomor_invoice' => $this->generateNomorInvoice(),
+                'nomor_invoice' => $nomorInvoice,
                 'tanggal_penjualan' => $request->tanggal_penjualan,
                 'id_customer' => $request->id_customer,
                 'subtotal' => $subtotalPenjualan,
                 'persentase_pajak' => $persentasePajak,
                 'nilai_pajak' => $nilaiPajak,
+                'pajak_ditambahkan' => $pajakDitambahkan,
                 'total_akhir' => $totalAkhir,
                 'metode_pembayaran' => $request->metode_pembayaran,
                 'status_pembayaran' => $statusPembayaran,
@@ -112,11 +132,19 @@ class PenjualanController extends Controller
             ]);
 
             foreach ($request->id_barang as $index => $idBarang) {
-                $barang = Barang::findOrFail($idBarang);
+                $barang = Barang::where('id_barang', $idBarang)
+                    ->lockForUpdate()
+                    ->firstOrFail();
 
                 $jumlah = (int) $request->jumlah[$index];
                 $hargaJual = (float) $request->harga_jual[$index];
                 $subtotalDetail = $jumlah * $hargaJual;
+
+                if ($jumlah > $barang->stok_saat_ini) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'stok' => 'Stok barang ' . $barang->nama_barang . ' tidak mencukupi. Stok tersedia: ' . $barang->stok_saat_ini,
+                    ]);
+                }
 
                 DetailPenjualan::create([
                     'id_penjualan' => $penjualan->id_penjualan,
@@ -179,21 +207,27 @@ class PenjualanController extends Controller
         return view('penjualan.show', compact('penjualan'));
     }
 
-    private function generateNomorInvoice()
+    private function generateNomorInvoice(bool $lock = false)
     {
         $tanggal = now()->format('Ymd');
+        $prefix = 'INV-' . $tanggal . '-';
 
-        $lastPenjualan = Penjualan::whereDate('created_at', now()->toDateString())
-            ->orderBy('id_penjualan', 'desc')
-            ->first();
+        $query = Penjualan::where('nomor_invoice', 'like', $prefix . '%')
+            ->orderBy('nomor_invoice', 'desc');
+
+        if ($lock) {
+            $query->lockForUpdate();
+        }
+
+        $lastPenjualan = $query->first();
 
         if (!$lastPenjualan) {
-            return 'INV-' . $tanggal . '-0001';
+            return $prefix . '0001';
         }
 
         $lastNumber = (int) substr($lastPenjualan->nomor_invoice, -4);
         $newNumber = $lastNumber + 1;
 
-        return 'INV-' . $tanggal . '-' . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
+        return $prefix . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
     }
 }

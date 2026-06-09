@@ -53,6 +53,77 @@ class SupplierController extends Controller
             ->with('success', 'Data supplier berhasil ditambahkan.');
     }
 
+    public function quickStore(Request $request)
+    {
+        $request->validate([
+            'nama_supplier' => 'required|string|max:255',
+            'nomor_telepon' => 'required|string|max:30',
+            'alamat' => 'nullable|string',
+            'catatan' => 'nullable|string',
+        ]);
+
+        $namaSupplier = trim($request->nama_supplier);
+        $nomorTelepon = trim($request->nomor_telepon);
+        $nomorTeleponNormal = $this->normalisasiNomorTelepon($nomorTelepon);
+
+        /*
+         * Cek supplier lama:
+         * - Jika nama sama, dianggap supplier sudah tersedia.
+         * - Jika nomor HP sama, dianggap supplier sudah tersedia.
+         */
+        $existingSupplier = Supplier::query()
+            ->whereRaw('LOWER(nama_supplier) = ?', [strtolower($namaSupplier)])
+            ->orWhere('nomor_telepon', $nomorTelepon)
+            ->get()
+            ->first(function ($supplier) use ($namaSupplier, $nomorTeleponNormal) {
+                $namaSama = strtolower(trim($supplier->nama_supplier)) === strtolower($namaSupplier);
+                $nomorSama = $this->normalisasiNomorTelepon($supplier->nomor_telepon) === $nomorTeleponNormal;
+
+                return $namaSama || $nomorSama;
+            });
+
+        if ($existingSupplier) {
+            if (!$existingSupplier->status_aktif) {
+                $existingSupplier->update([
+                    'status_aktif' => true,
+                ]);
+            }
+
+            return response()->json([
+                'status' => 'exists',
+                'message' => 'Supplier sudah tersedia dan langsung dipilih.',
+                'supplier' => [
+                    'id_supplier' => $existingSupplier->id_supplier,
+                    'kode_supplier' => $existingSupplier->kode_supplier,
+                    'nama_supplier' => $existingSupplier->nama_supplier,
+                    'nomor_telepon' => $existingSupplier->nomor_telepon,
+                    'alamat' => $existingSupplier->alamat,
+                ],
+            ]);
+        }
+
+        $supplier = Supplier::create([
+            'kode_supplier' => $this->generateKodeSupplier(),
+            'nama_supplier' => $namaSupplier,
+            'nomor_telepon' => $nomorTelepon,
+            'alamat' => $request->alamat,
+            'catatan' => $request->catatan,
+            'status_aktif' => true,
+        ]);
+
+        return response()->json([
+            'status' => 'created',
+            'message' => 'Supplier baru berhasil ditambahkan dan langsung dipilih.',
+            'supplier' => [
+                'id_supplier' => $supplier->id_supplier,
+                'kode_supplier' => $supplier->kode_supplier,
+                'nama_supplier' => $supplier->nama_supplier,
+                'nomor_telepon' => $supplier->nomor_telepon,
+                'alamat' => $supplier->alamat,
+            ],
+        ]);
+    }
+
     public function edit(Supplier $supplier)
     {
         return view('suppliers.edit', compact('supplier'));
@@ -104,5 +175,10 @@ class SupplierController extends Controller
         $newNumber = $lastNumber + 1;
 
         return 'SUP-' . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
+    }
+
+    private function normalisasiNomorTelepon(?string $nomorTelepon): string
+    {
+        return preg_replace('/[^0-9]/', '', $nomorTelepon ?? '');
     }
 }

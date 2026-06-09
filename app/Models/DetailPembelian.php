@@ -14,12 +14,15 @@ class DetailPembelian extends Model
     protected $fillable = [
         'id_pembelian',
         'id_barang',
+        'jumlah_dipesan',
         'jumlah',
         'harga_beli',
         'subtotal',
     ];
 
     protected $casts = [
+        'jumlah_dipesan' => 'integer',
+        'jumlah' => 'integer',
         'harga_beli' => 'decimal:2',
         'subtotal' => 'decimal:2',
     ];

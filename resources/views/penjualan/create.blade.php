@@ -246,35 +246,55 @@
                             </div>
                         </div>
 
-                        <div class="bg-gray-50 p-4 rounded-md border">
-                            <div class="mb-4">
-                                <label class="block mb-1 font-medium">Persentase Pajak (%)</label>
-                                <input type="number"
-                                    name="persentase_pajak"
-                                    id="persentasePajak"
-                                    value="{{ old('persentase_pajak', 0) }}"
-                                    min="0"
-                                    max="100"
-                                    step="0.01"
-                                    class="w-full border-gray-300 rounded-md shadow-sm text-right">
-                                <p class="text-sm text-gray-500 mt-1">
-                                    Isi 0 jika transaksi tidak menggunakan pajak.
-                                </p>
-                            </div>
+                        <div class="mb-4">
+                            <label class="block mb-1 font-medium">Persentase Pajak (%)</label>
+                            <input type="number"
+                                name="persentase_pajak"
+                                id="persentasePajak"
+                                value="{{ old('persentase_pajak', 0) }}"
+                                min="0"
+                                max="100"
+                                step="0.01"
+                                class="w-full border-gray-300 rounded-md shadow-sm text-right">
 
-                            <div class="flex justify-between mb-2">
-                                <span>Subtotal</span>
-                                <strong id="totalSubtotal">Rp 0</strong>
-                            </div>
+                            <p class="text-sm text-gray-500 mt-1">
+                                Pajak tetap bisa ditampilkan di invoice, walaupun tidak ditambahkan ke total akhir.
+                            </p>
+                        </div>
 
-                            <div class="flex justify-between mb-2">
-                                <span>Nilai Pajak</span>
-                                <strong id="totalPajak">Rp 0</strong>
-                            </div>
+                        <div class="mb-4">
+                            <label class="block mb-2 font-medium">Perhitungan Pajak</label>
 
-                            <div class="flex justify-between border-t pt-2 text-lg">
-                                <span>Total Akhir</span>
-                                <strong id="totalAkhir">Rp 0</strong>
+                            <div class="space-y-2">
+                                <label class="flex items-start gap-2">
+                                    <input type="radio"
+                                        name="pajak_ditambahkan"
+                                        value="1"
+                                        class="mt-1"
+                                        {{ old('pajak_ditambahkan', '1') == '1' ? 'checked' : '' }}>
+                                    <span>
+                                        <strong>Pajak ditambahkan ke total</strong>
+                                        <br>
+                                        <small class="text-gray-500">
+                                            Untuk customer yang memang dikenakan pajak.
+                                        </small>
+                                    </span>
+                                </label>
+
+                                <label class="flex items-start gap-2">
+                                    <input type="radio"
+                                        name="pajak_ditambahkan"
+                                        value="0"
+                                        class="mt-1"
+                                        {{ old('pajak_ditambahkan') == '0' ? 'checked' : '' }}>
+                                    <span>
+                                        <strong>Pajak hanya ditampilkan</strong>
+                                        <br>
+                                        <small class="text-gray-500">
+                                            Untuk customer yang tidak dikenakan pajak, tetapi nilai pajak tetap muncul di invoice.
+                                        </small>
+                                    </span>
+                                </label>
                             </div>
                         </div>
                     </div>
@@ -593,25 +613,36 @@
 
             const persentasePajak = parseFloat(document.getElementById('persentasePajak').value) || 0;
             const nilaiPajak = totalSubtotal * (persentasePajak / 100);
-            const totalAkhir = totalSubtotal + nilaiPajak;
+
+            const pajakDitambahkanInput = document.querySelector('input[name="pajak_ditambahkan"]:checked');
+            const pajakDitambahkan = pajakDitambahkanInput ? pajakDitambahkanInput.value === '1' : true;
+
+            const totalAkhir = pajakDitambahkan ?
+                totalSubtotal + nilaiPajak :
+                totalSubtotal;
 
             document.getElementById('totalSubtotal').innerText = formatRupiah(totalSubtotal);
             document.getElementById('totalPajak').innerText = formatRupiah(nilaiPajak);
             document.getElementById('totalAkhir').innerText = formatRupiah(totalAkhir);
         }
 
-        document.addEventListener('change', function(e) {
-            if (e.target.id === 'metodePembayaran') {
-                updateMetodePembayaran();
-            }
-        });
-
         document.addEventListener('input', function(e) {
             if (
                 e.target.classList.contains('jumlah-input') ||
                 e.target.classList.contains('harga-input') ||
-                e.target.id === 'persentasePajak'
+                e.target.id === 'persentasePajak' ||
+                e.target.name === 'pajak_ditambahkan'
             ) {
+                hitungTotal();
+            }
+        });
+
+        document.addEventListener('change', function(e) {
+            if (
+                e.target.id === 'metodePembayaran' ||
+                e.target.name === 'pajak_ditambahkan'
+            ) {
+                updateMetodePembayaran();
                 hitungTotal();
             }
         });

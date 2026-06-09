@@ -43,6 +43,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/suppliers', [SupplierController::class, 'index'])->name('suppliers.index');
     Route::get('/suppliers/create', [SupplierController::class, 'create'])->name('suppliers.create');
     Route::post('/suppliers', [SupplierController::class, 'store'])->name('suppliers.store');
+    Route::post('/suppliers/quick-store', [SupplierController::class, 'quickStore'])->name('suppliers.quickStore');
     Route::get('/suppliers/{supplier}/edit', [SupplierController::class, 'edit'])->name('suppliers.edit');
     Route::put('/suppliers/{supplier}', [SupplierController::class, 'update'])->name('suppliers.update');
     Route::patch('/suppliers/{supplier}/nonaktifkan', [SupplierController::class, 'nonaktifkan'])->name('suppliers.nonaktifkan');
