@@ -100,16 +100,57 @@ class CustomerController extends Controller
     {
         $request->validate([
             'nama_customer' => 'required|string|max:255',
-            'nomor_telepon' => 'nullable|string|max:30',
+            'nomor_telepon' => 'required|string|max:30',
             'alamat' => 'nullable|string',
             'kategori_customer' => 'nullable|string|max:100',
             'catatan' => 'nullable|string',
         ]);
 
+        $namaCustomer = trim($request->nama_customer);
+        $nomorTelepon = trim($request->nomor_telepon);
+        $nomorTeleponNormal = $this->normalisasiNomorTelepon($nomorTelepon);
+
+        /*
+         * Cek customer lama agar konsisten dengan quick add supplier:
+         * - Jika nama sama, customer dianggap sudah tersedia.
+         * - Jika nomor HP sama, customer dianggap sudah tersedia.
+         */
+        $existingCustomer = Customer::query()
+            ->whereRaw('LOWER(nama_customer) = ?', [strtolower($namaCustomer)])
+            ->orWhere('nomor_telepon', $nomorTelepon)
+            ->get()
+            ->first(function ($customer) use ($namaCustomer, $nomorTeleponNormal) {
+                $namaSama = strtolower(trim($customer->nama_customer)) === strtolower($namaCustomer);
+                $nomorSama = $this->normalisasiNomorTelepon($customer->nomor_telepon) === $nomorTeleponNormal;
+
+                return $namaSama || $nomorSama;
+            });
+
+        if ($existingCustomer) {
+            if (!$existingCustomer->status_aktif) {
+                $existingCustomer->update([
+                    'status_aktif' => true,
+                ]);
+            }
+
+            return response()->json([
+                'status' => 'exists',
+                'message' => 'Customer sudah tersedia dan langsung dipilih.',
+                'customer' => [
+                    'id_customer' => $existingCustomer->id_customer,
+                    'kode_customer' => $existingCustomer->kode_customer,
+                    'nama_customer' => $existingCustomer->nama_customer,
+                    'nomor_telepon' => $existingCustomer->nomor_telepon,
+                    'alamat' => $existingCustomer->alamat,
+                    'kategori_customer' => $existingCustomer->kategori_customer,
+                ],
+            ]);
+        }
+
         $customer = Customer::create([
             'kode_customer' => $this->generateKodeCustomer(),
-            'nama_customer' => $request->nama_customer,
-            'nomor_telepon' => $request->nomor_telepon,
+            'nama_customer' => $namaCustomer,
+            'nomor_telepon' => $nomorTelepon,
             'alamat' => $request->alamat,
             'kategori_customer' => $request->kategori_customer,
             'catatan' => $request->catatan,
@@ -117,13 +158,15 @@ class CustomerController extends Controller
         ]);
 
         return response()->json([
-            'success' => true,
-            'message' => 'Customer berhasil ditambahkan.',
+            'status' => 'created',
+            'message' => 'Customer baru berhasil ditambahkan dan langsung dipilih.',
             'customer' => [
                 'id_customer' => $customer->id_customer,
                 'kode_customer' => $customer->kode_customer,
                 'nama_customer' => $customer->nama_customer,
                 'nomor_telepon' => $customer->nomor_telepon,
+                'alamat' => $customer->alamat,
+                'kategori_customer' => $customer->kategori_customer,
             ],
         ]);
     }
@@ -140,5 +183,10 @@ class CustomerController extends Controller
         $newNumber = $lastNumber + 1;
 
         return 'CUS-' . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
+    }
+
+    private function normalisasiNomorTelepon(?string $nomorTelepon): string
+    {
+        return preg_replace('/[^0-9]/', '', $nomorTelepon ?? '');
     }
 }
