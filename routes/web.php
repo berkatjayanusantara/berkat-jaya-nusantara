@@ -10,6 +10,7 @@ use App\Http\Controllers\RiwayatStokController;
 use App\Http\Controllers\InvoiceHistorisController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LaporanController;
+use App\Http\Controllers\StockOpnameController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -68,6 +69,9 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/riwayat-stok', [RiwayatStokController::class, 'index'])->name('riwayat-stok.index');
 
+    Route::get('/stock-opname', [StockOpnameController::class, 'create'])->name('stock-opname.create');
+    Route::post('/stock-opname', [StockOpnameController::class, 'store'])->name('stock-opname.store');
+
     Route::get('/invoice-historis', [InvoiceHistorisController::class, 'index'])->name('invoice-historis.index');
     Route::get('/invoice-historis/pembelian/create', [InvoiceHistorisController::class, 'createPembelian'])->name('invoice-historis.pembelian.create');
     Route::post('/invoice-historis/pembelian', [InvoiceHistorisController::class, 'storePembelian'])->name('invoice-historis.pembelian.store');
@@ -90,6 +94,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/stok-barang', [LaporanController::class, 'stokBarang'])->name('stokBarang');
         Route::get('/stok-barang/export-excel', [LaporanController::class, 'stokBarangExportExcel'])->name('stokBarang.exportExcel');
         Route::get('/stok-barang/export-pdf', [LaporanController::class, 'stokBarangExportPdf'])->name('stokBarang.exportPdf');
+
+        Route::get('/riwayat-stok', [LaporanController::class, 'riwayatStok'])->name('riwayatStok');
+        Route::get('/riwayat-stok/export-excel', [LaporanController::class, 'riwayatStokExportExcel'])->name('riwayatStok.exportExcel');
+        Route::get('/riwayat-stok/export-pdf', [LaporanController::class, 'riwayatStokExportPdf'])->name('riwayatStok.exportPdf');
     });
 });
 

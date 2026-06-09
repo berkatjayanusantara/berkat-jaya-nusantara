@@ -106,7 +106,7 @@
                     <x-dropdown align="left" width="56">
                         <x-slot name="trigger">
                             <button class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md transition
-                                {{ request()->routeIs('riwayat-stok.*') || request()->routeIs('invoice-historis.*')
+                                {{ request()->routeIs('riwayat-stok.*') || request()->routeIs('invoice-historis.*') || request()->routeIs('stock-opname.*')
                                     ? 'text-blue-700 bg-blue-50'
                                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50' }}">
                                 Monitoring
@@ -127,6 +127,10 @@
                                 Riwayat Stok
                             </x-dropdown-link>
 
+                            <x-dropdown-link :href="route('stock-opname.create')">
+                                Stock Opname
+                            </x-dropdown-link>
+
                             <x-dropdown-link :href="route('invoice-historis.index')">
                                 Invoice History
                             </x-dropdown-link>
@@ -136,9 +140,9 @@
                     <x-dropdown align="left" width="56">
                         <x-slot name="trigger">
                             <button class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md transition
-            {{ request()->routeIs('laporan.*')
-                ? 'text-blue-700 bg-blue-50'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50' }}">
+                                {{ request()->routeIs('laporan.*')
+                                    ? 'text-blue-700 bg-blue-50'
+                                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50' }}">
                                 Laporan
 
                                 <svg class="ms-1 h-4 w-4"
@@ -167,6 +171,10 @@
 
                             <x-dropdown-link :href="route('laporan.stokBarang')">
                                 Laporan Stok Barang
+                            </x-dropdown-link>
+
+                            <x-dropdown-link :href="route('laporan.riwayatStok')">
+                                Laporan Riwayat Stok
                             </x-dropdown-link>
                         </x-slot>
                     </x-dropdown>
@@ -285,6 +293,10 @@
                 Riwayat Stok
             </x-responsive-nav-link>
 
+            <x-responsive-nav-link :href="route('stock-opname.create')" :active="request()->routeIs('stock-opname.*')">
+                Stock Opname
+            </x-responsive-nav-link>
+
             <x-responsive-nav-link :href="route('invoice-historis.index')" :active="request()->routeIs('invoice-historis.*')">
                 Invoice History
             </x-responsive-nav-link>
@@ -307,6 +319,10 @@
 
             <x-responsive-nav-link :href="route('laporan.stokBarang')" :active="request()->routeIs('laporan.stokBarang')">
                 Laporan Stok Barang
+            </x-responsive-nav-link>
+
+            <x-responsive-nav-link :href="route('laporan.riwayatStok')" :active="request()->routeIs('laporan.riwayatStok')">
+                Laporan Riwayat Stok
             </x-responsive-nav-link>
         </div>
 

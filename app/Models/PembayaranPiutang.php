@@ -2,18 +2,21 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class PembayaranPiutang extends Model
 {
+    use HasFactory;
+
     protected $table = 'pembayaran_piutang';
-    protected $primaryKey = 'id_pembayaran';
+    protected $primaryKey = 'id_pembayaran_piutang';
 
     protected $fillable = [
         'id_piutang',
         'tanggal_pembayaran',
         'nominal_pembayaran',
-        'metode_pembayaran',    
+        'metode_pembayaran',
         'catatan',
         'dibuat_oleh',
     ];

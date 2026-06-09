@@ -8,6 +8,7 @@ use App\Models\Pembelian;
 use App\Models\Penjualan;
 use App\Models\Piutang;
 use App\Models\Supplier;
+use App\Models\RiwayatStok;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 
@@ -559,6 +560,205 @@ class LaporanController extends Controller
         return $pdf->download($fileName);
     }
 
+    public function riwayatStok(Request $request)
+    {
+        $query = $this->queryLaporanRiwayatStok($request);
+
+        $riwayatUntukTotal = (clone $query)->get();
+
+        $totalData = $riwayatUntukTotal->count();
+
+        $totalMasuk = $riwayatUntukTotal
+            ->where('jenis_pergerakan', 'masuk')
+            ->sum('jumlah');
+
+        $totalKeluar = $riwayatUntukTotal
+            ->where('jenis_pergerakan', 'keluar')
+            ->sum('jumlah');
+
+        $totalPenyesuaian = $riwayatUntukTotal
+            ->where('jenis_pergerakan', 'penyesuaian')
+            ->count();
+
+        $totalOpname = $riwayatUntukTotal
+            ->filter(function ($item) {
+                return str_starts_with((string) $item->sumber_transaksi, 'STOCK-OPNAME');
+            })
+            ->count();
+
+        $totalSelisihPlus = $riwayatUntukTotal
+            ->filter(function ($item) {
+                return $item->jenis_pergerakan === 'penyesuaian'
+                    && ((int) $item->stok_sesudah - (int) $item->stok_sebelum) > 0;
+            })
+            ->sum(function ($item) {
+                return (int) $item->stok_sesudah - (int) $item->stok_sebelum;
+            });
+
+        $totalSelisihMinus = $riwayatUntukTotal
+            ->filter(function ($item) {
+                return $item->jenis_pergerakan === 'penyesuaian'
+                    && ((int) $item->stok_sesudah - (int) $item->stok_sebelum) < 0;
+            })
+            ->sum(function ($item) {
+                return abs((int) $item->stok_sesudah - (int) $item->stok_sebelum);
+            });
+
+        $riwayatStok = $query
+            ->orderBy('tanggal', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->paginate(15)
+            ->withQueryString();
+
+        $barang = Barang::orderBy('nama_barang')->get();
+
+        return view('laporan.riwayat-stok', compact(
+            'riwayatStok',
+            'barang',
+            'totalData',
+            'totalMasuk',
+            'totalKeluar',
+            'totalPenyesuaian',
+            'totalOpname',
+            'totalSelisihPlus',
+            'totalSelisihMinus'
+        ));
+    }
+
+    public function riwayatStokExportExcel(Request $request)
+    {
+        $riwayatStok = $this->queryLaporanRiwayatStok($request)
+            ->orderBy('tanggal', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $totalData = $riwayatStok->count();
+
+        $totalMasuk = $riwayatStok
+            ->where('jenis_pergerakan', 'masuk')
+            ->sum('jumlah');
+
+        $totalKeluar = $riwayatStok
+            ->where('jenis_pergerakan', 'keluar')
+            ->sum('jumlah');
+
+        $totalPenyesuaian = $riwayatStok
+            ->where('jenis_pergerakan', 'penyesuaian')
+            ->count();
+
+        $totalOpname = $riwayatStok
+            ->filter(function ($item) {
+                return str_starts_with((string) $item->sumber_transaksi, 'STOCK-OPNAME');
+            })
+            ->count();
+
+        $totalSelisihPlus = $riwayatStok
+            ->filter(function ($item) {
+                return $item->jenis_pergerakan === 'penyesuaian'
+                    && ((int) $item->stok_sesudah - (int) $item->stok_sebelum) > 0;
+            })
+            ->sum(function ($item) {
+                return (int) $item->stok_sesudah - (int) $item->stok_sebelum;
+            });
+
+        $totalSelisihMinus = $riwayatStok
+            ->filter(function ($item) {
+                return $item->jenis_pergerakan === 'penyesuaian'
+                    && ((int) $item->stok_sesudah - (int) $item->stok_sebelum) < 0;
+            })
+            ->sum(function ($item) {
+                return abs((int) $item->stok_sesudah - (int) $item->stok_sebelum);
+            });
+
+        $tanggalAwal = $request->tanggal_awal ?: 'awal';
+        $tanggalAkhir = $request->tanggal_akhir ?: 'akhir';
+
+        $fileName = 'Laporan-Riwayat-Stok-' . $tanggalAwal . '-sd-' . $tanggalAkhir . '.xls';
+
+        return response()
+            ->view('laporan.riwayat-stok-excel', compact(
+                'riwayatStok',
+                'totalData',
+                'totalMasuk',
+                'totalKeluar',
+                'totalPenyesuaian',
+                'totalOpname',
+                'totalSelisihPlus',
+                'totalSelisihMinus',
+                'tanggalAwal',
+                'tanggalAkhir'
+            ))
+            ->header('Content-Type', 'application/vnd.ms-excel; charset=UTF-8')
+            ->header('Content-Disposition', 'attachment; filename="' . $fileName . '"')
+            ->header('Cache-Control', 'max-age=0');
+    }
+
+    public function riwayatStokExportPdf(Request $request)
+    {
+        $riwayatStok = $this->queryLaporanRiwayatStok($request)
+            ->orderBy('tanggal', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $totalData = $riwayatStok->count();
+
+        $totalMasuk = $riwayatStok
+            ->where('jenis_pergerakan', 'masuk')
+            ->sum('jumlah');
+
+        $totalKeluar = $riwayatStok
+            ->where('jenis_pergerakan', 'keluar')
+            ->sum('jumlah');
+
+        $totalPenyesuaian = $riwayatStok
+            ->where('jenis_pergerakan', 'penyesuaian')
+            ->count();
+
+        $totalOpname = $riwayatStok
+            ->filter(function ($item) {
+                return str_starts_with((string) $item->sumber_transaksi, 'STOCK-OPNAME');
+            })
+            ->count();
+
+        $totalSelisihPlus = $riwayatStok
+            ->filter(function ($item) {
+                return $item->jenis_pergerakan === 'penyesuaian'
+                    && ((int) $item->stok_sesudah - (int) $item->stok_sebelum) > 0;
+            })
+            ->sum(function ($item) {
+                return (int) $item->stok_sesudah - (int) $item->stok_sebelum;
+            });
+
+        $totalSelisihMinus = $riwayatStok
+            ->filter(function ($item) {
+                return $item->jenis_pergerakan === 'penyesuaian'
+                    && ((int) $item->stok_sesudah - (int) $item->stok_sebelum) < 0;
+            })
+            ->sum(function ($item) {
+                return abs((int) $item->stok_sesudah - (int) $item->stok_sebelum);
+            });
+
+        $tanggalAwal = $request->tanggal_awal ?: 'awal';
+        $tanggalAkhir = $request->tanggal_akhir ?: 'akhir';
+
+        $fileName = 'Laporan-Riwayat-Stok-' . $tanggalAwal . '-sd-' . $tanggalAkhir . '.pdf';
+
+        $pdf = Pdf::loadView('laporan.riwayat-stok-pdf', compact(
+            'riwayatStok',
+            'totalData',
+            'totalMasuk',
+            'totalKeluar',
+            'totalPenyesuaian',
+            'totalOpname',
+            'totalSelisihPlus',
+            'totalSelisihMinus',
+            'tanggalAwal',
+            'tanggalAkhir'
+        ))->setPaper('a4', 'landscape');
+
+        return $pdf->download($fileName);
+    }
+
     private function queryLaporanPenjualan(Request $request)
     {
         return Penjualan::with(['customer', 'user'])
@@ -677,6 +877,44 @@ class LaporanController extends Controller
                     $subQuery->where('kode_barang', 'like', "%{$search}%")
                         ->orWhere('nama_barang', 'like', "%{$search}%")
                         ->orWhere('satuan', 'like', "%{$search}%");
+                });
+            });
+    }
+
+    private function queryLaporanRiwayatStok(Request $request)
+    {
+        return RiwayatStok::with(['barang', 'user'])
+            ->when($request->tanggal_awal, function ($query) use ($request) {
+                $query->whereDate('tanggal', '>=', $request->tanggal_awal);
+            })
+            ->when($request->tanggal_akhir, function ($query) use ($request) {
+                $query->whereDate('tanggal', '<=', $request->tanggal_akhir);
+            })
+            ->when($request->id_barang, function ($query) use ($request) {
+                $query->where('id_barang', $request->id_barang);
+            })
+            ->when($request->jenis_pergerakan, function ($query) use ($request) {
+                $query->where('jenis_pergerakan', $request->jenis_pergerakan);
+            })
+            ->when($request->tipe_riwayat === 'opname', function ($query) {
+                $query->where('sumber_transaksi', 'like', 'STOCK-OPNAME%');
+            })
+            ->when($request->tipe_riwayat === 'non_opname', function ($query) {
+                $query->where(function ($subQuery) {
+                    $subQuery->whereNull('sumber_transaksi')
+                        ->orWhere('sumber_transaksi', 'not like', 'STOCK-OPNAME%');
+                });
+            })
+            ->when($request->search, function ($query) use ($request) {
+                $search = $request->search;
+
+                $query->where(function ($subQuery) use ($search) {
+                    $subQuery->where('sumber_transaksi', 'like', "%{$search}%")
+                        ->orWhere('keterangan', 'like', "%{$search}%")
+                        ->orWhereHas('barang', function ($barangQuery) use ($search) {
+                            $barangQuery->where('kode_barang', 'like', "%{$search}%")
+                                ->orWhere('nama_barang', 'like', "%{$search}%");
+                        });
                 });
             });
     }

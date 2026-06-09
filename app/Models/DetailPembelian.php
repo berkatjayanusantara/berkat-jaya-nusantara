@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class DetailPembelian extends Model
 {
+    use HasFactory;
+
     protected $table = 'detail_pembelian';
     protected $primaryKey = 'id_detail_pembelian';
 
@@ -21,8 +24,6 @@ class DetailPembelian extends Model
     ];
 
     protected $casts = [
-        'jumlah_dipesan' => 'integer',
-        'jumlah' => 'integer',
         'harga_beli' => 'decimal:2',
         'subtotal' => 'decimal:2',
     ];

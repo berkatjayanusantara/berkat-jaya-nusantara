@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class RiwayatStok extends Model
 {
+    use HasFactory;
+
     protected $table = 'riwayat_stok';
     protected $primaryKey = 'id_riwayat_stok';
 
