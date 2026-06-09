@@ -1,4 +1,13 @@
 <x-guest-layout>
+    <div class="mb-6 text-center">
+        <h2 class="text-xl font-bold text-gray-900">
+            Login Admin
+        </h2>
+        <p class="text-sm text-gray-500 mt-1">
+            Masuk untuk mengelola data perusahaan.
+        </p>
+    </div>
+
     <x-auth-session-status class="mb-4" :status="session('status')" />
 
     <form method="POST" action="{{ route('login') }}">
@@ -34,13 +43,21 @@
             <label for="remember_me" class="inline-flex items-center">
                 <input id="remember_me"
                     type="checkbox"
-                    class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500"
+                    class="rounded border-gray-300 text-gray-900 shadow-sm focus:ring-gray-900"
                     name="remember">
-                <span class="ms-2 text-sm text-gray-600">Ingat saya</span>
+
+                <span class="ms-2 text-sm text-gray-600">
+                    Ingat saya
+                </span>
             </label>
         </div>
 
-        <div class="flex items-center justify-end mt-4">
+        <div class="flex items-center justify-between mt-6">
+            <a href="{{ route('register') }}"
+                class="text-sm text-gray-600 hover:text-gray-900 underline">
+                Daftar akun baru
+            </a>
+
             <x-primary-button class="ms-3">
                 Login
             </x-primary-button>
