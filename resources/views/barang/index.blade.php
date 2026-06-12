@@ -27,7 +27,7 @@
                     <input type="text"
                         name="search"
                         value="{{ $search }}"
-                        placeholder="Cari kode atau nama barang..."
+                        placeholder="Cari kode, nama barang, atau satuan..."
                         class="w-full border-gray-300 rounded-md shadow-sm">
 
                     <button type="submit"
@@ -52,6 +52,7 @@
                                 <th class="border px-3 py-2 text-right">Stok</th>
                                 <th class="border px-3 py-2 text-right">Harga Beli</th>
                                 <th class="border px-3 py-2 text-right">Harga Jual</th>
+                                <th class="border px-3 py-2 text-left">Perhitungan Harga</th>
                                 <th class="border px-3 py-2 text-center">Status</th>
                                 <th class="border px-3 py-2 text-center">Aksi</th>
                             </tr>
@@ -73,7 +74,7 @@
                                 </td>
 
                                 <td class="border px-3 py-2">
-                                    {{ $item->satuan }}
+                                    {{ strtoupper($item->satuan) }}
                                 </td>
 
                                 <td class="border px-3 py-2 text-right">
@@ -86,6 +87,33 @@
 
                                 <td class="border px-3 py-2 text-right">
                                     Rp {{ number_format($item->harga_jual_default, 0, ',', '.') }}
+                                </td>
+
+                                <td class="border px-3 py-2">
+                                    @if (($item->tipe_perhitungan_harga ?? 'normal') === 'isi_kemasan')
+                                    <div>
+                                        <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-sm">
+                                            Isi Kemasan
+                                        </span>
+                                        <p class="text-sm text-gray-600 mt-1">
+                                            1 {{ $item->satuan }} =
+                                            {{ rtrim(rtrim(number_format($item->isi_per_satuan, 3, ',', '.'), '0'), ',') }}
+                                            {{ $item->satuan_hitung_harga }}
+                                        </p>
+                                        <p class="text-sm text-gray-500">
+                                            Harga per {{ $item->satuan_hitung_harga }}
+                                        </p>
+                                    </div>
+                                    @else
+                                    <div>
+                                        <span class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-sm">
+                                            Normal
+                                        </span>
+                                        <p class="text-sm text-gray-500 mt-1">
+                                            Harga per {{ $item->satuan }}
+                                        </p>
+                                    </div>
+                                    @endif
                                 </td>
 
                                 <td class="border px-3 py-2 text-center">
@@ -125,7 +153,7 @@
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="9" class="border px-3 py-4 text-center text-gray-500">
+                                <td colspan="10" class="border px-3 py-4 text-center text-gray-500">
                                     Data barang belum tersedia.
                                 </td>
                             </tr>

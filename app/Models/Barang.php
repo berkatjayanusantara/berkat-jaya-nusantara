@@ -19,6 +19,9 @@ class Barang extends Model
         'stok_saat_ini',
         'harga_beli_terakhir',
         'harga_jual_default',
+        'tipe_perhitungan_harga',
+        'satuan_hitung_harga',
+        'isi_per_satuan',
         'keterangan',
         'status_aktif',
     ];
@@ -27,5 +30,6 @@ class Barang extends Model
         'status_aktif' => 'boolean',
         'harga_beli_terakhir' => 'decimal:2',
         'harga_jual_default' => 'decimal:2',
+        'isi_per_satuan' => 'decimal:3',
     ];
 }

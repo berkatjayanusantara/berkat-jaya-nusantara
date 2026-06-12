@@ -19,11 +19,16 @@ class DetailPenjualan extends Model
         'id_barang',
         'jumlah',
         'harga_jual',
+        'tipe_perhitungan_harga',
+        'satuan_transaksi',
+        'satuan_hitung_harga',
+        'isi_per_satuan',
         'subtotal',
     ];
 
     protected $casts = [
         'harga_jual' => 'decimal:2',
+        'isi_per_satuan' => 'decimal:3',
         'subtotal' => 'decimal:2',
     ];
 

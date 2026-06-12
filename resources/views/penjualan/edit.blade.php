@@ -3,7 +3,7 @@
 
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            Tambah Penjualan / Barang Keluar
+            Edit Penjualan / Barang Keluar
         </h2>
     </x-slot>
 
@@ -22,8 +22,17 @@
                 </div>
                 @endif
 
-                <form action="{{ route('penjualan.store') }}" method="POST" id="formPenjualan">
+                @if ($penjualan->piutang && $penjualan->piutang->total_dibayar > 0)
+                <div class="mb-4 p-4 bg-yellow-100 text-yellow-800 rounded-md">
+                    Penjualan ini sudah memiliki pembayaran piutang sebesar
+                    <strong>Rp {{ number_format($penjualan->piutang->total_dibayar, 0, ',', '.') }}</strong>.
+                    Total piutang akan disesuaikan otomatis jika penjualan diedit.
+                </div>
+                @endif
+
+                <form action="{{ route('penjualan.update', $penjualan->id_penjualan) }}" method="POST" id="formPenjualan">
                     @csrf
+                    @method('PUT')
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                         <div>
@@ -32,12 +41,12 @@
                             </label>
                             <input type="text"
                                 name="nomor_invoice"
-                                value="{{ old('nomor_invoice') }}"
+                                value="{{ old('nomor_invoice', $penjualan->nomor_invoice) }}"
                                 placeholder="Contoh: 01/05/I/2026"
                                 class="w-full border-gray-300 rounded-md shadow-sm"
                                 required>
                             <p class="text-sm text-gray-500 mt-1">
-                                Diisi manual oleh admin dan tidak boleh sama dengan nomor invoice lain.
+                                Nomor invoice boleh diperbaiki, tetapi tidak boleh sama dengan transaksi lain.
                             </p>
                         </div>
 
@@ -45,31 +54,21 @@
                             <label class="block mb-1 font-medium">Tanggal Penjualan</label>
                             <input type="date"
                                 name="tanggal_penjualan"
-                                value="{{ old('tanggal_penjualan', date('Y-m-d')) }}"
+                                value="{{ old('tanggal_penjualan', $penjualan->tanggal_penjualan->format('Y-m-d')) }}"
                                 class="w-full border-gray-300 rounded-md shadow-sm"
                                 required>
                         </div>
 
                         <div>
-                            <div class="flex items-center justify-between mb-1">
-                                <label class="block font-medium">Customer</label>
-
-                                <button type="button"
-                                    id="btnBukaModalCustomer"
-                                    class="text-sm px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700">
-                                    + Tambah Customer
-                                </button>
-                            </div>
-
+                            <label class="block mb-1 font-medium">Customer</label>
                             <select name="id_customer"
                                 id="customerSelect"
                                 class="w-full border-gray-300 rounded-md shadow-sm"
-                                placeholder="Cari kode atau nama customer..."
                                 required>
                                 <option value="">-- Cari / Pilih Customer --</option>
                                 @foreach ($customers as $customer)
                                 <option value="{{ $customer->id_customer }}"
-                                    {{ old('id_customer') == $customer->id_customer ? 'selected' : '' }}>
+                                    {{ old('id_customer', $penjualan->id_customer) == $customer->id_customer ? 'selected' : '' }}>
                                     {{ $customer->kode_customer }} - {{ $customer->nama_customer }}
                                     @if ($customer->nomor_telepon)
                                     | {{ $customer->nomor_telepon }}
@@ -80,10 +79,6 @@
                                 </option>
                                 @endforeach
                             </select>
-
-                            <p class="text-sm text-gray-500 mt-1">
-                                Pilih customer lama atau tambah customer baru jika belum terdaftar.
-                            </p>
                         </div>
                     </div>
 
@@ -103,11 +98,11 @@
                                 </thead>
 
                                 <tbody>
-                                    <tr>
+                                    @foreach ($penjualan->detailPenjualan as $detail)
+                                    <tr data-old-barang-id="{{ $detail->id_barang }}" data-old-jumlah="{{ $detail->jumlah }}">
                                         <td class="border px-3 py-2 min-w-[460px]">
                                             <select name="id_barang[]"
                                                 class="w-full barang-select"
-                                                placeholder="Cari kode atau nama barang..."
                                                 required>
                                                 <option value="">-- Cari / Pilih Barang --</option>
                                                 @foreach ($barang as $item)
@@ -117,7 +112,8 @@
                                                     data-satuan="{{ $item->satuan }}"
                                                     data-tipe-perhitungan="{{ $item->tipe_perhitungan_harga ?? 'normal' }}"
                                                     data-satuan-hitung="{{ $item->satuan_hitung_harga }}"
-                                                    data-isi-per-satuan="{{ $item->isi_per_satuan ?? 1 }}">
+                                                    data-isi-per-satuan="{{ $item->isi_per_satuan ?? 1 }}"
+                                                    {{ $detail->id_barang == $item->id_barang ? 'selected' : '' }}>
                                                     {{ $item->kode_barang }} - {{ $item->nama_barang }}
                                                     | Stok: {{ $item->stok_saat_ini }} {{ strtoupper($item->satuan) }}
                                                     | Harga: Rp {{ number_format($item->harga_jual_default, 0, ',', '.') }}
@@ -138,7 +134,7 @@
                                         <td class="border px-3 py-2">
                                             <input type="number"
                                                 name="jumlah[]"
-                                                value="1"
+                                                value="{{ $detail->jumlah }}"
                                                 min="1"
                                                 class="w-full border-gray-300 rounded-md shadow-sm text-right jumlah-input"
                                                 required>
@@ -148,7 +144,7 @@
                                         <td class="border px-3 py-2">
                                             <input type="number"
                                                 name="harga_jual[]"
-                                                value="0"
+                                                value="{{ $detail->harga_jual }}"
                                                 min="0"
                                                 step="0.01"
                                                 class="w-full border-gray-300 rounded-md shadow-sm text-right harga-input"
@@ -167,15 +163,15 @@
                                             </button>
                                         </td>
                                     </tr>
+                                    @endforeach
                                 </tbody>
                             </table>
 
                             <template id="templateBarangRow">
-                                <tr>
+                                <tr data-old-barang-id="" data-old-jumlah="0">
                                     <td class="border px-3 py-2 min-w-[460px]">
                                         <select name="id_barang[]"
                                             class="w-full barang-select"
-                                            placeholder="Cari kode atau nama barang..."
                                             required>
                                             <option value="">-- Cari / Pilih Barang --</option>
                                             @foreach ($barang as $item)
@@ -253,10 +249,10 @@
                                     id="metodePembayaran"
                                     class="w-full border-gray-300 rounded-md shadow-sm"
                                     required>
-                                    <option value="tunai" {{ old('metode_pembayaran') === 'tunai' ? 'selected' : '' }}>
+                                    <option value="tunai" {{ old('metode_pembayaran', $penjualan->metode_pembayaran) === 'tunai' ? 'selected' : '' }}>
                                         Tunai
                                     </option>
-                                    <option value="kredit" {{ old('metode_pembayaran') === 'kredit' ? 'selected' : '' }}>
+                                    <option value="kredit" {{ old('metode_pembayaran', $penjualan->metode_pembayaran) === 'kredit' ? 'selected' : '' }}>
                                         Kredit / Piutang
                                     </option>
                                 </select>
@@ -266,7 +262,7 @@
                                 <label class="block mb-1 font-medium">Tanggal Jatuh Tempo</label>
                                 <input type="date"
                                     name="tanggal_jatuh_tempo"
-                                    value="{{ old('tanggal_jatuh_tempo') }}"
+                                    value="{{ old('tanggal_jatuh_tempo', $penjualan->tanggal_jatuh_tempo ? $penjualan->tanggal_jatuh_tempo->format('Y-m-d') : '') }}"
                                     class="w-full border-gray-300 rounded-md shadow-sm">
                                 <p class="text-sm text-gray-500 mt-1">
                                     Wajib diisi jika pembayaran kredit.
@@ -277,7 +273,7 @@
                                 <label class="block mb-1 font-medium">Catatan</label>
                                 <textarea name="catatan"
                                     rows="4"
-                                    class="w-full border-gray-300 rounded-md shadow-sm">{{ old('catatan') }}</textarea>
+                                    class="w-full border-gray-300 rounded-md shadow-sm">{{ old('catatan', $penjualan->catatan) }}</textarea>
                             </div>
                         </div>
 
@@ -287,15 +283,11 @@
                                 <input type="number"
                                     name="persentase_pajak"
                                     id="persentasePajak"
-                                    value="{{ old('persentase_pajak', 0) }}"
+                                    value="{{ old('persentase_pajak', $penjualan->persentase_pajak) }}"
                                     min="0"
                                     max="100"
                                     step="0.01"
                                     class="w-full border-gray-300 rounded-md shadow-sm text-right">
-
-                                <p class="text-sm text-gray-500 mt-1">
-                                    Pajak tetap bisa ditampilkan di invoice, walaupun tidak ditambahkan ke total akhir.
-                                </p>
                             </div>
 
                             <div class="mb-4">
@@ -307,14 +299,10 @@
                                             name="pajak_ditambahkan"
                                             value="1"
                                             class="mt-1"
-                                            {{ old('pajak_ditambahkan', '1') == '1' ? 'checked' : '' }}>
+                                            {{ old('pajak_ditambahkan', $penjualan->pajak_ditambahkan ? '1' : '0') == '1' ? 'checked' : '' }}>
 
                                         <span>
                                             <strong>Pajak ditambahkan ke total</strong>
-                                            <br>
-                                            <small class="text-gray-500">
-                                                Untuk customer yang memang dikenakan pajak.
-                                            </small>
                                         </span>
                                     </label>
 
@@ -323,14 +311,10 @@
                                             name="pajak_ditambahkan"
                                             value="0"
                                             class="mt-1"
-                                            {{ old('pajak_ditambahkan') == '0' ? 'checked' : '' }}>
+                                            {{ old('pajak_ditambahkan', $penjualan->pajak_ditambahkan ? '1' : '0') == '0' ? 'checked' : '' }}>
 
                                         <span>
                                             <strong>Pajak hanya ditampilkan</strong>
-                                            <br>
-                                            <small class="text-gray-500">
-                                                Untuk customer yang pajaknya hanya ingin dicatat/ditampilkan, tetapi tidak menambah total.
-                                            </small>
                                         </span>
                                     </label>
                                 </div>
@@ -354,134 +338,20 @@
                     </div>
 
                     <div class="flex justify-end gap-2 mt-6">
-                        <a href="{{ route('penjualan.index') }}"
+                        <a href="{{ route('penjualan.show', $penjualan->id_penjualan) }}"
                             class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
                             Batal
                         </a>
 
                         <button type="submit"
                             class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                            onclick="return confirm('Simpan transaksi penjualan ini? Stok barang akan berkurang otomatis.')">
-                            Simpan Penjualan
+                            onclick="return confirm('Update transaksi penjualan ini? Stok lama akan dikembalikan lalu stok baru akan dihitung ulang.')">
+                            Update Penjualan
                         </button>
                     </div>
                 </form>
 
             </div>
-        </div>
-    </div>
-
-    <div id="modalCustomer"
-        class="fixed inset-0 bg-black bg-opacity-50 hidden items-start justify-center z-50 overflow-y-auto px-4 py-6 sm:py-10">
-
-        <div class="bg-white rounded-xl shadow-lg w-full max-w-2xl max-h-[90vh] flex flex-col">
-
-            <div class="flex items-center justify-between border-b px-6 py-4 flex-shrink-0 bg-white rounded-t-xl">
-                <h3 class="text-lg font-semibold">
-                    Tambah Customer Baru
-                </h3>
-
-                <button type="button"
-                    id="btnTutupModalCustomer"
-                    class="text-gray-500 hover:text-gray-800 text-2xl leading-none">
-                    &times;
-                </button>
-            </div>
-
-            <form id="formQuickCustomer" class="flex flex-col min-h-0">
-                @csrf
-
-                <div class="p-6 overflow-y-auto min-h-0">
-                    <div id="quickCustomerMessage"
-                        class="hidden mb-4 p-4 rounded-md whitespace-pre-line break-words text-sm leading-relaxed">
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="md:col-span-2">
-                            <label class="block mb-1 font-medium">
-                                Nama Customer <span class="text-red-600">*</span>
-                            </label>
-                            <input type="text"
-                                name="nama_customer"
-                                id="quickNamaCustomer"
-                                class="w-full border-gray-300 rounded-md shadow-sm"
-                                required>
-                            <p class="text-sm text-gray-500 mt-1">
-                                Wajib diisi. Data lainnya boleh dikosongkan, tetapi jika diisi tidak boleh sama dengan customer lain.
-                            </p>
-                        </div>
-
-                        <div class="md:col-span-2">
-                            <label class="block mb-1 font-medium">
-                                Nomor Handphone <span class="text-gray-500 text-sm">(Opsional)</span>
-                            </label>
-                            <input type="text"
-                                name="nomor_telepon"
-                                id="quickNomorTelepon"
-                                class="w-full border-gray-300 rounded-md shadow-sm"
-                                placeholder="Contoh: 08123456789">
-                        </div>
-
-                        <div class="md:col-span-2">
-                            <label class="block mb-1 font-medium">
-                                NPWP <span class="text-gray-500 text-sm">(Opsional)</span>
-                            </label>
-                            <input type="text"
-                                name="npwp"
-                                id="quickNpwpCustomer"
-                                class="w-full border-gray-300 rounded-md shadow-sm"
-                                placeholder="Contoh: 01.234.567.8-999.000">
-                        </div>
-
-                        <div class="md:col-span-2">
-                            <label class="block mb-1 font-medium">
-                                Kategori Customer <span class="text-gray-500 text-sm">(Opsional)</span>
-                            </label>
-                            <input type="text"
-                                name="kategori_customer"
-                                id="quickKategoriCustomer"
-                                class="w-full border-gray-300 rounded-md shadow-sm"
-                                placeholder="Contoh: Customer Baru, Customer Lama, Grosir">
-                        </div>
-
-                        <div class="md:col-span-2">
-                            <label class="block mb-1 font-medium">
-                                Alamat <span class="text-gray-500 text-sm">(Opsional)</span>
-                            </label>
-                            <textarea name="alamat"
-                                id="quickAlamatCustomer"
-                                rows="3"
-                                class="w-full border-gray-300 rounded-md shadow-sm"
-                                placeholder="Alamat customer"></textarea>
-                        </div>
-
-                        <div class="md:col-span-2">
-                            <label class="block mb-1 font-medium">
-                                Catatan <span class="text-gray-500 text-sm">(Opsional)</span>
-                            </label>
-                            <textarea name="catatan"
-                                id="quickCatatanCustomer"
-                                rows="3"
-                                class="w-full border-gray-300 rounded-md shadow-sm"
-                                placeholder="Catatan tambahan tentang customer"></textarea>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flex justify-end gap-2 px-6 py-4 border-t bg-white flex-shrink-0 rounded-b-xl">
-                    <button type="button"
-                        id="btnBatalCustomer"
-                        class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
-                        Batal
-                    </button>
-
-                    <button type="submit"
-                        id="btnSimpanQuickCustomer"
-                        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed">
-                        Simpan Customer
-                    </button>
-                </div>
-            </form>
         </div>
     </div>
 
@@ -564,9 +434,20 @@
                 return null;
             }
 
+            const selectedBarangId = String(selectedOption.value);
+            const oldBarangId = String(row.getAttribute('data-old-barang-id') || '');
+            const oldJumlah = parseInt(row.getAttribute('data-old-jumlah')) || 0;
+
+            let stok = parseInt(selectedOption.getAttribute('data-stok')) || 0;
+
+            if (selectedBarangId === oldBarangId) {
+                stok += oldJumlah;
+            }
+
             return {
+                idBarang: selectedBarangId,
                 harga: parseFloat(selectedOption.getAttribute('data-harga')) || 0,
-                stok: parseInt(selectedOption.getAttribute('data-stok')) || 0,
+                stok: stok,
                 satuan: selectedOption.getAttribute('data-satuan') || '',
                 tipePerhitungan: selectedOption.getAttribute('data-tipe-perhitungan') || 'normal',
                 satuanHitung: selectedOption.getAttribute('data-satuan-hitung') || '',
@@ -595,8 +476,11 @@
                 return;
             }
 
-            hargaInput.value = detail.harga || 0;
-            stokInfo.innerText = 'Stok tersedia: ' + detail.stok + ' ' + detail.satuan;
+            if (!hargaInput.value || parseFloat(hargaInput.value) === 0) {
+                hargaInput.value = detail.harga || 0;
+            }
+
+            stokInfo.innerText = 'Stok tersedia setelah stok transaksi lama dikembalikan: ' + detail.stok + ' ' + detail.satuan;
             satuanJumlahInfo.innerText = detail.satuan ? detail.satuan : '-';
 
             if (detail.tipePerhitungan === 'isi_kemasan') {
@@ -659,155 +543,6 @@
             } else {
                 fieldJatuhTempo.style.display = 'none';
                 fieldJatuhTempo.querySelector('input').removeAttribute('required');
-            }
-        }
-
-        function bukaModalCustomer() {
-            const modal = document.getElementById('modalCustomer');
-            const messageBox = document.getElementById('quickCustomerMessage');
-
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-
-            document.body.classList.add('overflow-hidden');
-
-            messageBox.classList.add('hidden');
-            messageBox.innerText = '';
-
-            setTimeout(function() {
-                document.getElementById('quickNamaCustomer').focus();
-            }, 100);
-        }
-
-        function tutupModalCustomer() {
-            const modal = document.getElementById('modalCustomer');
-            const form = document.getElementById('formQuickCustomer');
-            const messageBox = document.getElementById('quickCustomerMessage');
-            const btn = document.getElementById('btnSimpanQuickCustomer');
-
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-
-            document.body.classList.remove('overflow-hidden');
-
-            form.reset();
-
-            messageBox.classList.add('hidden');
-            messageBox.innerText = '';
-
-            btn.disabled = false;
-            btn.innerText = 'Simpan Customer';
-        }
-
-        function tampilkanPesanCustomer(type, message) {
-            const box = document.getElementById('quickCustomerMessage');
-
-            box.classList.remove(
-                'hidden',
-                'bg-red-100',
-                'text-red-700',
-                'bg-green-100',
-                'text-green-700',
-                'bg-yellow-100',
-                'text-yellow-700'
-            );
-
-            if (type === 'error') {
-                box.classList.add('bg-red-100', 'text-red-700');
-            } else if (type === 'exists') {
-                box.classList.add('bg-yellow-100', 'text-yellow-700');
-            } else {
-                box.classList.add('bg-green-100', 'text-green-700');
-            }
-
-            box.innerText = message;
-            box.scrollIntoView({
-                behavior: 'smooth',
-                block: 'nearest'
-            });
-        }
-
-        function pilihCustomer(customer) {
-            const customerSelect = document.getElementById('customerSelect');
-
-            const text = customer.kode_customer + ' - ' + customer.nama_customer +
-                (customer.nomor_telepon ? ' | ' + customer.nomor_telepon : '') +
-                (customer.npwp ? ' | NPWP: ' + customer.npwp : '');
-
-            let option = customerSelect.querySelector('option[value="' + customer.id_customer + '"]');
-
-            if (!option) {
-                option = new Option(text, customer.id_customer, true, true);
-                customerSelect.add(option);
-            } else {
-                option.text = text;
-            }
-
-            if (customerSelect.tomselect) {
-                customerSelect.tomselect.addOption({
-                    value: String(customer.id_customer),
-                    text: text
-                });
-
-                customerSelect.tomselect.addItem(String(customer.id_customer), true);
-                customerSelect.tomselect.setValue(String(customer.id_customer), true);
-                customerSelect.tomselect.refreshOptions(false);
-            } else {
-                customerSelect.value = customer.id_customer;
-            }
-        }
-
-        async function simpanQuickCustomer(e) {
-            e.preventDefault();
-
-            const btn = document.getElementById('btnSimpanQuickCustomer');
-            const form = document.getElementById('formQuickCustomer');
-            const formData = new FormData(form);
-
-            btn.disabled = true;
-            btn.innerText = 'Menyimpan...';
-
-            try {
-                const response = await fetch("{{ route('customers.quickStore') }}", {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
-                        'Accept': 'application/json'
-                    },
-                    body: formData
-                });
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                    let pesan = 'Customer gagal disimpan.';
-
-                    if (data.errors) {
-                        pesan = Object.values(data.errors).flat().join('\n');
-                    } else if (data.message) {
-                        pesan = data.message;
-                    }
-
-                    tampilkanPesanCustomer('error', pesan);
-                    return;
-                }
-
-                pilihCustomer(data.customer);
-
-                if (data.status === 'exists') {
-                    tampilkanPesanCustomer('exists', data.message || 'Customer sudah tersedia dan langsung dipilih.');
-                } else {
-                    tampilkanPesanCustomer('success', data.message || 'Customer baru berhasil ditambahkan dan langsung dipilih.');
-                }
-
-                setTimeout(function() {
-                    tutupModalCustomer();
-                }, 900);
-            } catch (error) {
-                tampilkanPesanCustomer('error', 'Terjadi kesalahan. Silakan coba lagi.');
-            } finally {
-                btn.disabled = false;
-                btn.innerText = 'Simpan Customer';
             }
         }
 
@@ -886,7 +621,7 @@
 
                 if (detail && jumlah > detail.stok) {
                     valid = false;
-                    pesan = 'Jumlah penjualan tidak boleh melebihi stok tersedia. Stok tersedia: ' + detail.stok + ' ' + detail.satuan;
+                    pesan = 'Jumlah penjualan tidak boleh melebihi stok tersedia. Stok tersedia setelah transaksi lama dikembalikan: ' + detail.stok + ' ' + detail.satuan;
                 }
             });
 
@@ -900,47 +635,12 @@
             initCustomerSelect();
             initAllBarangSelect();
             updateMetodePembayaran();
-            hitungTotal();
 
             document.querySelectorAll('#tableBarang tbody tr').forEach(function(row) {
                 updateBarangInfo(row);
             });
 
-            const modalCustomer = document.getElementById('modalCustomer');
-            const btnBukaModalCustomer = document.getElementById('btnBukaModalCustomer');
-            const btnTutupModalCustomer = document.getElementById('btnTutupModalCustomer');
-            const btnBatalCustomer = document.getElementById('btnBatalCustomer');
-            const formQuickCustomer = document.getElementById('formQuickCustomer');
-
-            if (btnBukaModalCustomer) {
-                btnBukaModalCustomer.addEventListener('click', bukaModalCustomer);
-            }
-
-            if (btnTutupModalCustomer) {
-                btnTutupModalCustomer.addEventListener('click', tutupModalCustomer);
-            }
-
-            if (btnBatalCustomer) {
-                btnBatalCustomer.addEventListener('click', tutupModalCustomer);
-            }
-
-            if (formQuickCustomer) {
-                formQuickCustomer.addEventListener('submit', simpanQuickCustomer);
-            }
-
-            if (modalCustomer) {
-                modalCustomer.addEventListener('click', function(e) {
-                    if (e.target === modalCustomer) {
-                        tutupModalCustomer();
-                    }
-                });
-            }
-
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape' && modalCustomer && !modalCustomer.classList.contains('hidden')) {
-                    tutupModalCustomer();
-                }
-            });
+            hitungTotal();
         });
     </script>
 </x-app-layout>

@@ -33,7 +33,9 @@
                     </div>
 
                     <div class="mb-4">
-                        <label class="block mb-1 font-medium">Nama Customer</label>
+                        <label class="block mb-1 font-medium">
+                            Nama Customer <span class="text-red-600">*</span>
+                        </label>
                         <input type="text"
                             name="nama_customer"
                             value="{{ old('nama_customer', $customer->nama_customer) }}"
@@ -42,7 +44,7 @@
                     </div>
 
                     <div class="mb-4">
-                        <label class="block mb-1 font-medium">Nomor Telepon</label>
+                        <label class="block mb-1 font-medium">Nomor Telepon <span class="text-gray-500 text-sm">(Opsional)</span></label>
                         <input type="text"
                             name="nomor_telepon"
                             value="{{ old('nomor_telepon', $customer->nomor_telepon) }}"
@@ -50,7 +52,16 @@
                     </div>
 
                     <div class="mb-4">
-                        <label class="block mb-1 font-medium">Kategori Customer</label>
+                        <label class="block mb-1 font-medium">NPWP <span class="text-gray-500 text-sm">(Opsional)</span></label>
+                        <input type="text"
+                            name="npwp"
+                            value="{{ old('npwp', $customer->npwp) }}"
+                            placeholder="Contoh: 01.234.567.8-999.000"
+                            class="w-full border-gray-300 rounded-md shadow-sm">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block mb-1 font-medium">Kategori Customer <span class="text-gray-500 text-sm">(Opsional)</span></label>
                         <input type="text"
                             name="kategori_customer"
                             value="{{ old('kategori_customer', $customer->kategori_customer) }}"
@@ -58,7 +69,7 @@
                     </div>
 
                     <div class="mb-4">
-                        <label class="block mb-1 font-medium">Alamat</label>
+                        <label class="block mb-1 font-medium">Alamat <span class="text-gray-500 text-sm">(Opsional)</span></label>
                         <textarea name="alamat"
                             rows="3"
                             class="w-full border-gray-300 rounded-md shadow-sm">{{ old('alamat', $customer->alamat) }}</textarea>
@@ -79,7 +90,7 @@
                     </div>
 
                     <div class="mb-4">
-                        <label class="block mb-1 font-medium">Catatan</label>
+                        <label class="block mb-1 font-medium">Catatan <span class="text-gray-500 text-sm">(Opsional)</span></label>
                         <textarea name="catatan"
                             rows="3"
                             class="w-full border-gray-300 rounded-md shadow-sm">{{ old('catatan', $customer->catatan) }}</textarea>
@@ -87,7 +98,7 @@
 
                     <div class="flex justify-end gap-2">
                         <a href="{{ route('customers.index') }}"
-                            class="px-4 py-2 bg-gray-200 text-gray-70   0 rounded-md hover:bg-gray-300">
+                            class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
                             Batal
                         </a>
 

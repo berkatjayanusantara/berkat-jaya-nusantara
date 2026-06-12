@@ -17,9 +17,10 @@ class CustomerFactory extends Factory
         return [
             'kode_customer' => 'CUS-' . str_pad((string) fake()->unique()->numberBetween(1, 9999), 4, '0', STR_PAD_LEFT),
             'nama_customer' => fake()->name(),
-            'nomor_telepon' => fake()->unique()->numerify('08##########'),
-            'alamat' => fake()->address(),
-            'kategori_customer' => fake()->randomElement(['Umum', 'Retail', 'Grosir', 'Langganan']),
+            'nomor_telepon' => fake()->optional()->unique()->numerify('08##########'),
+            'npwp' => fake()->optional()->numerify('##.###.###.#-###.###'),
+            'alamat' => fake()->optional()->address(),
+            'kategori_customer' => fake()->optional()->randomElement(['Umum', 'Retail', 'Grosir', 'Langganan']),
             'catatan' => fake()->optional()->sentence(),
             'status_aktif' => true,
         ];

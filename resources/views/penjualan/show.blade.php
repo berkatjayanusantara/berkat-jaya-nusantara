@@ -1,414 +1,1043 @@
 <x-app-layout>
     @php
-    /*
-    Fallback untuk data lama:
-    - Jika kolom pajak_ditambahkan belum ada / null, dianggap true.
-    - true = pajak ditambahkan ke total akhir.
-    - false = pajak hanya ditampilkan, tidak ditambahkan ke total akhir.
-    */
     $pajakDitambahkan = $penjualan->pajak_ditambahkan ?? true;
     $backUrl = request('back_url', route('penjualan.index'));
-    @endphp
 
-    <style>
-        @media print {
-            @page {
-                size: 80mm auto;
-                margin: 4mm;
+    $namaPerusahaan = 'CV. BERKAT JAYA NUSANTARA';
+    $alamatPerusahaan = 'Alamat perusahaan belum diisi';
+    $teleponPerusahaan = 'Telepon belum diisi';
+
+    $formatAngkaInvoice = function ($angka) {
+    return rtrim(rtrim(number_format((float) $angka, 3, ',', '.'), '0'), ',');
+    };
+
+    $terbilang = function ($nilai) use (&$terbilang) {
+    $nilai = abs((int) $nilai);
+    $huruf = [
+    '',
+    'satu',
+    'dua',
+    'tiga',
+    'empat',
+    'lima',
+    'enam',
+    'tujuh',
+    'delapan',
+    'sembilan',
+    'sepuluh',
+    'sebelas'
+    ];
+
+    if ($nilai < 12) {
+        return $huruf[$nilai];
+        }
+
+        if ($nilai < 20) {
+        return $terbilang($nilai - 10) . ' belas' ;
+        }
+
+        if ($nilai < 100) {
+        return $terbilang(floor($nilai / 10)) . ' puluh ' . $terbilang($nilai % 10);
+        }
+
+        if ($nilai < 200) {
+        return 'seratus ' . $terbilang($nilai - 100);
+        }
+
+        if ($nilai < 1000) {
+        return $terbilang(floor($nilai / 100)) . ' ratus ' . $terbilang($nilai % 100);
+        }
+
+        if ($nilai < 2000) {
+        return 'seribu ' . $terbilang($nilai - 1000);
+        }
+
+        if ($nilai < 1000000) {
+        return $terbilang(floor($nilai / 1000)) . ' ribu ' . $terbilang($nilai % 1000);
+        }
+
+        if ($nilai < 1000000000) {
+        return $terbilang(floor($nilai / 1000000)) . ' juta ' . $terbilang($nilai % 1000000);
+        }
+
+        if ($nilai < 1000000000000) {
+        return $terbilang(floor($nilai / 1000000000)) . ' miliar ' . $terbilang($nilai % 1000000000);
+        }
+
+        return $terbilang(floor($nilai / 1000000000000)) . ' triliun ' . $terbilang($nilai % 1000000000000);
+        };
+
+        $bersihkanTerbilang=function ($teks) {
+        $teks=trim(preg_replace('/\s+/', ' ' , $teks));
+        return $teks==='' ? 'nol' : $teks;
+        };
+
+        $terbilangTotal=$bersihkanTerbilang($terbilang(round($penjualan->total_akhir))) . ' rupiah';
+
+        $invoiceFileBase = 'Invoice-' . preg_replace('/[^A-Za-z0-9\-_]+/', '-', $penjualan->nomor_invoice ?? 'nota');
+        $invoiceFileBase = trim(preg_replace('/-+/', '-', $invoiceFileBase), '-');
+        @endphp
+
+        <style>
+            :root {
+                --invoice-primary: #1e3a8a;
+                --invoice-primary-soft: #eff6ff;
+                --invoice-secondary: #0f172a;
+                --invoice-muted: #64748b;
+                --invoice-line: #cbd5e1;
+                --invoice-light-line: #dbeafe;
+                --stamp-red: #b91c1c;
             }
 
-            html,
-            body {
-                width: 80mm;
-                margin: 0 !important;
-                padding: 0 !important;
-                background: #ffffff !important;
-                font-size: 10px !important;
-                color: #000000 !important;
+            .invoice-copy {
+                border: none;
+                padding: 12px;
+                background: #ffffff;
+                margin-bottom: 12px;
             }
 
-            nav,
-            header,
-            .no-print {
-                display: none !important;
+            .invoice-copy-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+                border-bottom: 2px solid var(--invoice-primary);
+                padding-bottom: 8px;
+                margin-bottom: 8px;
             }
 
-            .print-wrapper {
-                padding: 0 !important;
-                margin: 0 !important;
+            .company-left {
+                display: flex;
+                align-items: center;
+                gap: 10px;
             }
 
-            .print-container {
-                width: 72mm !important;
-                max-width: 72mm !important;
-                margin: 0 auto !important;
-                padding: 0 !important;
+            .logo-placeholder {
+                width: 54px;
+                height: 54px;
+                border: 1.5px dashed var(--invoice-primary);
+                border-radius: 8px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: var(--invoice-primary);
+                font-size: 10px;
+                text-align: center;
+                flex-shrink: 0;
+                background: var(--invoice-primary-soft);
             }
 
-            .invoice-box {
-                width: 72mm !important;
-                max-width: 72mm !important;
-                box-shadow: none !important;
-                border-radius: 0 !important;
-                padding: 0 !important;
-                margin: 0 !important;
-                background: #ffffff !important;
+            .company-name {
+                font-size: 18px;
+                font-weight: 800;
+                letter-spacing: 0.4px;
+                color: var(--invoice-secondary);
+                line-height: 1.1;
+            }
+
+            .company-info {
+                font-size: 11px;
+                color: var(--invoice-muted);
+                margin-top: 2px;
+                line-height: 1.25;
+            }
+
+            .copy-label {
+                border: 1px solid var(--invoice-primary);
+                color: var(--invoice-primary);
+                background: var(--invoice-primary-soft);
+                border-radius: 999px;
+                padding: 4px 10px;
+                font-size: 10px;
+                font-weight: 800;
+                white-space: nowrap;
+            }
+
+            .invoice-title-row {
+                display: flex;
+                justify-content: space-between;
+                gap: 10px;
+                margin-bottom: 8px;
             }
 
             .invoice-title {
-                font-size: 16px !important;
-                text-align: center !important;
-                margin-bottom: 2px !important;
+                font-size: 15px;
+                font-weight: 800;
+                color: var(--invoice-secondary);
             }
 
             .invoice-number {
-                text-align: center !important;
-                font-size: 10px !important;
-                margin-bottom: 8px !important;
+                font-size: 12px;
+                font-weight: 700;
+                color: var(--invoice-primary);
             }
 
-            .section-title {
-                font-size: 11px !important;
-                font-weight: bold !important;
-                margin-top: 8px !important;
-                margin-bottom: 4px !important;
-                border-top: 1px dashed #000 !important;
-                padding-top: 5px !important;
+            .invoice-quick-info {
+                text-align: right;
+                font-size: 11px;
+                color: var(--invoice-secondary);
+                line-height: 1.35;
             }
 
-            .print-grid {
-                display: block !important;
+            .info-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 14px;
+                margin-bottom: 8px;
             }
 
-            .print-grid>div {
-                margin-bottom: 6px !important;
+            .invoice-section-title {
+                font-size: 12px;
+                font-weight: 800;
+                margin-bottom: 4px;
+                color: var(--invoice-primary);
+                border-bottom: 1px solid var(--invoice-line);
+                padding-bottom: 2px;
             }
 
-            table {
-                width: 100% !important;
-                border-collapse: collapse !important;
-                font-size: 9px !important;
+            .info-table {
+                width: 100%;
+                font-size: 11px;
+                color: var(--invoice-secondary);
             }
 
-            th,
-            td {
-                padding: 2px 1px !important;
-                border: none !important;
-                vertical-align: top !important;
+            .info-table td {
+                padding: 1px 0;
+                vertical-align: top;
             }
 
-            .table-barang th,
-            .table-barang td {
-                border-bottom: 1px dashed #999 !important;
+            .items-title-row {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 10px;
+                margin-top: 2px;
+                margin-bottom: 3px;
             }
 
-            .hide-print {
-                display: none !important;
+            .items-table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 11px;
+                color: var(--invoice-secondary);
             }
 
-            .text-print-right {
-                text-align: right !important;
+            .items-table thead th {
+                background: var(--invoice-primary-soft);
+                color: var(--invoice-secondary);
+                border-top: 1.5px solid var(--invoice-primary);
+                border-bottom: 1px solid var(--invoice-primary);
+                border-left: 1px solid var(--invoice-line);
+                border-right: 1px solid var(--invoice-line);
+                padding: 5px 4px;
+                font-weight: 800;
             }
 
-            .summary-box,
-            .catatan-box,
-            .piutang-box {
-                border: none !important;
-                background: #ffffff !important;
-                padding: 0 !important;
-                border-radius: 0 !important;
+            .items-table thead th:first-child {
+                border-left: none;
             }
 
-            .summary-row {
-                display: flex !important;
-                justify-content: space-between !important;
-                gap: 6px !important;
-                margin-bottom: 3px !important;
-                font-size: 10px !important;
+            .items-table thead th:last-child {
+                border-right: none;
             }
 
-            .summary-total {
-                border-top: 1px dashed #000 !important;
-                padding-top: 5px !important;
-                margin-top: 5px !important;
-                font-size: 12px !important;
-                font-weight: bold !important;
+            .items-table tbody td {
+                border-bottom: 1px solid var(--invoice-line);
+                border-left: 1px solid var(--invoice-light-line);
+                border-right: 1px solid var(--invoice-light-line);
+                padding: 5px 4px;
+                vertical-align: top;
+            }
+
+            .items-table tbody td:first-child {
+                border-left: none;
+            }
+
+            .items-table tbody td:last-child {
+                border-right: none;
+            }
+
+            .items-table tbody tr:last-child td {
+                border-bottom: 1.5px solid var(--invoice-primary);
+            }
+
+            .item-name {
+                font-weight: 800;
+                color: var(--invoice-secondary);
+            }
+
+            .item-formula {
+                color: var(--invoice-muted);
+                font-size: 10px;
+                margin-top: 1px;
+            }
+
+            .total-inline-wrapper {
+                display: flex;
+                justify-content: flex-end;
+                margin-top: 5px;
+                margin-bottom: 6px;
+            }
+
+            .total-inline {
+                width: 250px;
+                max-width: 100%;
+                font-size: 11px;
+                color: var(--invoice-secondary);
+            }
+
+            .total-inline-row {
+                display: flex;
+                justify-content: space-between;
+                gap: 10px;
+                padding: 2px 0;
+            }
+
+            .total-inline-row span:first-child {
+                white-space: nowrap;
+            }
+
+            .total-inline-total {
+                border-top: 1.5px solid var(--invoice-primary);
+                margin-top: 3px;
+                padding-top: 4px;
+                font-size: 12px;
+                font-weight: 900;
+                color: var(--invoice-primary);
             }
 
             .pajak-note {
-                font-size: 9px !important;
-                color: #000000 !important;
-                margin-bottom: 4px !important;
-                font-style: italic !important;
+                font-size: 10px;
+                color: var(--invoice-muted);
+                text-align: right;
+                margin-top: 1px;
             }
 
-            .footer-print {
-                display: block !important;
-                margin-top: 10px !important;
-                text-align: center !important;
-                font-size: 9px !important;
-                border-top: 1px dashed #000 !important;
-                padding-top: 6px !important;
+            .bottom-info-area {
+                display: grid;
+                grid-template-columns: 1.35fr 0.65fr;
+                gap: 20px;
+                margin-top: 6px;
             }
-        }
 
-        .footer-print {
-            display: none;
-        }
-    </style>
+            .terbilang-box {
+                font-size: 11px;
+                color: var(--invoice-secondary);
+                line-height: 1.35;
+                padding-top: 2px;
+            }
 
-    <x-slot name="header">
-        <div class="flex justify-between items-center no-print">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                Detail Invoice Penjualan
-            </h2>
+            .terbilang-label {
+                font-weight: 800;
+                color: var(--invoice-primary);
+            }
 
-            <div class="flex gap-2">
-                <a href="{{ route('penjualan.exportExcel', $penjualan->id_penjualan) }}"
-                    class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
-                    Export Excel
-                </a>
+            .terbilang-text {
+                font-style: italic;
+                color: var(--invoice-secondary);
+            }
 
-                <button onclick="window.print()"
-                    class="px-4 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-900">
-                    Cetak Invoice
-                </button>
-            </div>
-        </div>
-    </x-slot>
+            .signature-area {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+                margin-top: 8px;
+                font-size: 11px;
+                text-align: center;
+                color: var(--invoice-secondary);
+            }
 
-    <div class="py-6 print-wrapper">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 print-container">
+            .signature-box {
+                position: relative;
+                min-height: 72px;
+            }
 
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 invoice-box">
+            .signature-name {
+                margin-top: 42px;
+                padding-top: 3px;
+                position: relative;
+                z-index: 2;
+                font-weight: 700;
+            }
 
-                <div class="border-b pb-4 mb-6">
-                    <h1 class="text-2xl font-bold invoice-title">INVOICE</h1>
-                    <p class="text-gray-600 invoice-number">
-                        {{ $penjualan->nomor_invoice }}
-                    </p>
-                </div>
+            .company-signature-box {
+                position: relative;
+                overflow: visible;
+            }
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6 print-grid">
-                    <div>
-                        <h3 class="font-semibold text-lg mb-3 section-title">
-                            Informasi Customer
-                        </h3>
+            .company-signature-label {
+                position: relative;
+                z-index: 2;
+                font-weight: 700;
+            }
 
-                        <table class="w-full">
-                            <tr>
-                                <td class="py-1 font-medium">Nama</td>
-                                <td class="py-1">
-                                    : {{ $penjualan->customer->nama_customer ?? '-' }}
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="py-1 font-medium">Telepon</td>
-                                <td class="py-1">
-                                    : {{ $penjualan->customer->nomor_telepon ?? '-' }}
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="py-1 font-medium">Alamat</td>
-                                <td class="py-1">
-                                    : {{ $penjualan->customer->alamat ?? '-' }}
-                                </td>
-                            </tr>
-                        </table>
-                    </div>
+            .copy-divider {
+                border-top: 1.5px dashed var(--invoice-muted);
+                margin: 8px 0 12px;
+                position: relative;
+            }
 
-                    <div>
-                        <h3 class="font-semibold text-lg mb-3 section-title">
-                            Informasi Penjualan
-                        </h3>
+            .copy-divider span {
+                position: absolute;
+                top: -9px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: #ffffff;
+                padding: 0 8px;
+                font-size: 10px;
+                color: var(--invoice-muted);
+            }
 
-                        <table class="w-full">
-                            <tr>
-                                <td class="py-1 font-medium">Tanggal</td>
-                                <td class="py-1">
-                                    : {{ $penjualan->tanggal_penjualan->format('d-m-Y') }}
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="py-1 font-medium">Pembayaran</td>
-                                <td class="py-1">
-                                    : {{ ucfirst($penjualan->metode_pembayaran) }}
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="py-1 font-medium">Status</td>
-                                <td class="py-1">
-                                    : {{ str_replace('_', ' ', ucfirst($penjualan->status_pembayaran)) }}
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="py-1 font-medium">Jatuh Tempo</td>
-                                <td class="py-1">
-                                    : {{ $penjualan->tanggal_jatuh_tempo ? $penjualan->tanggal_jatuh_tempo->format('d-m-Y') : '-' }}
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="py-1 font-medium">Admin</td>
-                                <td class="py-1">
-                                    : {{ $penjualan->user->nama_user ?? '-' }}
-                                </td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
+            .stempel-manual {
+                position: absolute;
+                left: 50%;
+                top: 2px;
+                width: 230px;
+                max-width: 100%;
+                padding: 9px 14px;
+                border: 2px double var(--stamp-red);
+                color: var(--stamp-red);
+                background: rgba(255, 255, 255, 0.35);
+                text-align: center;
+                font-family: "Times New Roman", serif;
+                transform: translateX(-50%) rotate(-7deg);
+                box-sizing: border-box;
+                opacity: 0.90;
+                z-index: 8;
+                pointer-events: none;
+            }
 
-                <h3 class="font-semibold text-lg mb-3 section-title">
-                    Daftar Barang
-                </h3>
+            .stempel-manual::before {
+                content: "";
+                position: absolute;
+                inset: 4px;
+                border: 1px solid var(--stamp-red);
+                pointer-events: none;
+            }
 
-                <div class="overflow-x-auto mb-6">
-                    <table class="min-w-full border border-gray-200 table-barang">
-                        <thead class="bg-gray-100">
-                            <tr>
-                                <th class="border px-3 py-2 text-left">No</th>
-                                <th class="border px-3 py-2 text-left hide-print">Kode</th>
-                                <th class="border px-3 py-2 text-left">Barang</th>
-                                <th class="border px-3 py-2 text-right">Qty</th>
-                                <th class="border px-3 py-2 text-right">Harga</th>
-                                <th class="border px-3 py-2 text-right">Subtotal</th>
-                            </tr>
-                        </thead>
+            .stempel-manual::after {
+                content: "STEMPEL";
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%) rotate(-8deg);
+                font-size: 24px;
+                font-weight: 800;
+                letter-spacing: 2px;
+                color: rgba(185, 28, 28, 0.13);
+                white-space: nowrap;
+                pointer-events: none;
+            }
 
-                        <tbody>
-                            @foreach ($penjualan->detailPenjualan as $detail)
-                            <tr>
-                                <td class="border px-3 py-2">
-                                    {{ $loop->iteration }}
-                                </td>
+            .stempel-content {
+                position: relative;
+                z-index: 2;
+            }
 
-                                <td class="border px-3 py-2 hide-print">
-                                    {{ $detail->barang->kode_barang ?? '-' }}
-                                </td>
+            .stempel-company {
+                font-size: 14px;
+                font-weight: 800;
+                line-height: 1.1;
+            }
 
-                                <td class="border px-3 py-2">
-                                    {{ $detail->barang->nama_barang ?? '-' }}
-                                </td>
+            .stempel-bank {
+                font-size: 12px;
+                font-weight: 700;
+                line-height: 1.2;
+                margin-bottom: 5px;
+            }
 
-                                <td class="border px-3 py-2 text-right text-print-right">
-                                    {{ $detail->jumlah }}
-                                </td>
+            .stempel-bank:last-child {
+                margin-bottom: 0;
+            }
 
-                                <td class="border px-3 py-2 text-right text-print-right">
-                                    Rp {{ number_format($detail->harga_jual, 0, ',', '.') }}
-                                </td>
+            .stempel-separator {
+                width: 70%;
+                border-top: 1px dashed var(--stamp-red);
+                margin: 5px auto;
+            }
 
-                                <td class="border px-3 py-2 text-right text-print-right">
-                                    Rp {{ number_format($detail->subtotal, 0, ',', '.') }}
-                                </td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
+            @media print {
+                @page {
+                    size: A4 portrait;
+                    margin: 6mm;
+                }
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 print-grid">
-                    <div>
-                        <h3 class="font-semibold text-lg mb-3 section-title">
-                            Catatan
-                        </h3>
+                html,
+                body {
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    background: #ffffff !important;
+                    color: #000000 !important;
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                }
 
-                        <p class="border rounded-md p-4 bg-gray-50 catatan-box">
-                            {{ $penjualan->catatan ?? '-' }}
-                        </p>
+                nav,
+                header,
+                .no-print {
+                    display: none !important;
+                }
 
-                        @if ($penjualan->piutang)
-                        <div class="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md piutang-box">
-                            <h3 class="font-semibold text-yellow-800 mb-2 section-title">
-                                Informasi Piutang
-                            </h3>
+                .print-wrapper,
+                .print-container,
+                .invoice-box {
+                    padding: 0 !important;
+                    margin: 0 !important;
+                    width: 100% !important;
+                    max-width: 100% !important;
+                    box-shadow: none !important;
+                    border-radius: 0 !important;
+                    background: #ffffff !important;
+                }
 
-                            <table class="w-full">
-                                <tr>
-                                    <td>Total Piutang</td>
-                                    <td class="text-right text-print-right">
-                                        Rp {{ number_format($penjualan->piutang->total_piutang, 0, ',', '.') }}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>Total Dibayar</td>
-                                    <td class="text-right text-print-right">
-                                        Rp {{ number_format($penjualan->piutang->total_dibayar, 0, ',', '.') }}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>Sisa Piutang</td>
-                                    <td class="text-right text-print-right">
-                                        Rp {{ number_format($penjualan->piutang->sisa_piutang, 0, ',', '.') }}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>Status</td>
-                                    <td class="text-right text-print-right">
-                                        {{ str_replace('_', ' ', ucfirst($penjualan->piutang->status_piutang)) }}
-                                    </td>
-                                </tr>
-                            </table>
-                        </div>
-                        @endif
-                    </div>
+                .invoice-copy {
+                    min-height: 134mm !important;
+                    max-height: none !important;
+                    overflow: visible !important;
+                    border: none !important;
+                    padding: 4mm !important;
+                    margin: 0 !important;
+                    box-sizing: border-box !important;
+                    page-break-inside: avoid !important;
+                    break-inside: avoid !important;
+                }
 
-                    <div>
-                        <h3 class="font-semibold text-lg mb-3 section-title">
-                            Ringkasan Total
-                        </h3>
+                .copy-divider {
+                    margin: 2.5mm 0 !important;
+                    border-top: 1px dashed #64748b !important;
+                }
 
-                        <div class="bg-gray-50 border rounded-md p-4 summary-box">
-                            <div class="flex justify-between mb-2 summary-row">
-                                <span>Subtotal</span>
-                                <strong>
-                                    Rp {{ number_format($penjualan->subtotal, 0, ',', '.') }}
-                                </strong>
-                            </div>
+                .copy-divider span {
+                    top: -6px !important;
+                    font-size: 7px !important;
+                    color: #64748b !important;
+                }
 
-                            <div class="flex justify-between mb-2 summary-row">
-                                <span>
-                                    Pajak {{ number_format($penjualan->persentase_pajak, 2, ',', '.') }}%
+                .invoice-copy-header {
+                    padding-bottom: 3px !important;
+                    margin-bottom: 4px !important;
+                    border-bottom: 1.2px solid var(--invoice-primary) !important;
+                }
 
-                                    @if (!$pajakDitambahkan)
-                                    <small class="text-gray-500">
-                                        (ditampilkan saja)
-                                    </small>
-                                    @endif
-                                </span>
+                .logo-placeholder {
+                    width: 34px !important;
+                    height: 34px !important;
+                    font-size: 7px !important;
+                    border-color: var(--invoice-primary) !important;
+                    color: var(--invoice-primary) !important;
+                    border-radius: 4px !important;
+                    background: var(--invoice-primary-soft) !important;
+                }
 
-                                <strong>
-                                    Rp {{ number_format($penjualan->nilai_pajak, 0, ',', '.') }}
-                                </strong>
-                            </div>
+                .company-name {
+                    font-size: 12px !important;
+                    line-height: 1.05 !important;
+                    color: #0f172a !important;
+                }
 
-                            @if (!$pajakDitambahkan)
-                            <div class="mb-2 text-sm text-gray-500 pajak-note">
-                                Pajak tidak ditambahkan ke total akhir.
-                            </div>
-                            @endif
+                .company-info {
+                    font-size: 7.5px !important;
+                    color: #334155 !important;
+                    line-height: 1.15 !important;
+                }
 
-                            <div class="flex justify-between border-t pt-2 text-lg summary-total">
-                                <span>Total Akhir</span>
-                                <strong>
-                                    Rp {{ number_format($penjualan->total_akhir, 0, ',', '.') }}
-                                </strong>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                .copy-label {
+                    font-size: 7.5px !important;
+                    padding: 2px 6px !important;
+                    border-color: var(--invoice-primary) !important;
+                    color: var(--invoice-primary) !important;
+                    background: var(--invoice-primary-soft) !important;
+                }
 
-                <div class="footer-print">
-                    Terima kasih atas pembelian Anda.
-                </div>
+                .invoice-title-row {
+                    margin-bottom: 3px !important;
+                }
 
-                <div class="flex justify-end mt-6 no-print">
-                    <a href="{{ $backUrl }}"
-                        class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
-                        Kembali
+                .invoice-title {
+                    font-size: 10px !important;
+                }
+
+                .invoice-number {
+                    font-size: 8.5px !important;
+                }
+
+                .invoice-quick-info {
+                    font-size: 8px !important;
+                    line-height: 1.2 !important;
+                }
+
+                .info-grid {
+                    display: grid !important;
+                    grid-template-columns: 1fr 1fr !important;
+                    gap: 10px !important;
+                    margin-bottom: 4px !important;
+                }
+
+                .invoice-section-title {
+                    font-size: 8.5px !important;
+                    margin-bottom: 2px !important;
+                    padding-bottom: 1px !important;
+                    color: var(--invoice-primary) !important;
+                    border-bottom: 1px solid #cbd5e1 !important;
+                }
+
+                .info-table {
+                    font-size: 7.8px !important;
+                    line-height: 1.15 !important;
+                }
+
+                .info-table td {
+                    padding: 0 !important;
+                }
+
+                .items-title-row {
+                    margin-top: 1px !important;
+                    margin-bottom: 1px !important;
+                }
+
+                .items-table {
+                    font-size: 7.5px !important;
+                    line-height: 1.15 !important;
+                    border-collapse: collapse !important;
+                }
+
+                .items-table thead th {
+                    padding: 1.5px 2px !important;
+                    border-top: 1.2px solid var(--invoice-primary) !important;
+                    border-bottom: 1px solid var(--invoice-primary) !important;
+                    border-left: 1px solid #cbd5e1 !important;
+                    border-right: 1px solid #cbd5e1 !important;
+                    background: var(--invoice-primary-soft) !important;
+                    color: #0f172a !important;
+                }
+
+                .items-table thead th:first-child {
+                    border-left: none !important;
+                }
+
+                .items-table thead th:last-child {
+                    border-right: none !important;
+                }
+
+                .items-table tbody td {
+                    padding: 1.5px 2px !important;
+                    border-bottom: 1px solid #cbd5e1 !important;
+                    border-left: 1px solid #dbeafe !important;
+                    border-right: 1px solid #dbeafe !important;
+                }
+
+                .items-table tbody td:first-child {
+                    border-left: none !important;
+                }
+
+                .items-table tbody td:last-child {
+                    border-right: none !important;
+                }
+
+                .items-table tbody tr:last-child td {
+                    border-bottom: 1.2px solid var(--invoice-primary) !important;
+                }
+
+                .item-formula {
+                    font-size: 7px !important;
+                    line-height: 1.1 !important;
+                }
+
+                .total-inline-wrapper {
+                    margin-top: 2px !important;
+                    margin-bottom: 3px !important;
+                }
+
+                .total-inline {
+                    width: 185px !important;
+                    font-size: 7.8px !important;
+                    line-height: 1.15 !important;
+                }
+
+                .total-inline-row {
+                    padding: 0.5px 0 !important;
+                }
+
+                .total-inline-total {
+                    font-size: 8.8px !important;
+                    padding-top: 2px !important;
+                    margin-top: 1px !important;
+                    border-top: 1.2px solid var(--invoice-primary) !important;
+                    color: var(--invoice-primary) !important;
+                }
+
+                .pajak-note {
+                    font-size: 7px !important;
+                    margin-top: 0 !important;
+                    color: #334155 !important;
+                }
+
+                .bottom-info-area {
+                    grid-template-columns: 1.35fr 0.65fr !important;
+                    margin-top: 3px !important;
+                    gap: 12px !important;
+                }
+
+                .terbilang-box {
+                    font-size: 7.8px !important;
+                    line-height: 1.15 !important;
+                }
+
+                .signature-area {
+                    margin-top: 3px !important;
+                    font-size: 7.8px !important;
+                    gap: 14px !important;
+                }
+
+                .signature-box {
+                    min-height: 52px !important;
+                }
+
+                .signature-name {
+                    margin-top: 29px !important;
+                    padding-top: 2px !important;
+                }
+
+                .stempel-manual {
+                    top: -1px !important;
+                    width: 168px !important;
+                    padding: 5px 8px !important;
+                    border: 1.5px double var(--stamp-red) !important;
+                    color: var(--stamp-red) !important;
+                    background: rgba(255, 255, 255, 0.25) !important;
+                    transform: translateX(-50%) rotate(-7deg) !important;
+                    opacity: 0.95 !important;
+                    z-index: 8 !important;
+                }
+
+                .stempel-manual::before {
+                    inset: 3px !important;
+                    border: 1px solid var(--stamp-red) !important;
+                }
+
+                .stempel-manual::after {
+                    font-size: 16px !important;
+                    letter-spacing: 1px !important;
+                    color: rgba(185, 28, 28, 0.10) !important;
+                }
+
+                .stempel-company {
+                    font-size: 9px !important;
+                    line-height: 1.05 !important;
+                }
+
+                .stempel-bank {
+                    font-size: 7.8px !important;
+                    line-height: 1.08 !important;
+                    margin-bottom: 2px !important;
+                }
+
+                .stempel-separator {
+                    margin: 2px auto !important;
+                    border-top: 1px dashed var(--stamp-red) !important;
+                }
+            }
+        </style>
+
+        <x-slot name="header">
+            <div class="flex justify-between items-center no-print">
+                <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+                    Detail Invoice Penjualan
+                </h2>
+
+                <div class="flex gap-2">
+                    <a href="{{ route('penjualan.exportExcel', $penjualan->id_penjualan) }}"
+                        class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                        Export Excel
                     </a>
-                </div>
 
+                    <button onclick="cetakInvoiceA4()"
+                        class="px-4 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-900">
+                        Cetak / Download PDF A4
+                    </button>
+                </div>
+            </div>
+        </x-slot>
+
+        <div class="py-6 print-wrapper">
+            <div class="max-w-5xl mx-auto sm:px-6 lg:px-8 print-container">
+
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 invoice-box">
+
+                    @foreach (['CUSTOMER', 'ARSIP PERUSAHAAN'] as $copyIndex => $copyLabel)
+                    <div class="invoice-copy">
+                        <div class="invoice-copy-header">
+                            <div class="company-left">
+                                <div class="logo-placeholder">
+                                    LOGO
+                                </div>
+
+                                <div>
+                                    <div class="company-name">
+                                        {{ $namaPerusahaan }}
+                                    </div>
+                                    <div class="company-info">
+                                        {{ $alamatPerusahaan }}<br>
+                                        Telp: {{ $teleponPerusahaan }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="copy-label">
+                                {{ $copyLabel }}
+                            </div>
+                        </div>
+
+                        <div class="invoice-title-row">
+                            <div>
+                                <div class="invoice-title">
+                                    INVOICE / NOTA PENJUALAN
+                                </div>
+                                <div class="invoice-number">
+                                    No: {{ $penjualan->nomor_invoice }}
+                                </div>
+                            </div>
+
+                            <div class="invoice-quick-info">
+                                <div>
+                                    <strong>Tanggal:</strong>
+                                    {{ $penjualan->tanggal_penjualan ? $penjualan->tanggal_penjualan->format('d-m-Y') : '-' }}
+                                </div>
+                                <div>
+                                    <strong>Pembayaran:</strong>
+                                    {{ ucfirst($penjualan->metode_pembayaran) }}
+                                </div>
+                                <div>
+                                    <strong>Status:</strong>
+                                    {{ str_replace('_', ' ', ucfirst($penjualan->status_pembayaran)) }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="info-grid">
+                            <div>
+                                <div class="invoice-section-title">
+                                    Informasi Customer
+                                </div>
+
+                                <table class="info-table">
+                                    <tr>
+                                        <td style="width: 70px;">Nama</td>
+                                        <td>: {{ $penjualan->customer->nama_customer ?? '-' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Telepon</td>
+                                        <td>: {{ $penjualan->customer->nomor_telepon ?? '-' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>NPWP</td>
+                                        <td>: {{ $penjualan->customer->npwp ?? '-' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Alamat</td>
+                                        <td>: {{ $penjualan->customer->alamat ?? '-' }}</td>
+                                    </tr>
+                                </table>
+                            </div>
+
+                            <div>
+                                <div class="invoice-section-title">
+                                    Informasi Transaksi
+                                </div>
+
+                                <table class="info-table">
+                                    <tr>
+                                        <td style="width: 85px;">Jatuh Tempo</td>
+                                        <td>: {{ $penjualan->tanggal_jatuh_tempo ? $penjualan->tanggal_jatuh_tempo->format('d-m-Y') : '-' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Admin</td>
+                                        <td>: {{ $penjualan->user->nama_user ?? '-' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Catatan</td>
+                                        <td>: {{ $penjualan->catatan ?? '-' }}</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="items-title-row">
+                            <div class="invoice-section-title" style="width: 100%; margin-bottom: 0;">
+                                Daftar Barang
+                            </div>
+                        </div>
+
+                        <table class="items-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 24px;" class="text-center">No</th>
+                                    <th>Barang</th>
+                                    <th style="width: 70px;" class="text-right">Qty</th>
+                                    <th style="width: 78px;" class="text-right">Harga</th>
+                                    <th style="width: 88px;" class="text-right">Subtotal</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                @foreach ($penjualan->detailPenjualan as $detail)
+                                @php
+                                $tipePerhitungan = $detail->tipe_perhitungan_harga ?? 'normal';
+                                $satuanTransaksi = $detail->satuan_transaksi ?? ($detail->barang->satuan ?? '');
+                                $satuanHitung = $detail->satuan_hitung_harga ?? $satuanTransaksi;
+                                $isiPerSatuan = (float) ($detail->isi_per_satuan ?? 1);
+                                @endphp
+
+                                <tr>
+                                    <td class="text-center">
+                                        {{ $loop->iteration }}
+                                    </td>
+
+                                    <td>
+                                        <div class="item-name">
+                                            {{ $detail->barang->nama_barang ?? '-' }}
+                                        </div>
+
+                                        @if ($tipePerhitungan === 'isi_kemasan')
+                                        <div class="item-formula">
+                                            {{ $detail->jumlah }} {{ $satuanTransaksi }}
+                                            x {{ $formatAngkaInvoice($isiPerSatuan) }} {{ $satuanHitung }}
+                                            x Rp {{ number_format($detail->harga_jual, 0, ',', '.') }}
+                                        </div>
+                                        @endif
+                                    </td>
+
+                                    <td class="text-right">
+                                        {{ $detail->jumlah }} {{ $satuanTransaksi }}
+                                    </td>
+
+                                    <td class="text-right">
+                                        Rp {{ number_format($detail->harga_jual, 0, ',', '.') }}
+                                        <div class="item-formula">
+                                            / {{ $tipePerhitungan === 'isi_kemasan' ? $satuanHitung : $satuanTransaksi }}
+                                        </div>
+                                    </td>
+
+                                    <td class="text-right">
+                                        Rp {{ number_format($detail->subtotal, 0, ',', '.') }}
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+
+                        <div class="total-inline-wrapper">
+                            <div class="total-inline">
+                                <div class="total-inline-row">
+                                    <span>Subtotal</span>
+                                    <strong>
+                                        Rp {{ number_format($penjualan->subtotal, 0, ',', '.') }}
+                                    </strong>
+                                </div>
+
+                                <div class="total-inline-row">
+                                    <span>Pajak {{ number_format($penjualan->persentase_pajak, 2, ',', '.') }}%</span>
+                                    <strong>
+                                        Rp {{ number_format($penjualan->nilai_pajak, 0, ',', '.') }}
+                                    </strong>
+                                </div>
+
+                                @if (!$pajakDitambahkan)
+                                <div class="pajak-note">
+                                    Pajak ditampilkan saja
+                                </div>
+                                @endif
+
+                                <div class="total-inline-row total-inline-total">
+                                    <span>Total Akhir</span>
+                                    <strong>
+                                        Rp {{ number_format($penjualan->total_akhir, 0, ',', '.') }}
+                                    </strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bottom-info-area">
+                            <div class="terbilang-box">
+                                <span class="terbilang-label">Terbilang :</span>
+                                <span class="terbilang-text">{{ $terbilangTotal }}</span>
+                            </div>
+
+                            <div></div>
+                        </div>
+
+                        <div class="signature-area">
+                            <div class="signature-box">
+                                <div>Penerima,</div>
+                                <div class="signature-name">
+                                    {{ $penjualan->customer->nama_customer ?? 'Customer' }}
+                                </div>
+                            </div>
+
+                            <div class="signature-box company-signature-box">
+                                <div class="company-signature-label">Hormat Kami,</div>
+
+                                <div class="stempel-manual">
+                                    <div class="stempel-content">
+                                        <div class="stempel-company">Berkat</div>
+                                        <div class="stempel-bank">BCA : 5280902227</div>
+
+                                        <div class="stempel-separator"></div>
+
+                                        <div class="stempel-company">Berkat</div>
+                                        <div class="stempel-bank">OCBC NISP : 565 8000 15150</div>
+                                    </div>
+                                </div>
+
+                                <div class="signature-name">
+                                    {{ $namaPerusahaan }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    @if ($copyIndex === 0)
+                    <div class="copy-divider">
+                        <span>potong / arsip</span>
+                    </div>
+                    @endif
+                    @endforeach
+
+                    <div class="flex justify-end mt-6 no-print">
+                        <a href="{{ $backUrl }}"
+                            class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
+                            Kembali
+                        </a>
+                    </div>
+
+                </div>
             </div>
         </div>
-    </div>
+
+        <script>
+            const invoicePrintTitle = "{{ $invoiceFileBase }}";
+            let previousDocumentTitle = document.title;
+
+            function cetakInvoiceA4() {
+                previousDocumentTitle = document.title;
+                document.title = invoicePrintTitle;
+                window.print();
+
+                setTimeout(function() {
+                    document.title = previousDocumentTitle;
+                }, 1500);
+            }
+
+            window.addEventListener('beforeprint', function() {
+                previousDocumentTitle = document.title;
+                document.title = invoicePrintTitle;
+            });
+
+            window.addEventListener('afterprint', function() {
+                setTimeout(function() {
+                    document.title = previousDocumentTitle;
+                }, 500);
+            });
+        </script>
 </x-app-layout>

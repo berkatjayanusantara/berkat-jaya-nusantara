@@ -16,6 +16,7 @@ class Customer extends Model
         'kode_customer',
         'nama_customer',
         'nomor_telepon',
+        'npwp',
         'alamat',
         'kategori_customer',
         'catatan',

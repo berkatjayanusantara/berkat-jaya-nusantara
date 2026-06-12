@@ -6,7 +6,7 @@
     </x-slot>
 
     <div class="py-6">
-        <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
+        <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
 
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
 
@@ -33,7 +33,9 @@
                     </div>
 
                     <div class="mb-4">
-                        <label class="block mb-1 font-medium">Nama Barang</label>
+                        <label class="block mb-1 font-medium">
+                            Nama Barang <span class="text-red-600">*</span>
+                        </label>
                         <input type="text"
                             name="nama_barang"
                             value="{{ old('nama_barang', $barang->nama_barang) }}"
@@ -41,45 +43,149 @@
                             required>
                     </div>
 
-                    <div class="mb-4">
-                        <label class="block mb-1 font-medium">Satuan</label>
-                        <input type="text"
-                            name="satuan"
-                            value="{{ old('satuan', $barang->satuan) }}"
-                            class="w-full border-gray-300 rounded-md shadow-sm"
-                            required>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="mb-4">
+                            <label class="block mb-1 font-medium">
+                                Satuan Stok/Jual <span class="text-red-600">*</span>
+                            </label>
+                            <select name="satuan"
+                                id="satuan"
+                                class="w-full border-gray-300 rounded-md shadow-sm"
+                                required>
+                                <option value="">-- Pilih Satuan --</option>
+                                @foreach ($satuanOptions as $satuan)
+                                <option value="{{ $satuan }}" {{ old('satuan', $barang->satuan) === $satuan ? 'selected' : '' }}>
+                                    {{ strtoupper($satuan) }}
+                                </option>
+                                @endforeach
+                            </select>
+                            <p class="text-sm text-gray-500 mt-1">
+                                Contoh: gula dijual per karung, maka pilih karung.
+                            </p>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="block mb-1 font-medium">
+                                Stok Saat Ini <span class="text-red-600">*</span>
+                            </label>
+                            <input type="number"
+                                name="stok_saat_ini"
+                                value="{{ old('stok_saat_ini', $barang->stok_saat_ini) }}"
+                                min="0"
+                                class="w-full border-gray-300 rounded-md shadow-sm"
+                                required>
+                        </div>
                     </div>
 
-                    <div class="mb-4">
-                        <label class="block mb-1 font-medium">Stok Saat Ini</label>
-                        <input type="number"
-                            name="stok_saat_ini"
-                            value="{{ old('stok_saat_ini', $barang->stok_saat_ini) }}"
-                            min="0"
-                            class="w-full border-gray-300 rounded-md shadow-sm"
-                            required>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="mb-4">
+                            <label class="block mb-1 font-medium">
+                                Harga Beli Terakhir <span class="text-red-600">*</span>
+                            </label>
+                            <input type="number"
+                                name="harga_beli_terakhir"
+                                value="{{ old('harga_beli_terakhir', $barang->harga_beli_terakhir) }}"
+                                min="0"
+                                step="0.01"
+                                class="w-full border-gray-300 rounded-md shadow-sm"
+                                required>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="block mb-1 font-medium">
+                                Harga Jual Default <span class="text-red-600">*</span>
+                            </label>
+                            <input type="number"
+                                name="harga_jual_default"
+                                id="hargaJualDefault"
+                                value="{{ old('harga_jual_default', $barang->harga_jual_default) }}"
+                                min="0"
+                                step="0.01"
+                                class="w-full border-gray-300 rounded-md shadow-sm"
+                                required>
+                            <p class="text-sm text-gray-500 mt-1" id="hargaJualHelp">
+                                Untuk perhitungan normal, harga ini dihitung per satuan stok/jual.
+                            </p>
+                        </div>
                     </div>
 
-                    <div class="mb-4">
-                        <label class="block mb-1 font-medium">Harga Beli Terakhir</label>
-                        <input type="number"
-                            name="harga_beli_terakhir"
-                            value="{{ old('harga_beli_terakhir', $barang->harga_beli_terakhir) }}"
-                            min="0"
-                            step="0.01"
-                            class="w-full border-gray-300 rounded-md shadow-sm"
-                            required>
-                    </div>
+                    <div class="mb-4 border rounded-md p-4 bg-gray-50">
+                        <label class="block mb-2 font-medium">
+                            Tipe Perhitungan Harga <span class="text-red-600">*</span>
+                        </label>
 
-                    <div class="mb-4">
-                        <label class="block mb-1 font-medium">Harga Jual Default</label>
-                        <input type="number"
-                            name="harga_jual_default"
-                            value="{{ old('harga_jual_default', $barang->harga_jual_default) }}"
-                            min="0"
-                            step="0.01"
-                            class="w-full border-gray-300 rounded-md shadow-sm"
-                            required>
+                        @php
+                        $tipePerhitungan = old('tipe_perhitungan_harga', $barang->tipe_perhitungan_harga ?? 'normal');
+                        @endphp
+
+                        <div class="space-y-2">
+                            <label class="flex items-start gap-2">
+                                <input type="radio"
+                                    name="tipe_perhitungan_harga"
+                                    value="normal"
+                                    class="mt-1 tipe-perhitungan"
+                                    {{ $tipePerhitungan === 'normal' ? 'checked' : '' }}>
+                                <span>
+                                    <strong>Normal</strong>
+                                    <br>
+                                    <small class="text-gray-500">
+                                        Subtotal = jumlah barang x harga jual.
+                                    </small>
+                                </span>
+                            </label>
+
+                            <label class="flex items-start gap-2">
+                                <input type="radio"
+                                    name="tipe_perhitungan_harga"
+                                    value="isi_kemasan"
+                                    class="mt-1 tipe-perhitungan"
+                                    {{ $tipePerhitungan === 'isi_kemasan' ? 'checked' : '' }}>
+                                <span>
+                                    <strong>Berdasarkan isi kemasan</strong>
+                                    <br>
+                                    <small class="text-gray-500">
+                                        Contoh: 1 karung x 50 kg x harga per kg.
+                                    </small>
+                                </span>
+                            </label>
+                        </div>
+
+                        <div id="fieldIsiKemasan" class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4" style="display: none;">
+                            <div>
+                                <label class="block mb-1 font-medium">
+                                    Satuan Hitung Harga <span class="text-red-600">*</span>
+                                </label>
+                                <select name="satuan_hitung_harga"
+                                    id="satuanHitungHarga"
+                                    class="w-full border-gray-300 rounded-md shadow-sm">
+                                    <option value="">-- Pilih Satuan Hitung --</option>
+                                    @foreach ($satuanHitungOptions as $satuanHitung)
+                                    <option value="{{ $satuanHitung }}" {{ old('satuan_hitung_harga', $barang->satuan_hitung_harga) === $satuanHitung ? 'selected' : '' }}>
+                                        {{ strtoupper($satuanHitung) }}
+                                    </option>
+                                    @endforeach
+                                </select>
+                                <p class="text-sm text-gray-500 mt-1">
+                                    Contoh: kg, liter, meter, pcs.
+                                </p>
+                            </div>
+
+                            <div>
+                                <label class="block mb-1 font-medium">
+                                    Isi per 1 Satuan Stok/Jual <span class="text-red-600">*</span>
+                                </label>
+                                <input type="number"
+                                    name="isi_per_satuan"
+                                    id="isiPerSatuan"
+                                    value="{{ old('isi_per_satuan', $barang->isi_per_satuan ?? 1) }}"
+                                    min="0.001"
+                                    step="0.001"
+                                    class="w-full border-gray-300 rounded-md shadow-sm">
+                                <p class="text-sm text-gray-500 mt-1" id="isiPerSatuanHelp">
+                                    Contoh: 1 karung = 50 kg.
+                                </p>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="mb-4">
@@ -100,6 +206,7 @@
                         <label class="block mb-1 font-medium">Keterangan</label>
                         <textarea name="keterangan"
                             rows="3"
+                            placeholder="Contoh: Harga dihitung per kg, stok tetap per karung."
                             class="w-full border-gray-300 rounded-md shadow-sm">{{ old('keterangan', $barang->keterangan) }}</textarea>
                     </div>
 
@@ -119,4 +226,51 @@
             </div>
         </div>
     </div>
+
+    <script>
+        function getTipePerhitungan() {
+            const checked = document.querySelector('input[name="tipe_perhitungan_harga"]:checked');
+            return checked ? checked.value : 'normal';
+        }
+
+        function updateFieldIsiKemasan() {
+            const tipe = getTipePerhitungan();
+            const fieldIsiKemasan = document.getElementById('fieldIsiKemasan');
+            const satuan = document.getElementById('satuan').value || 'satuan';
+            const satuanHitungHarga = document.getElementById('satuanHitungHarga').value || 'satuan hitung';
+
+            const satuanHitungInput = document.getElementById('satuanHitungHarga');
+            const isiPerSatuanInput = document.getElementById('isiPerSatuan');
+
+            const hargaJualHelp = document.getElementById('hargaJualHelp');
+            const isiPerSatuanHelp = document.getElementById('isiPerSatuanHelp');
+
+            if (tipe === 'isi_kemasan') {
+                fieldIsiKemasan.style.display = 'grid';
+                satuanHitungInput.setAttribute('required', 'required');
+                isiPerSatuanInput.setAttribute('required', 'required');
+
+                hargaJualHelp.innerText = 'Untuk tipe ini, harga jual dihitung per ' + satuanHitungHarga + '.';
+                isiPerSatuanHelp.innerText = 'Contoh: 1 ' + satuan + ' = 50 ' + satuanHitungHarga + '.';
+            } else {
+                fieldIsiKemasan.style.display = 'none';
+                satuanHitungInput.removeAttribute('required');
+                isiPerSatuanInput.removeAttribute('required');
+
+                hargaJualHelp.innerText = 'Untuk perhitungan normal, harga ini dihitung per satuan stok/jual.';
+                isiPerSatuanHelp.innerText = 'Contoh: 1 karung = 50 kg.';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            updateFieldIsiKemasan();
+
+            document.querySelectorAll('.tipe-perhitungan').forEach(function(radio) {
+                radio.addEventListener('change', updateFieldIsiKemasan);
+            });
+
+            document.getElementById('satuan').addEventListener('change', updateFieldIsiKemasan);
+            document.getElementById('satuanHitungHarga').addEventListener('change', updateFieldIsiKemasan);
+        });
+    </script>
 </x-app-layout>

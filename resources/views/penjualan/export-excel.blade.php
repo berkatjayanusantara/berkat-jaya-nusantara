@@ -131,11 +131,19 @@ $nomorTelepon = $penjualan->customer->nomor_telepon ?? '-';
             <td>Kode Barang</td>
             <td>Nama Barang</td>
             <td>Qty</td>
+            <td>Perhitungan</td>
             <td>Harga Jual</td>
             <td>Subtotal</td>
         </tr>
 
         @foreach ($penjualan->detailPenjualan as $detail)
+        @php
+        $tipePerhitungan = $detail->tipe_perhitungan_harga ?? 'normal';
+        $satuanTransaksi = $detail->satuan_transaksi ?? ($detail->barang->satuan ?? '');
+        $satuanHitung = $detail->satuan_hitung_harga ?? $satuanTransaksi;
+        $isiPerSatuan = (float) ($detail->isi_per_satuan ?? 1);
+        @endphp
+
         <tr>
             <td class="text-center">
                 {{ $loop->iteration }}
@@ -150,11 +158,23 @@ $nomorTelepon = $penjualan->customer->nomor_telepon ?? '-';
             </td>
 
             <td class="text-center">
-                {{ $detail->jumlah }}
+                {{ $detail->jumlah }} {{ $satuanTransaksi }}
+            </td>
+
+            <td>
+                @if ($tipePerhitungan === 'isi_kemasan')
+                {{ $detail->jumlah }} {{ $satuanTransaksi }}
+                x {{ rtrim(rtrim(number_format($isiPerSatuan, 3, ',', '.'), '0'), ',') }} {{ $satuanHitung }}
+                x Rp {{ number_format($detail->harga_jual, 0, ',', '.') }}
+                @else
+                {{ $detail->jumlah }} {{ $satuanTransaksi }}
+                x Rp {{ number_format($detail->harga_jual, 0, ',', '.') }}
+                @endif
             </td>
 
             <td class="text-right">
                 Rp {{ number_format($detail->harga_jual, 0, ',', '.') }}
+                / {{ $tipePerhitungan === 'isi_kemasan' ? $satuanHitung : $satuanTransaksi }}
             </td>
 
             <td class="text-right">

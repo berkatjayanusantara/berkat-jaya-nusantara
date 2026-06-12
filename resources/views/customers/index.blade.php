@@ -27,7 +27,7 @@
                     <input type="text"
                         name="search"
                         value="{{ $search }}"
-                        placeholder="Cari kode, nama, atau nomor telepon customer..."
+                        placeholder="Cari kode, nama, nomor telepon, atau NPWP customer..."
                         class="w-full border-gray-300 rounded-md shadow-sm">
 
                     <button type="submit"
@@ -49,6 +49,7 @@
                                 <th class="border px-3 py-2 text-left">Kode</th>
                                 <th class="border px-3 py-2 text-left">Nama Customer</th>
                                 <th class="border px-3 py-2 text-left">Nomor Telepon</th>
+                                <th class="border px-3 py-2 text-left">NPWP</th>
                                 <th class="border px-3 py-2 text-left">Kategori</th>
                                 <th class="border px-3 py-2 text-left">Alamat</th>
                                 <th class="border px-3 py-2 text-center">Status</th>
@@ -73,6 +74,10 @@
 
                                 <td class="border px-3 py-2">
                                     {{ $customer->nomor_telepon ?? '-' }}
+                                </td>
+
+                                <td class="border px-3 py-2">
+                                    {{ $customer->npwp ?? '-' }}
                                 </td>
 
                                 <td class="border px-3 py-2">
@@ -120,7 +125,7 @@
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="8" class="border px-3 py-4 text-center text-gray-500">
+                                <td colspan="9" class="border px-3 py-4 text-center text-gray-500">
                                     Data customer belum tersedia.
                                 </td>
                             </tr>
