@@ -197,6 +197,8 @@ class BarangController extends Controller
             'pcs',
             'box',
             'dus',
+            'derigen',
+            'botol',
             'pack',
             'bal',
             'ball',

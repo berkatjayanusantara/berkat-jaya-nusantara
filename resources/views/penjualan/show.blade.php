@@ -4,8 +4,8 @@
     $backUrl = request('back_url', route('penjualan.index'));
 
     $namaPerusahaan = 'CV. BERKAT JAYA NUSANTARA';
-    $alamatPerusahaan = 'Alamat perusahaan belum diisi';
-    $teleponPerusahaan = 'Telepon belum diisi';
+    $alamatPerusahaan = 'Jl. Jelambar Utama 1 No. 6A RT. 007 RW. 004, Jakarta Barat 11460';
+    $teleponPerusahaan = '(021) 5664892, 5676277';
 
     $formatAngkaInvoice = function ($angka) {
     return rtrim(rtrim(number_format((float) $angka, 3, ',', '.'), '0'), ',');
@@ -80,12 +80,12 @@
 
         <style>
             :root {
-                --invoice-primary: #1e3a8a;
-                --invoice-primary-soft: #eff6ff;
-                --invoice-secondary: #0f172a;
-                --invoice-muted: #64748b;
-                --invoice-line: #cbd5e1;
-                --invoice-light-line: #dbeafe;
+                --invoice-primary: #000000;
+                --invoice-primary-soft: #ffffff;
+                --invoice-secondary: #000000;
+                --invoice-muted: #000000;
+                --invoice-line: #000000;
+                --invoice-light-line: #000000;
                 --stamp-red: #b91c1c;
             }
 
@@ -97,52 +97,59 @@
             }
 
             .invoice-copy-header {
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                gap: 12px;
-                border-bottom: 2px solid var(--invoice-primary);
-                padding-bottom: 8px;
-                margin-bottom: 8px;
-            }
-
-            .company-left {
-                display: flex;
-                align-items: center;
-                gap: 10px;
-            }
-
-            .logo-placeholder {
-                width: 54px;
-                height: 54px;
-                border: 1.5px dashed var(--invoice-primary);
-                border-radius: 8px;
+                position: relative;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                color: var(--invoice-primary);
-                font-size: 10px;
-                text-align: center;
+                gap: 12px;
+                border-bottom: 2px solid var(--invoice-primary);
+                padding: 4px 90px 8px;
+                margin-bottom: 8px;
+                min-height: 76px;
+            }
+
+            .logo-placeholder {
+                position: absolute;
+                left: 0;
+                top: 50%;
+                transform: translateY(-50%);
+                width: 62px;
+                height: 62px;
+                border: 1.5px dashed var(--invoice-primary);
+                border-radius: 6px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
                 flex-shrink: 0;
-                background: var(--invoice-primary-soft);
+                background: #ffffff;
+            }
+
+            .company-kop {
+                width: 100%;
+                text-align: center;
             }
 
             .company-name {
-                font-size: 18px;
-                font-weight: 800;
-                letter-spacing: 0.4px;
+                font-size: 20px;
+                font-weight: 900;
+                letter-spacing: 0.6px;
                 color: var(--invoice-secondary);
                 line-height: 1.1;
+                text-transform: uppercase;
             }
 
             .company-info {
-                font-size: 11px;
-                color: var(--invoice-muted);
-                margin-top: 2px;
-                line-height: 1.25;
+                font-size: 11.5px;
+                color: var(--invoice-secondary);
+                margin-top: 3px;
+                line-height: 1.3;
             }
 
             .copy-label {
+                position: absolute;
+                right: 0;
+                top: 50%;
+                transform: translateY(-50%);
                 border: 1px solid var(--invoice-primary);
                 color: var(--invoice-primary);
                 background: var(--invoice-primary-soft);
@@ -337,6 +344,20 @@
                 color: var(--invoice-secondary);
             }
 
+            .terbilang-stamp-area {
+                position: relative;
+                height: 0;
+                margin: 0;
+                padding: 0;
+                overflow: visible;
+            }
+
+            .terbilang-stamp-area .stempel-manual {
+                left: 32px;
+                top: 10px;
+                transform: none;
+            }
+
             .signature-area {
                 display: grid;
                 grid-template-columns: 1fr 1fr;
@@ -360,6 +381,7 @@
                 font-weight: 700;
             }
 
+            .receiver-signature-box,
             .company-signature-box {
                 position: relative;
                 overflow: visible;
@@ -395,9 +417,9 @@
                 width: 230px;
                 max-width: 100%;
                 padding: 9px 14px;
-                border: 2px double var(--stamp-red);
+                border: none;
                 color: var(--stamp-red);
-                background: rgba(255, 255, 255, 0.35);
+                background: transparent;
                 text-align: center;
                 font-family: "Times New Roman", serif;
                 transform: translateX(-50%) rotate(-7deg);
@@ -408,25 +430,13 @@
             }
 
             .stempel-manual::before {
-                content: "";
-                position: absolute;
-                inset: 4px;
-                border: 1px solid var(--stamp-red);
-                pointer-events: none;
+                display: none;
+                content: none;
             }
 
             .stempel-manual::after {
-                content: "STEMPEL";
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%) rotate(-8deg);
-                font-size: 24px;
-                font-weight: 800;
-                letter-spacing: 2px;
-                color: rgba(185, 28, 28, 0.13);
-                white-space: nowrap;
-                pointer-events: none;
+                display: none;
+                content: none;
             }
 
             .stempel-content {
@@ -505,44 +515,53 @@
 
                 .copy-divider {
                     margin: 2.5mm 0 !important;
-                    border-top: 1px dashed #64748b !important;
+                    border-top: 1px dashed #000000 !important;
                 }
 
                 .copy-divider span {
                     top: -6px !important;
                     font-size: 7px !important;
-                    color: #64748b !important;
+                    color: #000000 !important;
                 }
 
                 .invoice-copy-header {
-                    padding-bottom: 3px !important;
+                    position: relative !important;
+                    justify-content: center !important;
+                    padding: 1mm 21mm 2mm !important;
                     margin-bottom: 4px !important;
+                    min-height: 16mm !important;
                     border-bottom: 1.2px solid var(--invoice-primary) !important;
                 }
 
                 .logo-placeholder {
-                    width: 34px !important;
-                    height: 34px !important;
-                    font-size: 7px !important;
+                    left: 0 !important;
+                    width: 14mm !important;
+                    height: 14mm !important;
                     border-color: var(--invoice-primary) !important;
-                    color: var(--invoice-primary) !important;
-                    border-radius: 4px !important;
-                    background: var(--invoice-primary-soft) !important;
+                    border-radius: 2px !important;
+                    background: #ffffff !important;
+                }
+
+                .company-kop {
+                    width: 100% !important;
+                    text-align: center !important;
                 }
 
                 .company-name {
-                    font-size: 12px !important;
+                    font-size: 12.5px !important;
                     line-height: 1.05 !important;
-                    color: #0f172a !important;
+                    color: #000000 !important;
+                    letter-spacing: 0.4px !important;
                 }
 
                 .company-info {
-                    font-size: 7.5px !important;
-                    color: #334155 !important;
-                    line-height: 1.15 !important;
+                    font-size: 7.8px !important;
+                    color: #000000 !important;
+                    line-height: 1.18 !important;
                 }
 
                 .copy-label {
+                    right: 0 !important;
                     font-size: 7.5px !important;
                     padding: 2px 6px !important;
                     border-color: var(--invoice-primary) !important;
@@ -579,7 +598,7 @@
                     margin-bottom: 2px !important;
                     padding-bottom: 1px !important;
                     color: var(--invoice-primary) !important;
-                    border-bottom: 1px solid #cbd5e1 !important;
+                    border-bottom: 1px solid #000000 !important;
                 }
 
                 .info-table {
@@ -606,10 +625,10 @@
                     padding: 1.5px 2px !important;
                     border-top: 1.2px solid var(--invoice-primary) !important;
                     border-bottom: 1px solid var(--invoice-primary) !important;
-                    border-left: 1px solid #cbd5e1 !important;
-                    border-right: 1px solid #cbd5e1 !important;
+                    border-left: 1px solid #000000 !important;
+                    border-right: 1px solid #000000 !important;
                     background: var(--invoice-primary-soft) !important;
-                    color: #0f172a !important;
+                    color: #000000 !important;
                 }
 
                 .items-table thead th:first-child {
@@ -622,9 +641,9 @@
 
                 .items-table tbody td {
                     padding: 1.5px 2px !important;
-                    border-bottom: 1px solid #cbd5e1 !important;
-                    border-left: 1px solid #dbeafe !important;
-                    border-right: 1px solid #dbeafe !important;
+                    border-bottom: 1px solid #000000 !important;
+                    border-left: 1px solid #000000 !important;
+                    border-right: 1px solid #000000 !important;
                 }
 
                 .items-table tbody td:first-child {
@@ -670,7 +689,7 @@
                 .pajak-note {
                     font-size: 7px !important;
                     margin-top: 0 !important;
-                    color: #334155 !important;
+                    color: #000000 !important;
                 }
 
                 .bottom-info-area {
@@ -682,6 +701,20 @@
                 .terbilang-box {
                     font-size: 7.8px !important;
                     line-height: 1.15 !important;
+                }
+
+                .terbilang-stamp-area {
+                    position: relative !important;
+                    height: 0 !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    overflow: visible !important;
+                }
+
+                .terbilang-stamp-area .stempel-manual {
+                    left: 0mm !important;
+                    top: 2mm !important;
+                    transform: none !important;
                 }
 
                 .signature-area {
@@ -701,19 +734,19 @@
 
                 .stempel-manual {
                     top: -1px !important;
-                    width: 168px !important;
+                    width: 120px !important;
                     padding: 5px 8px !important;
-                    border: 1.5px double var(--stamp-red) !important;
+                    border: none !important;
                     color: var(--stamp-red) !important;
-                    background: rgba(255, 255, 255, 0.25) !important;
-                    transform: translateX(-50%) rotate(-7deg) !important;
+                    background: transparent !important;
+                    transform: translateX(-50%) !important;
                     opacity: 0.95 !important;
                     z-index: 8 !important;
                 }
 
                 .stempel-manual::before {
                     inset: 3px !important;
-                    border: 1px solid var(--stamp-red) !important;
+                    border: none !important;
                 }
 
                 .stempel-manual::after {
@@ -768,19 +801,15 @@
                     @foreach (['CUSTOMER', 'ARSIP PERUSAHAAN'] as $copyIndex => $copyLabel)
                     <div class="invoice-copy">
                         <div class="invoice-copy-header">
-                            <div class="company-left">
-                                <div class="logo-placeholder">
-                                    LOGO
-                                </div>
+                            <div class="logo-placeholder"></div>
 
-                                <div>
-                                    <div class="company-name">
-                                        {{ $namaPerusahaan }}
-                                    </div>
-                                    <div class="company-info">
-                                        {{ $alamatPerusahaan }}<br>
-                                        Telp: {{ $teleponPerusahaan }}
-                                    </div>
+                            <div class="company-kop">
+                                <div class="company-name">
+                                    {{ $namaPerusahaan }}
+                                </div>
+                                <div class="company-info">
+                                    {{ $alamatPerusahaan }}<br>
+                                    Telp: {{ $teleponPerusahaan }}
                                 </div>
                             </div>
 
@@ -967,9 +996,24 @@
                             <div></div>
                         </div>
 
+                        <div class="terbilang-stamp-area">
+                            <div class="stempel-manual">
+                                <div class="stempel-content">
+                                    <div class="stempel-company">Berkat</div>
+                                    <div class="stempel-bank">BCA : 5280902227</div>
+
+                                    <div class="stempel-separator"></div>
+
+                                    <div class="stempel-company">Berkat</div>
+                                    <div class="stempel-bank">OCBC NISP : 565 8000 15150</div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="signature-area">
-                            <div class="signature-box">
+                            <div class="signature-box receiver-signature-box">
                                 <div>Penerima,</div>
+
                                 <div class="signature-name">
                                     {{ $penjualan->customer->nama_customer ?? 'Customer' }}
                                 </div>
@@ -977,18 +1021,6 @@
 
                             <div class="signature-box company-signature-box">
                                 <div class="company-signature-label">Hormat Kami,</div>
-
-                                <div class="stempel-manual">
-                                    <div class="stempel-content">
-                                        <div class="stempel-company">Berkat</div>
-                                        <div class="stempel-bank">BCA : 5280902227</div>
-
-                                        <div class="stempel-separator"></div>
-
-                                        <div class="stempel-company">Berkat</div>
-                                        <div class="stempel-bank">OCBC NISP : 565 8000 15150</div>
-                                    </div>
-                                </div>
 
                                 <div class="signature-name">
                                     {{ $namaPerusahaan }}
