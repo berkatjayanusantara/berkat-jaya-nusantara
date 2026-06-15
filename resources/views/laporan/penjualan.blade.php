@@ -24,8 +24,28 @@
         </div>
     </x-slot>
 
+    @php
+    $namaPerusahaan = 'CV. BERKAT JAYA NUSANTARA';
+    $alamatPerusahaan = 'Jl. Jelambar Utama 1 No. 6A RT. 007 RW. 004, Jakarta Barat 11460';
+    $teleponPerusahaan = '(021) 5664892, 5676277';
+    @endphp
+
     <div class="py-6">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+
+            <div class="bg-white shadow-sm sm:rounded-lg p-6 mb-6">
+                <div class="text-center">
+                    <h3 class="text-lg font-bold text-gray-900">
+                        {{ $namaPerusahaan }}
+                    </h3>
+                    <p class="text-sm text-gray-600 mt-1">
+                        {{ $alamatPerusahaan }}
+                    </p>
+                    <p class="text-sm text-gray-600">
+                        Telp: {{ $teleponPerusahaan }}
+                    </p>
+                </div>
+            </div>
 
             <div class="bg-white shadow-sm sm:rounded-lg p-6 mb-6">
                 <form method="GET" action="{{ route('laporan.penjualan') }}">
@@ -51,6 +71,7 @@
                             <select name="id_customer"
                                 class="w-full border-gray-300 rounded-md shadow-sm">
                                 <option value="">Semua Customer</option>
+
                                 @foreach ($customers as $customer)
                                 <option value="{{ $customer->id_customer }}"
                                     {{ request('id_customer') == $customer->id_customer ? 'selected' : '' }}>
@@ -132,30 +153,30 @@
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Total Transaksi</p>
-                    <p class="text-2xl font-bold">{{ $totalTransaksi }}</p>
+                    <p class="text-2xl font-bold">{{ $totalTransaksi ?? 0 }}</p>
                     <p class="text-xs text-gray-500 mt-1">
-                        Sistem: {{ $totalSistemBerjalan }} | Historis: {{ $totalHistoris }}
+                        Sistem: {{ $totalSistemBerjalan ?? 0 }} | Historis: {{ $totalHistoris ?? 0 }}
                     </p>
                 </div>
 
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Total Subtotal</p>
                     <p class="text-2xl font-bold">
-                        Rp {{ number_format($totalSubtotal, 0, ',', '.') }}
+                        Rp {{ number_format($totalSubtotal ?? 0, 0, ',', '.') }}
                     </p>
                 </div>
 
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Total Pajak</p>
                     <p class="text-2xl font-bold">
-                        Rp {{ number_format($totalPajak, 0, ',', '.') }}
+                        Rp {{ number_format($totalPajak ?? 0, 0, ',', '.') }}
                     </p>
                 </div>
 
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Total Akhir</p>
                     <p class="text-2xl font-bold text-green-700">
-                        Rp {{ number_format($totalAkhir, 0, ',', '.') }}
+                        Rp {{ number_format($totalAkhir ?? 0, 0, ',', '.') }}
                     </p>
                 </div>
             </div>
@@ -164,28 +185,28 @@
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Total Tunai</p>
                     <p class="text-xl font-bold">
-                        Rp {{ number_format($totalTunai, 0, ',', '.') }}
+                        Rp {{ number_format($totalTunai ?? 0, 0, ',', '.') }}
                     </p>
                 </div>
 
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Total Kredit</p>
                     <p class="text-xl font-bold">
-                        Rp {{ number_format($totalKredit, 0, ',', '.') }}
+                        Rp {{ number_format($totalKredit ?? 0, 0, ',', '.') }}
                     </p>
                 </div>
 
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Total Dibayar Piutang</p>
                     <p class="text-xl font-bold text-blue-700">
-                        Rp {{ number_format($totalDibayar, 0, ',', '.') }}
+                        Rp {{ number_format($totalDibayar ?? 0, 0, ',', '.') }}
                     </p>
                 </div>
 
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Sisa Piutang</p>
                     <p class="text-xl font-bold text-red-700">
-                        Rp {{ number_format($totalSisaPiutang, 0, ',', '.') }}
+                        Rp {{ number_format($totalSisaPiutang ?? 0, 0, ',', '.') }}
                     </p>
                 </div>
             </div>
@@ -229,8 +250,14 @@
                             };
 
                             $detailRoute = $isHistoris
-                            ? route('invoice-historis.penjualan.show', ['penjualan' => $item->id_penjualan, 'back_url' => request()->fullUrl()])
-                            : route('penjualan.show', ['penjualan' => $item->id_penjualan, 'back_url' => request()->fullUrl()]);
+                            ? route('invoice-historis.penjualan.show', [
+                            'penjualan' => $item->id_penjualan,
+                            'back_url' => request()->fullUrl(),
+                            ])
+                            : route('penjualan.show', [
+                            'penjualan' => $item->id_penjualan,
+                            'back_url' => request()->fullUrl(),
+                            ]);
                             @endphp
 
                             <tr>
@@ -258,13 +285,14 @@
                                     <div class="font-medium">
                                         {{ $item->customer->nama_customer ?? '-' }}
                                     </div>
+
                                     <div class="text-xs text-gray-500">
                                         {{ $item->customer->nomor_telepon ?? '-' }}
                                     </div>
                                 </td>
 
                                 <td class="border px-3 py-2">
-                                    {{ ucfirst($item->metode_pembayaran) }}
+                                    {{ ucfirst($item->metode_pembayaran ?? '-') }}
                                 </td>
 
                                 <td class="border px-3 py-2">
@@ -292,20 +320,20 @@
                                 </td>
 
                                 <td class="border px-3 py-2 text-right">
-                                    Rp {{ number_format($item->subtotal, 0, ',', '.') }}
+                                    Rp {{ number_format($item->subtotal ?? 0, 0, ',', '.') }}
                                 </td>
 
                                 <td class="border px-3 py-2 text-right">
-                                    Rp {{ number_format($item->nilai_pajak, 0, ',', '.') }}
+                                    Rp {{ number_format($item->nilai_pajak ?? 0, 0, ',', '.') }}
                                 </td>
 
                                 <td class="border px-3 py-2 text-right font-semibold">
-                                    Rp {{ number_format($item->total_akhir, 0, ',', '.') }}
+                                    Rp {{ number_format($item->total_akhir ?? 0, 0, ',', '.') }}
                                 </td>
 
                                 <td class="border px-3 py-2 text-right">
                                     @if ($item->piutang)
-                                    Rp {{ number_format($item->piutang->sisa_piutang, 0, ',', '.') }}
+                                    Rp {{ number_format($item->piutang->sisa_piutang ?? 0, 0, ',', '.') }}
                                     @else
                                     -
                                     @endif

@@ -24,8 +24,28 @@
         </div>
     </x-slot>
 
+    @php
+    $namaPerusahaan = 'CV. BERKAT JAYA NUSANTARA';
+    $alamatPerusahaan = 'Jl. Jelambar Utama 1 No. 6A RT. 007 RW. 004, Jakarta Barat 11460';
+    $teleponPerusahaan = '(021) 5664892, 5676277';
+    @endphp
+
     <div class="py-6">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+
+            <div class="bg-white shadow-sm sm:rounded-lg p-6 mb-6">
+                <div class="text-center">
+                    <h3 class="text-lg font-bold text-gray-900">
+                        {{ $namaPerusahaan }}
+                    </h3>
+                    <p class="text-sm text-gray-600 mt-1">
+                        {{ $alamatPerusahaan }}
+                    </p>
+                    <p class="text-sm text-gray-600">
+                        Telp: {{ $teleponPerusahaan }}
+                    </p>
+                </div>
+            </div>
 
             <div class="bg-white shadow-sm sm:rounded-lg p-6 mb-6">
                 <form method="GET" action="{{ route('laporan.pembelian') }}">
@@ -133,7 +153,7 @@
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Total Transaksi</p>
-                    <p class="text-2xl font-bold">{{ $totalTransaksi }}</p>
+                    <p class="text-2xl font-bold">{{ $totalTransaksi ?? 0 }}</p>
                     <p class="text-xs text-gray-500 mt-1">
                         Sistem: {{ $totalSistemBerjalan ?? 0 }} | Historis: {{ $totalHistoris ?? 0 }}
                     </p>
@@ -142,21 +162,21 @@
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Total Subtotal</p>
                     <p class="text-2xl font-bold">
-                        Rp {{ number_format($totalSubtotal, 0, ',', '.') }}
+                        Rp {{ number_format($totalSubtotal ?? 0, 0, ',', '.') }}
                     </p>
                 </div>
 
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Total Pajak</p>
                     <p class="text-2xl font-bold">
-                        Rp {{ number_format($totalPajak, 0, ',', '.') }}
+                        Rp {{ number_format($totalPajak ?? 0, 0, ',', '.') }}
                     </p>
                 </div>
 
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Total Akhir</p>
                     <p class="text-2xl font-bold text-green-700">
-                        Rp {{ number_format($totalAkhir, 0, ',', '.') }}
+                        Rp {{ number_format($totalAkhir ?? 0, 0, ',', '.') }}
                     </p>
                 </div>
             </div>
@@ -164,17 +184,23 @@
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Total Barang Dipesan</p>
-                    <p class="text-2xl font-bold">{{ number_format($totalDipesan, 0, ',', '.') }}</p>
+                    <p class="text-2xl font-bold">
+                        {{ number_format($totalDipesan ?? 0, 0, ',', '.') }}
+                    </p>
                 </div>
 
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Total Barang Diterima</p>
-                    <p class="text-2xl font-bold text-blue-700">{{ number_format($totalDiterima, 0, ',', '.') }}</p>
+                    <p class="text-2xl font-bold text-blue-700">
+                        {{ number_format($totalDiterima ?? 0, 0, ',', '.') }}
+                    </p>
                 </div>
 
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Sisa Belum Dikirim</p>
-                    <p class="text-2xl font-bold text-yellow-700">{{ number_format($totalSisa, 0, ',', '.') }}</p>
+                    <p class="text-2xl font-bold text-yellow-700">
+                        {{ number_format($totalSisa ?? 0, 0, ',', '.') }}
+                    </p>
                 </div>
 
                 <div class="bg-white shadow-sm rounded-lg p-4">
@@ -191,17 +217,23 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Status Lengkap</p>
-                    <p class="text-2xl font-bold text-green-700">{{ $totalLengkap ?? 0 }}</p>
+                    <p class="text-2xl font-bold text-green-700">
+                        {{ $totalLengkap ?? 0 }}
+                    </p>
                 </div>
 
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Status Sebagian</p>
-                    <p class="text-2xl font-bold text-yellow-700">{{ $totalSebagian ?? 0 }}</p>
+                    <p class="text-2xl font-bold text-yellow-700">
+                        {{ $totalSebagian ?? 0 }}
+                    </p>
                 </div>
 
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Belum Dikirim</p>
-                    <p class="text-2xl font-bold text-red-700">{{ $totalBelumDikirim ?? 0 }}</p>
+                    <p class="text-2xl font-bold text-red-700">
+                        {{ $totalBelumDikirim ?? 0 }}
+                    </p>
                 </div>
             </div>
 
@@ -214,6 +246,7 @@
                                 <th class="border px-3 py-2 text-left">Tanggal</th>
                                 <th class="border px-3 py-2 text-left">Dokumen</th>
                                 <th class="border px-3 py-2 text-left">Supplier</th>
+                                <th class="border px-3 py-2 text-left">Alamat</th>
                                 <th class="border px-3 py-2 text-left">Status</th>
                                 <th class="border px-3 py-2 text-center">Tipe</th>
                                 <th class="border px-3 py-2 text-center">Stok</th>
@@ -256,8 +289,14 @@
                             }
 
                             $detailRoute = $isHistoris
-                            ? route('invoice-historis.pembelian.show', ['pembelian' => $item->id_pembelian, 'back_url' => request()->fullUrl()])
-                            : route('pembelian.show', ['pembelian' => $item->id_pembelian, 'back_url' => request()->fullUrl()]);
+                            ? route('invoice-historis.pembelian.show', [
+                            'pembelian' => $item->id_pembelian,
+                            'back_url' => request()->fullUrl(),
+                            ])
+                            : route('pembelian.show', [
+                            'pembelian' => $item->id_pembelian,
+                            'back_url' => request()->fullUrl(),
+                            ]);
                             @endphp
 
                             <tr>
@@ -298,8 +337,15 @@
                                         {{ $item->supplier->nama_supplier ?? '-' }}
                                     </div>
                                     <div class="text-xs text-gray-500">
-                                        {{ $item->supplier->nomor_telepon ?? '-' }}
+                                        Telp: {{ $item->supplier->nomor_telepon ?? '-' }}
                                     </div>
+                                    <div class="text-xs text-gray-500">
+                                        NPWP: {{ $item->supplier->npwp ?? '-' }}
+                                    </div>
+                                </td>
+
+                                <td class="border px-3 py-2 min-w-[180px]">
+                                    {{ $item->supplier->alamat ?? '-' }}
                                 </td>
 
                                 <td class="border px-3 py-2">
@@ -377,7 +423,7 @@
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="14" class="border px-3 py-6 text-center text-gray-500">
+                                <td colspan="15" class="border px-3 py-6 text-center text-gray-500">
                                     Data laporan pembelian belum tersedia.
                                 </td>
                             </tr>

@@ -1,10 +1,14 @@
 @php
 $namaPerusahaan = 'CV. BERKAT JAYA NUSANTARA';
-$alamatPerusahaan = 'Alamat perusahaan belum diisi';
-$teleponPerusahaan = 'Telepon belum diisi';
+$alamatPerusahaan = 'Jl. Jelambar Utama 1 No. 6A RT. 007 RW. 004, Jakarta Barat 11460';
+$teleponPerusahaan = '(021) 5664892, 5676277';
 
 $periodeAwal = $tanggalAwal === 'awal' ? 'Awal' : $tanggalAwal;
 $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
+
+$persentaseTertagih = ($totalPiutang ?? 0) > 0
+? (($totalDibayar ?? 0) / ($totalPiutang ?? 1)) * 100
+: 0;
 @endphp
 
 <!DOCTYPE html>
@@ -32,13 +36,14 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
             text-align: center;
             font-size: 8px;
             color: #4b5563;
-            margin-bottom: 4px;
+            margin-bottom: 2px;
         }
 
         .title {
             text-align: center;
             font-size: 16px;
             font-weight: bold;
+            margin-top: 6px;
             margin-bottom: 3px;
         }
 
@@ -143,17 +148,11 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
 </head>
 
 <body>
-    <div class="company">
-        {{ $namaPerusahaan }}
-    </div>
+    <div class="company">{{ $namaPerusahaan }}</div>
+    <div class="company-info">{{ $alamatPerusahaan }}</div>
+    <div class="company-info">Telp: {{ $teleponPerusahaan }}</div>
 
-    <div class="company-info">
-        {{ $alamatPerusahaan }} | Telp: {{ $teleponPerusahaan }}
-    </div>
-
-    <div class="title">
-        LAPORAN PIUTANG
-    </div>
+    <div class="title">LAPORAN PIUTANG</div>
 
     <div class="subtitle">
         Periode Jatuh Tempo: {{ $periodeAwal }} s/d {{ $periodeAkhir }}
@@ -165,7 +164,7 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
         <tr>
             <td>
                 <div class="summary-label">Total Data</div>
-                <div class="summary-value">{{ $totalData }}</div>
+                <div class="summary-value">{{ $totalData ?? 0 }}</div>
                 <div class="small-text">
                     Sistem: {{ $totalSistemBerjalan ?? 0 }} | Historis: {{ $totalHistoris ?? 0 }}
                 </div>
@@ -174,21 +173,24 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
             <td>
                 <div class="summary-label">Total Piutang</div>
                 <div class="summary-value">
-                    Rp {{ number_format($totalPiutang, 0, ',', '.') }}
+                    Rp {{ number_format($totalPiutang ?? 0, 0, ',', '.') }}
                 </div>
             </td>
 
             <td>
                 <div class="summary-label">Total Dibayar</div>
                 <div class="summary-value">
-                    Rp {{ number_format($totalDibayar, 0, ',', '.') }}
+                    Rp {{ number_format($totalDibayar ?? 0, 0, ',', '.') }}
+                </div>
+                <div class="small-text">
+                    Tertagih: {{ number_format($persentaseTertagih, 2, ',', '.') }}%
                 </div>
             </td>
 
             <td>
                 <div class="summary-label">Sisa Piutang</div>
                 <div class="summary-value">
-                    Rp {{ number_format($totalSisa, 0, ',', '.') }}
+                    Rp {{ number_format($totalSisa ?? 0, 0, ',', '.') }}
                 </div>
             </td>
         </tr>
@@ -196,22 +198,22 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
         <tr>
             <td>
                 <div class="summary-label">Belum Lunas</div>
-                <div class="summary-value">{{ $totalBelumLunas }}</div>
+                <div class="summary-value">{{ $totalBelumLunas ?? 0 }}</div>
             </td>
 
             <td>
                 <div class="summary-label">Sebagian Dibayar</div>
-                <div class="summary-value">{{ $totalSebagian }}</div>
+                <div class="summary-value">{{ $totalSebagian ?? 0 }}</div>
             </td>
 
             <td>
                 <div class="summary-label">Lunas</div>
-                <div class="summary-value">{{ $totalLunas }}</div>
+                <div class="summary-value">{{ $totalLunas ?? 0 }}</div>
             </td>
 
             <td>
                 <div class="summary-label">Lewat Jatuh Tempo</div>
-                <div class="summary-value">{{ $totalLewatJatuhTempo }}</div>
+                <div class="summary-value">{{ $totalLewatJatuhTempo ?? 0 }}</div>
             </td>
         </tr>
     </table>
@@ -272,9 +274,7 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
             @endphp
 
             <tr>
-                <td class="text-center">
-                    {{ $loop->iteration }}
-                </td>
+                <td class="text-center">{{ $loop->iteration }}</td>
 
                 <td>
                     <strong>{{ $item->nomor_invoice }}</strong>
@@ -291,7 +291,7 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
                     {{ $item->customer->nama_customer ?? '-' }}
                     <br>
                     <span class="small-text">
-                        {{ $item->customer->nomor_telepon ?? '-' }}
+                        Telp: {{ $item->customer->nomor_telepon ?? '-' }}
                     </span>
                 </td>
 
@@ -304,33 +304,27 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
                 </td>
 
                 <td class="text-center">
-                    <span class="{{ $statusClass }}">
-                        {{ $statusText }}
-                    </span>
+                    <span class="{{ $statusClass }}">{{ $statusText }}</span>
                 </td>
 
                 <td class="text-center">
-                    <span class="{{ $tipeClass }}">
-                        {{ $tipeLabel }}
-                    </span>
+                    <span class="{{ $tipeClass }}">{{ $tipeLabel }}</span>
                 </td>
 
                 <td class="text-right">
-                    Rp {{ number_format($item->total_piutang, 0, ',', '.') }}
+                    Rp {{ number_format($item->total_piutang ?? 0, 0, ',', '.') }}
                 </td>
 
                 <td class="text-right">
-                    Rp {{ number_format($item->total_dibayar, 0, ',', '.') }}
+                    Rp {{ number_format($item->total_dibayar ?? 0, 0, ',', '.') }}
                 </td>
 
                 <td class="text-right">
-                    Rp {{ number_format($item->sisa_piutang, 0, ',', '.') }}
+                    Rp {{ number_format($item->sisa_piutang ?? 0, 0, ',', '.') }}
                 </td>
 
                 <td class="text-center">
-                    <span class="{{ $keteranganClass }}">
-                        {{ $keterangan }}
-                    </span>
+                    <span class="{{ $keteranganClass }}">{{ $keterangan }}</span>
                 </td>
             </tr>
             @empty

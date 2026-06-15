@@ -161,43 +161,7 @@ class LaporanController extends Controller
         $query = $this->queryLaporanPiutang($request);
 
         $piutangUntukTotal = (clone $query)->get();
-
-        $totalData = $piutangUntukTotal->count();
-        $totalPiutang = $piutangUntukTotal->sum('total_piutang');
-        $totalDibayar = $piutangUntukTotal->sum('total_dibayar');
-        $totalSisa = $piutangUntukTotal->sum('sisa_piutang');
-
-        $totalBelumLunas = $piutangUntukTotal
-            ->where('status_piutang', 'belum_lunas')
-            ->count();
-
-        $totalSebagian = $piutangUntukTotal
-            ->where('status_piutang', 'sebagian_dibayar')
-            ->count();
-
-        $totalLunas = $piutangUntukTotal
-            ->where('status_piutang', 'lunas')
-            ->count();
-
-        $totalLewatJatuhTempo = $piutangUntukTotal
-            ->filter(function ($item) {
-                return $item->status_piutang !== 'lunas'
-                    && $item->tanggal_jatuh_tempo
-                    && $item->tanggal_jatuh_tempo->isPast();
-            })
-            ->count();
-
-        $totalHistoris = $piutangUntukTotal
-            ->filter(function ($item) {
-                return (bool) ($item->penjualan->is_historical ?? false);
-            })
-            ->count();
-
-        $totalSistemBerjalan = $piutangUntukTotal
-            ->filter(function ($item) {
-                return !(bool) ($item->penjualan->is_historical ?? false);
-            })
-            ->count();
+        $ringkasan = $this->hitungRingkasanPiutang($piutangUntukTotal);
 
         $piutang = $query
             ->orderBy('tanggal_jatuh_tempo', 'asc')
@@ -209,20 +173,10 @@ class LaporanController extends Controller
             ->orderBy('nama_customer')
             ->get();
 
-        return view('laporan.piutang', compact(
-            'piutang',
-            'customers',
-            'totalData',
-            'totalPiutang',
-            'totalDibayar',
-            'totalSisa',
-            'totalBelumLunas',
-            'totalSebagian',
-            'totalLunas',
-            'totalLewatJatuhTempo',
-            'totalHistoris',
-            'totalSistemBerjalan'
-        ));
+        return view('laporan.piutang', array_merge([
+            'piutang' => $piutang,
+            'customers' => $customers,
+        ], $ringkasan));
     }
 
     public function piutangExportExcel(Request $request)
@@ -232,42 +186,7 @@ class LaporanController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        $totalData = $piutang->count();
-        $totalPiutang = $piutang->sum('total_piutang');
-        $totalDibayar = $piutang->sum('total_dibayar');
-        $totalSisa = $piutang->sum('sisa_piutang');
-
-        $totalBelumLunas = $piutang
-            ->where('status_piutang', 'belum_lunas')
-            ->count();
-
-        $totalSebagian = $piutang
-            ->where('status_piutang', 'sebagian_dibayar')
-            ->count();
-
-        $totalLunas = $piutang
-            ->where('status_piutang', 'lunas')
-            ->count();
-
-        $totalLewatJatuhTempo = $piutang
-            ->filter(function ($item) {
-                return $item->status_piutang !== 'lunas'
-                    && $item->tanggal_jatuh_tempo
-                    && $item->tanggal_jatuh_tempo->isPast();
-            })
-            ->count();
-
-        $totalHistoris = $piutang
-            ->filter(function ($item) {
-                return (bool) ($item->penjualan->is_historical ?? false);
-            })
-            ->count();
-
-        $totalSistemBerjalan = $piutang
-            ->filter(function ($item) {
-                return !(bool) ($item->penjualan->is_historical ?? false);
-            })
-            ->count();
+        $ringkasan = $this->hitungRingkasanPiutang($piutang);
 
         $tanggalAwal = $request->tanggal_awal ?: 'awal';
         $tanggalAkhir = $request->tanggal_akhir ?: 'akhir';
@@ -275,21 +194,11 @@ class LaporanController extends Controller
         $fileName = $this->namaFileLaporan('Laporan-Piutang', $tanggalAwal, $tanggalAkhir, 'xls');
 
         return response()
-            ->view('laporan.piutang-excel', compact(
-                'piutang',
-                'totalData',
-                'totalPiutang',
-                'totalDibayar',
-                'totalSisa',
-                'totalBelumLunas',
-                'totalSebagian',
-                'totalLunas',
-                'totalLewatJatuhTempo',
-                'totalHistoris',
-                'totalSistemBerjalan',
-                'tanggalAwal',
-                'tanggalAkhir'
-            ))
+            ->view('laporan.piutang-excel', array_merge([
+                'piutang' => $piutang,
+                'tanggalAwal' => $tanggalAwal,
+                'tanggalAkhir' => $tanggalAkhir,
+            ], $ringkasan))
             ->header('Content-Type', 'application/vnd.ms-excel; charset=UTF-8')
             ->header('Content-Disposition', 'attachment; filename="' . $fileName . '"')
             ->header('Cache-Control', 'max-age=0');
@@ -302,63 +211,18 @@ class LaporanController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        $totalData = $piutang->count();
-        $totalPiutang = $piutang->sum('total_piutang');
-        $totalDibayar = $piutang->sum('total_dibayar');
-        $totalSisa = $piutang->sum('sisa_piutang');
-
-        $totalBelumLunas = $piutang
-            ->where('status_piutang', 'belum_lunas')
-            ->count();
-
-        $totalSebagian = $piutang
-            ->where('status_piutang', 'sebagian_dibayar')
-            ->count();
-
-        $totalLunas = $piutang
-            ->where('status_piutang', 'lunas')
-            ->count();
-
-        $totalLewatJatuhTempo = $piutang
-            ->filter(function ($item) {
-                return $item->status_piutang !== 'lunas'
-                    && $item->tanggal_jatuh_tempo
-                    && $item->tanggal_jatuh_tempo->isPast();
-            })
-            ->count();
-
-        $totalHistoris = $piutang
-            ->filter(function ($item) {
-                return (bool) ($item->penjualan->is_historical ?? false);
-            })
-            ->count();
-
-        $totalSistemBerjalan = $piutang
-            ->filter(function ($item) {
-                return !(bool) ($item->penjualan->is_historical ?? false);
-            })
-            ->count();
+        $ringkasan = $this->hitungRingkasanPiutang($piutang);
 
         $tanggalAwal = $request->tanggal_awal ?: 'awal';
         $tanggalAkhir = $request->tanggal_akhir ?: 'akhir';
 
         $fileName = $this->namaFileLaporan('Laporan-Piutang', $tanggalAwal, $tanggalAkhir, 'pdf');
 
-        $pdf = Pdf::loadView('laporan.piutang-pdf', compact(
-            'piutang',
-            'totalData',
-            'totalPiutang',
-            'totalDibayar',
-            'totalSisa',
-            'totalBelumLunas',
-            'totalSebagian',
-            'totalLunas',
-            'totalLewatJatuhTempo',
-            'totalHistoris',
-            'totalSistemBerjalan',
-            'tanggalAwal',
-            'tanggalAkhir'
-        ))->setPaper('a4', 'landscape');
+        $pdf = Pdf::loadView('laporan.piutang-pdf', array_merge([
+            'piutang' => $piutang,
+            'tanggalAwal' => $tanggalAwal,
+            'tanggalAkhir' => $tanggalAkhir,
+        ], $ringkasan))->setPaper('a4', 'landscape');
 
         return $pdf->download($fileName);
     }
@@ -370,44 +234,17 @@ class LaporanController extends Controller
         $query = $this->queryLaporanStokBarang($request, $batasStokRendah);
 
         $barangUntukTotal = (clone $query)->get();
-
-        $totalBarang = $barangUntukTotal->count();
-        $totalStok = $barangUntukTotal->sum('stok_saat_ini');
-
-        $totalBarangKosong = $barangUntukTotal
-            ->where('stok_saat_ini', '<=', 0)
-            ->count();
-
-        $totalBarangStokRendah = $barangUntukTotal
-            ->filter(function ($barang) use ($batasStokRendah) {
-                return $barang->stok_saat_ini > 0
-                    && $barang->stok_saat_ini <= $batasStokRendah;
-            })
-            ->count();
-
-        $totalNilaiStok = $barangUntukTotal->sum(function ($barang) {
-            return $barang->stok_saat_ini * ($barang->harga_beli_terakhir ?? 0);
-        });
-
-        $totalEstimasiNilaiJual = $barangUntukTotal->sum(function ($barang) {
-            return $barang->stok_saat_ini * ($barang->harga_jual_default ?? 0);
-        });
+        $ringkasan = $this->hitungRingkasanStokBarang($barangUntukTotal, $batasStokRendah);
 
         $barang = $query
             ->orderBy('nama_barang', 'asc')
             ->paginate(15)
             ->withQueryString();
 
-        return view('laporan.stok-barang', compact(
-            'barang',
-            'batasStokRendah',
-            'totalBarang',
-            'totalStok',
-            'totalBarangKosong',
-            'totalBarangStokRendah',
-            'totalNilaiStok',
-            'totalEstimasiNilaiJual'
-        ));
+        return view('laporan.stok-barang', array_merge([
+            'barang' => $barang,
+            'batasStokRendah' => $batasStokRendah,
+        ], $ringkasan));
     }
 
     public function stokBarangExportExcel(Request $request)
@@ -418,41 +255,14 @@ class LaporanController extends Controller
             ->orderBy('nama_barang', 'asc')
             ->get();
 
-        $totalBarang = $barang->count();
-        $totalStok = $barang->sum('stok_saat_ini');
-
-        $totalBarangKosong = $barang
-            ->where('stok_saat_ini', '<=', 0)
-            ->count();
-
-        $totalBarangStokRendah = $barang
-            ->filter(function ($item) use ($batasStokRendah) {
-                return $item->stok_saat_ini > 0
-                    && $item->stok_saat_ini <= $batasStokRendah;
-            })
-            ->count();
-
-        $totalNilaiStok = $barang->sum(function ($item) {
-            return $item->stok_saat_ini * ($item->harga_beli_terakhir ?? 0);
-        });
-
-        $totalEstimasiNilaiJual = $barang->sum(function ($item) {
-            return $item->stok_saat_ini * ($item->harga_jual_default ?? 0);
-        });
-
-        $fileName = 'Laporan-Stok-Barang.xls';
+        $ringkasan = $this->hitungRingkasanStokBarang($barang, $batasStokRendah);
+        $fileName = $this->namaFileLaporan('Laporan-Stok-Barang', 'semua', now()->format('Y-m-d'), 'xls');
 
         return response()
-            ->view('laporan.stok-barang-excel', compact(
-                'barang',
-                'batasStokRendah',
-                'totalBarang',
-                'totalStok',
-                'totalBarangKosong',
-                'totalBarangStokRendah',
-                'totalNilaiStok',
-                'totalEstimasiNilaiJual'
-            ))
+            ->view('laporan.stok-barang-excel', array_merge([
+                'barang' => $barang,
+                'batasStokRendah' => $batasStokRendah,
+            ], $ringkasan))
             ->header('Content-Type', 'application/vnd.ms-excel; charset=UTF-8')
             ->header('Content-Disposition', 'attachment; filename="' . $fileName . '"')
             ->header('Cache-Control', 'max-age=0');
@@ -466,40 +276,13 @@ class LaporanController extends Controller
             ->orderBy('nama_barang', 'asc')
             ->get();
 
-        $totalBarang = $barang->count();
-        $totalStok = $barang->sum('stok_saat_ini');
+        $ringkasan = $this->hitungRingkasanStokBarang($barang, $batasStokRendah);
+        $fileName = $this->namaFileLaporan('Laporan-Stok-Barang', 'semua', now()->format('Y-m-d'), 'pdf');
 
-        $totalBarangKosong = $barang
-            ->where('stok_saat_ini', '<=', 0)
-            ->count();
-
-        $totalBarangStokRendah = $barang
-            ->filter(function ($item) use ($batasStokRendah) {
-                return $item->stok_saat_ini > 0
-                    && $item->stok_saat_ini <= $batasStokRendah;
-            })
-            ->count();
-
-        $totalNilaiStok = $barang->sum(function ($item) {
-            return $item->stok_saat_ini * ($item->harga_beli_terakhir ?? 0);
-        });
-
-        $totalEstimasiNilaiJual = $barang->sum(function ($item) {
-            return $item->stok_saat_ini * ($item->harga_jual_default ?? 0);
-        });
-
-        $fileName = 'Laporan-Stok-Barang.pdf';
-
-        $pdf = Pdf::loadView('laporan.stok-barang-pdf', compact(
-            'barang',
-            'batasStokRendah',
-            'totalBarang',
-            'totalStok',
-            'totalBarangKosong',
-            'totalBarangStokRendah',
-            'totalNilaiStok',
-            'totalEstimasiNilaiJual'
-        ))->setPaper('a4', 'landscape');
+        $pdf = Pdf::loadView('laporan.stok-barang-pdf', array_merge([
+            'barang' => $barang,
+            'batasStokRendah' => $batasStokRendah,
+        ], $ringkasan))->setPaper('a4', 'landscape');
 
         return $pdf->download($fileName);
     }
@@ -509,44 +292,7 @@ class LaporanController extends Controller
         $query = $this->queryLaporanRiwayatStok($request);
 
         $riwayatUntukTotal = (clone $query)->get();
-
-        $totalData = $riwayatUntukTotal->count();
-
-        $totalMasuk = $riwayatUntukTotal
-            ->where('jenis_pergerakan', 'masuk')
-            ->sum('jumlah');
-
-        $totalKeluar = $riwayatUntukTotal
-            ->where('jenis_pergerakan', 'keluar')
-            ->sum('jumlah');
-
-        $totalPenyesuaian = $riwayatUntukTotal
-            ->where('jenis_pergerakan', 'penyesuaian')
-            ->count();
-
-        $totalOpname = $riwayatUntukTotal
-            ->filter(function ($item) {
-                return str_starts_with((string) $item->sumber_transaksi, 'STOCK-OPNAME');
-            })
-            ->count();
-
-        $totalSelisihPlus = $riwayatUntukTotal
-            ->filter(function ($item) {
-                return $item->jenis_pergerakan === 'penyesuaian'
-                    && ((int) $item->stok_sesudah - (int) $item->stok_sebelum) > 0;
-            })
-            ->sum(function ($item) {
-                return (int) $item->stok_sesudah - (int) $item->stok_sebelum;
-            });
-
-        $totalSelisihMinus = $riwayatUntukTotal
-            ->filter(function ($item) {
-                return $item->jenis_pergerakan === 'penyesuaian'
-                    && ((int) $item->stok_sesudah - (int) $item->stok_sebelum) < 0;
-            })
-            ->sum(function ($item) {
-                return abs((int) $item->stok_sesudah - (int) $item->stok_sebelum);
-            });
+        $ringkasan = $this->hitungRingkasanRiwayatStok($riwayatUntukTotal);
 
         $riwayatStok = $query
             ->orderBy('tanggal', 'desc')
@@ -556,17 +302,10 @@ class LaporanController extends Controller
 
         $barang = Barang::orderBy('nama_barang')->get();
 
-        return view('laporan.riwayat-stok', compact(
-            'riwayatStok',
-            'barang',
-            'totalData',
-            'totalMasuk',
-            'totalKeluar',
-            'totalPenyesuaian',
-            'totalOpname',
-            'totalSelisihPlus',
-            'totalSelisihMinus'
-        ));
+        return view('laporan.riwayat-stok', array_merge([
+            'riwayatStok' => $riwayatStok,
+            'barang' => $barang,
+        ], $ringkasan));
     }
 
     public function riwayatStokExportExcel(Request $request)
@@ -576,43 +315,7 @@ class LaporanController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        $totalData = $riwayatStok->count();
-
-        $totalMasuk = $riwayatStok
-            ->where('jenis_pergerakan', 'masuk')
-            ->sum('jumlah');
-
-        $totalKeluar = $riwayatStok
-            ->where('jenis_pergerakan', 'keluar')
-            ->sum('jumlah');
-
-        $totalPenyesuaian = $riwayatStok
-            ->where('jenis_pergerakan', 'penyesuaian')
-            ->count();
-
-        $totalOpname = $riwayatStok
-            ->filter(function ($item) {
-                return str_starts_with((string) $item->sumber_transaksi, 'STOCK-OPNAME');
-            })
-            ->count();
-
-        $totalSelisihPlus = $riwayatStok
-            ->filter(function ($item) {
-                return $item->jenis_pergerakan === 'penyesuaian'
-                    && ((int) $item->stok_sesudah - (int) $item->stok_sebelum) > 0;
-            })
-            ->sum(function ($item) {
-                return (int) $item->stok_sesudah - (int) $item->stok_sebelum;
-            });
-
-        $totalSelisihMinus = $riwayatStok
-            ->filter(function ($item) {
-                return $item->jenis_pergerakan === 'penyesuaian'
-                    && ((int) $item->stok_sesudah - (int) $item->stok_sebelum) < 0;
-            })
-            ->sum(function ($item) {
-                return abs((int) $item->stok_sesudah - (int) $item->stok_sebelum);
-            });
+        $ringkasan = $this->hitungRingkasanRiwayatStok($riwayatStok);
 
         $tanggalAwal = $request->tanggal_awal ?: 'awal';
         $tanggalAkhir = $request->tanggal_akhir ?: 'akhir';
@@ -620,18 +323,11 @@ class LaporanController extends Controller
         $fileName = $this->namaFileLaporan('Laporan-Riwayat-Stok', $tanggalAwal, $tanggalAkhir, 'xls');
 
         return response()
-            ->view('laporan.riwayat-stok-excel', compact(
-                'riwayatStok',
-                'totalData',
-                'totalMasuk',
-                'totalKeluar',
-                'totalPenyesuaian',
-                'totalOpname',
-                'totalSelisihPlus',
-                'totalSelisihMinus',
-                'tanggalAwal',
-                'tanggalAkhir'
-            ))
+            ->view('laporan.riwayat-stok-excel', array_merge([
+                'riwayatStok' => $riwayatStok,
+                'tanggalAwal' => $tanggalAwal,
+                'tanggalAkhir' => $tanggalAkhir,
+            ], $ringkasan))
             ->header('Content-Type', 'application/vnd.ms-excel; charset=UTF-8')
             ->header('Content-Disposition', 'attachment; filename="' . $fileName . '"')
             ->header('Cache-Control', 'max-age=0');
@@ -644,68 +340,30 @@ class LaporanController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        $totalData = $riwayatStok->count();
-
-        $totalMasuk = $riwayatStok
-            ->where('jenis_pergerakan', 'masuk')
-            ->sum('jumlah');
-
-        $totalKeluar = $riwayatStok
-            ->where('jenis_pergerakan', 'keluar')
-            ->sum('jumlah');
-
-        $totalPenyesuaian = $riwayatStok
-            ->where('jenis_pergerakan', 'penyesuaian')
-            ->count();
-
-        $totalOpname = $riwayatStok
-            ->filter(function ($item) {
-                return str_starts_with((string) $item->sumber_transaksi, 'STOCK-OPNAME');
-            })
-            ->count();
-
-        $totalSelisihPlus = $riwayatStok
-            ->filter(function ($item) {
-                return $item->jenis_pergerakan === 'penyesuaian'
-                    && ((int) $item->stok_sesudah - (int) $item->stok_sebelum) > 0;
-            })
-            ->sum(function ($item) {
-                return (int) $item->stok_sesudah - (int) $item->stok_sebelum;
-            });
-
-        $totalSelisihMinus = $riwayatStok
-            ->filter(function ($item) {
-                return $item->jenis_pergerakan === 'penyesuaian'
-                    && ((int) $item->stok_sesudah - (int) $item->stok_sebelum) < 0;
-            })
-            ->sum(function ($item) {
-                return abs((int) $item->stok_sesudah - (int) $item->stok_sebelum);
-            });
+        $ringkasan = $this->hitungRingkasanRiwayatStok($riwayatStok);
 
         $tanggalAwal = $request->tanggal_awal ?: 'awal';
         $tanggalAkhir = $request->tanggal_akhir ?: 'akhir';
 
         $fileName = $this->namaFileLaporan('Laporan-Riwayat-Stok', $tanggalAwal, $tanggalAkhir, 'pdf');
 
-        $pdf = Pdf::loadView('laporan.riwayat-stok-pdf', compact(
-            'riwayatStok',
-            'totalData',
-            'totalMasuk',
-            'totalKeluar',
-            'totalPenyesuaian',
-            'totalOpname',
-            'totalSelisihPlus',
-            'totalSelisihMinus',
-            'tanggalAwal',
-            'tanggalAkhir'
-        ))->setPaper('a4', 'landscape');
+        $pdf = Pdf::loadView('laporan.riwayat-stok-pdf', array_merge([
+            'riwayatStok' => $riwayatStok,
+            'tanggalAwal' => $tanggalAwal,
+            'tanggalAkhir' => $tanggalAkhir,
+        ], $ringkasan))->setPaper('a4', 'landscape');
 
         return $pdf->download($fileName);
     }
 
     private function queryLaporanPenjualan(Request $request)
     {
-        return Penjualan::with(['customer', 'user', 'piutang'])
+        return Penjualan::with([
+            'customer',
+            'user',
+            'piutang',
+            'detailPenjualan.barang',
+        ])
             ->when($request->tanggal_awal, function ($query) use ($request) {
                 $query->whereDate('tanggal_penjualan', '>=', $request->tanggal_awal);
             })
@@ -740,6 +398,10 @@ class LaporanController extends Controller
                             $customerQuery->where('nama_customer', 'like', "%{$search}%")
                                 ->orWhere('nomor_telepon', 'like', "%{$search}%")
                                 ->orWhere('npwp', 'like', "%{$search}%");
+                        })
+                        ->orWhereHas('detailPenjualan.barang', function ($barangQuery) use ($search) {
+                            $barangQuery->where('nama_barang', 'like', "%{$search}%")
+                                ->orWhere('kode_barang', 'like', "%{$search}%");
                         });
                 });
             });
@@ -790,6 +452,10 @@ class LaporanController extends Controller
                             $supplierQuery->where('nama_supplier', 'like', "%{$search}%")
                                 ->orWhere('nomor_telepon', 'like', "%{$search}%")
                                 ->orWhere('npwp', 'like', "%{$search}%");
+                        })
+                        ->orWhereHas('detailPembelian.barang', function ($barangQuery) use ($search) {
+                            $barangQuery->where('kode_barang', 'like', "%{$search}%")
+                                ->orWhere('nama_barang', 'like', "%{$search}%");
                         });
                 });
             });
@@ -837,7 +503,8 @@ class LaporanController extends Controller
                 $query->where(function ($subQuery) use ($search) {
                     $subQuery->where('nomor_invoice', 'like', "%{$search}%")
                         ->orWhereHas('penjualan', function ($penjualanQuery) use ($search) {
-                            $penjualanQuery->where('nomor_dokumen_asli', 'like', "%{$search}%");
+                            $penjualanQuery->where('nomor_invoice', 'like', "%{$search}%")
+                                ->orWhere('nomor_dokumen_asli', 'like', "%{$search}%");
                         })
                         ->orWhereHas('customer', function ($customerQuery) use ($search) {
                             $customerQuery->where('nama_customer', 'like', "%{$search}%")
@@ -864,13 +531,24 @@ class LaporanController extends Controller
             ->when($request->kondisi_stok === 'tersedia', function ($query) use ($batasStokRendah) {
                 $query->where('stok_saat_ini', '>', $batasStokRendah);
             })
+            ->when($request->tipe_harga === 'normal', function ($query) {
+                $query->where(function ($subQuery) {
+                    $subQuery->where('tipe_perhitungan_harga', 'normal')
+                        ->orWhereNull('tipe_perhitungan_harga');
+                });
+            })
+            ->when($request->tipe_harga === 'isi_kemasan', function ($query) {
+                $query->where('tipe_perhitungan_harga', 'isi_kemasan');
+            })
             ->when($request->search, function ($query) use ($request) {
                 $search = $request->search;
 
                 $query->where(function ($subQuery) use ($search) {
                     $subQuery->where('kode_barang', 'like', "%{$search}%")
                         ->orWhere('nama_barang', 'like', "%{$search}%")
-                        ->orWhere('satuan', 'like', "%{$search}%");
+                        ->orWhere('satuan', 'like', "%{$search}%")
+                        ->orWhere('satuan_hitung_harga', 'like', "%{$search}%")
+                        ->orWhere('tipe_perhitungan_harga', 'like', "%{$search}%");
                 });
             });
     }
@@ -952,6 +630,28 @@ class LaporanController extends Controller
             return $item->piutang->sisa_piutang ?? 0;
         });
 
+        $totalItemBarang = 0;
+        $totalJumlahTerjual = 0;
+        $totalBarangNormal = 0;
+        $totalBarangIsiKemasan = 0;
+        $totalNilaiBarangNormal = 0;
+        $totalNilaiBarangIsiKemasan = 0;
+
+        foreach ($penjualan as $item) {
+            foreach ($item->detailPenjualan as $detail) {
+                $totalItemBarang++;
+                $totalJumlahTerjual += (float) $detail->jumlah;
+
+                if (($detail->tipe_perhitungan_harga ?? 'normal') === 'isi_kemasan') {
+                    $totalBarangIsiKemasan++;
+                    $totalNilaiBarangIsiKemasan += (float) $detail->subtotal;
+                } else {
+                    $totalBarangNormal++;
+                    $totalNilaiBarangNormal += (float) $detail->subtotal;
+                }
+            }
+        }
+
         return compact(
             'totalTransaksi',
             'totalSubtotal',
@@ -963,7 +663,13 @@ class LaporanController extends Controller
             'totalSistemBerjalan',
             'totalPiutang',
             'totalDibayar',
-            'totalSisaPiutang'
+            'totalSisaPiutang',
+            'totalItemBarang',
+            'totalJumlahTerjual',
+            'totalBarangNormal',
+            'totalBarangIsiKemasan',
+            'totalNilaiBarangNormal',
+            'totalNilaiBarangIsiKemasan'
         );
     }
 
@@ -976,14 +682,29 @@ class LaporanController extends Controller
 
         $totalDipesan = 0;
         $totalDiterima = 0;
+        $totalDetailBarang = 0;
+        $totalDetailDiterima = 0;
+        $totalNilaiPajakDitambahkan = 0;
+        $totalNilaiPajakTampilSaja = 0;
 
         foreach ($pembelian as $item) {
             foreach ($item->detailPembelian as $detail) {
                 $jumlahDipesan = $detail->jumlah_dipesan ?? $detail->jumlah;
                 $jumlahDiterima = $detail->jumlah;
 
+                $totalDetailBarang++;
                 $totalDipesan += $jumlahDipesan;
                 $totalDiterima += $jumlahDiterima;
+
+                if ($jumlahDiterima > 0) {
+                    $totalDetailDiterima++;
+                }
+            }
+
+            if ((bool) ($item->pajak_ditambahkan ?? true)) {
+                $totalNilaiPajakDitambahkan += (float) $item->nilai_pajak;
+            } else {
+                $totalNilaiPajakTampilSaja += (float) $item->nilai_pajak;
             }
         }
 
@@ -1025,6 +746,18 @@ class LaporanController extends Controller
             })
             ->count();
 
+        $totalPajakDitambahkan = $pembelian
+            ->filter(function ($item) {
+                return (bool) ($item->pajak_ditambahkan ?? true);
+            })
+            ->count();
+
+        $totalPajakTampilSaja = $pembelian
+            ->filter(function ($item) {
+                return !(bool) ($item->pajak_ditambahkan ?? true);
+            })
+            ->count();
+
         return compact(
             'totalTransaksi',
             'totalSubtotal',
@@ -1039,7 +772,234 @@ class LaporanController extends Controller
             'totalHistoris',
             'totalSistemBerjalan',
             'totalMemengaruhiStok',
-            'totalTidakMemengaruhiStok'
+            'totalTidakMemengaruhiStok',
+            'totalDetailBarang',
+            'totalDetailDiterima',
+            'totalPajakDitambahkan',
+            'totalPajakTampilSaja',
+            'totalNilaiPajakDitambahkan',
+            'totalNilaiPajakTampilSaja'
+        );
+    }
+
+    private function hitungRingkasanPiutang($piutang): array
+    {
+        $totalData = $piutang->count();
+        $totalPiutang = $piutang->sum('total_piutang');
+        $totalDibayar = $piutang->sum('total_dibayar');
+        $totalSisa = $piutang->sum('sisa_piutang');
+
+        $totalBelumLunas = $piutang
+            ->where('status_piutang', 'belum_lunas')
+            ->count();
+
+        $totalSebagian = $piutang
+            ->where('status_piutang', 'sebagian_dibayar')
+            ->count();
+
+        $totalLunas = $piutang
+            ->where('status_piutang', 'lunas')
+            ->count();
+
+        $totalLewatJatuhTempo = $piutang
+            ->filter(function ($item) {
+                return $item->status_piutang !== 'lunas'
+                    && $item->tanggal_jatuh_tempo
+                    && $item->tanggal_jatuh_tempo->lt(today());
+            })
+            ->count();
+
+        $totalBelumJatuhTempo = $piutang
+            ->filter(function ($item) {
+                return $item->status_piutang !== 'lunas'
+                    && $item->tanggal_jatuh_tempo
+                    && $item->tanggal_jatuh_tempo->gte(today());
+            })
+            ->count();
+
+        $totalTanpaJatuhTempo = $piutang
+            ->filter(function ($item) {
+                return $item->status_piutang !== 'lunas'
+                    && !$item->tanggal_jatuh_tempo;
+            })
+            ->count();
+
+        $totalHistoris = $piutang
+            ->filter(function ($item) {
+                return (bool) ($item->penjualan->is_historical ?? false);
+            })
+            ->count();
+
+        $totalSistemBerjalan = $piutang
+            ->filter(function ($item) {
+                return !(bool) ($item->penjualan->is_historical ?? false);
+            })
+            ->count();
+
+        $persentaseTertagih = $totalPiutang > 0
+            ? round(($totalDibayar / $totalPiutang) * 100, 2)
+            : 0;
+
+        $persentaseSisa = $totalPiutang > 0
+            ? round(($totalSisa / $totalPiutang) * 100, 2)
+            : 0;
+
+        return compact(
+            'totalData',
+            'totalPiutang',
+            'totalDibayar',
+            'totalSisa',
+            'totalBelumLunas',
+            'totalSebagian',
+            'totalLunas',
+            'totalLewatJatuhTempo',
+            'totalBelumJatuhTempo',
+            'totalTanpaJatuhTempo',
+            'totalHistoris',
+            'totalSistemBerjalan',
+            'persentaseTertagih',
+            'persentaseSisa'
+        );
+    }
+
+    private function hitungRingkasanStokBarang($barang, int $batasStokRendah): array
+    {
+        $totalBarang = $barang->count();
+        $totalStok = $barang->sum('stok_saat_ini');
+
+        $totalBarangAktif = $barang
+            ->where('status_aktif', true)
+            ->count();
+
+        $totalBarangNonaktif = $barang
+            ->where('status_aktif', false)
+            ->count();
+
+        $totalBarangKosong = $barang
+            ->where('stok_saat_ini', '<=', 0)
+            ->count();
+
+        $totalBarangStokRendah = $barang
+            ->filter(function ($item) use ($batasStokRendah) {
+                return $item->stok_saat_ini > 0
+                    && $item->stok_saat_ini <= $batasStokRendah;
+            })
+            ->count();
+
+        $totalBarangTersedia = $barang
+            ->filter(function ($item) use ($batasStokRendah) {
+                return $item->stok_saat_ini > $batasStokRendah;
+            })
+            ->count();
+
+        $totalBarangNormal = $barang
+            ->filter(function ($item) {
+                return ($item->tipe_perhitungan_harga ?? 'normal') === 'normal';
+            })
+            ->count();
+
+        $totalBarangIsiKemasan = $barang
+            ->filter(function ($item) {
+                return ($item->tipe_perhitungan_harga ?? 'normal') === 'isi_kemasan';
+            })
+            ->count();
+
+        $totalNilaiStok = $barang->sum(function ($item) {
+            return (float) $item->stok_saat_ini * (float) ($item->harga_beli_terakhir ?? 0);
+        });
+
+        $totalEstimasiNilaiJual = $barang->sum(function ($item) {
+            return (float) $item->stok_saat_ini * (float) ($item->harga_jual_default ?? 0);
+        });
+
+        $totalEstimasiLabaKotor = $totalEstimasiNilaiJual - $totalNilaiStok;
+
+        return compact(
+            'totalBarang',
+            'totalStok',
+            'totalBarangAktif',
+            'totalBarangNonaktif',
+            'totalBarangKosong',
+            'totalBarangStokRendah',
+            'totalBarangTersedia',
+            'totalBarangNormal',
+            'totalBarangIsiKemasan',
+            'totalNilaiStok',
+            'totalEstimasiNilaiJual',
+            'totalEstimasiLabaKotor'
+        );
+    }
+
+    private function hitungRingkasanRiwayatStok($riwayatStok): array
+    {
+        $totalData = $riwayatStok->count();
+
+        $totalMasuk = $riwayatStok
+            ->where('jenis_pergerakan', 'masuk')
+            ->sum('jumlah');
+
+        $totalKeluar = $riwayatStok
+            ->where('jenis_pergerakan', 'keluar')
+            ->sum('jumlah');
+
+        $totalPenyesuaian = $riwayatStok
+            ->where('jenis_pergerakan', 'penyesuaian')
+            ->count();
+
+        $totalJumlahPenyesuaian = $riwayatStok
+            ->where('jenis_pergerakan', 'penyesuaian')
+            ->sum('jumlah');
+
+        $totalOpname = $riwayatStok
+            ->filter(function ($item) {
+                return str_starts_with((string) $item->sumber_transaksi, 'STOCK-OPNAME');
+            })
+            ->count();
+
+        $totalNonOpname = $riwayatStok
+            ->filter(function ($item) {
+                return !str_starts_with((string) $item->sumber_transaksi, 'STOCK-OPNAME');
+            })
+            ->count();
+
+        $totalSelisihPlus = $riwayatStok
+            ->filter(function ($item) {
+                return $item->jenis_pergerakan === 'penyesuaian'
+                    && ((int) $item->stok_sesudah - (int) $item->stok_sebelum) > 0;
+            })
+            ->sum(function ($item) {
+                return (int) $item->stok_sesudah - (int) $item->stok_sebelum;
+            });
+
+        $totalSelisihMinus = $riwayatStok
+            ->filter(function ($item) {
+                return $item->jenis_pergerakan === 'penyesuaian'
+                    && ((int) $item->stok_sesudah - (int) $item->stok_sebelum) < 0;
+            })
+            ->sum(function ($item) {
+                return abs((int) $item->stok_sesudah - (int) $item->stok_sebelum);
+            });
+
+        $totalTransaksiMasuk = $riwayatStok
+            ->where('jenis_pergerakan', 'masuk')
+            ->count();
+
+        $totalTransaksiKeluar = $riwayatStok
+            ->where('jenis_pergerakan', 'keluar')
+            ->count();
+
+        return compact(
+            'totalData',
+            'totalMasuk',
+            'totalKeluar',
+            'totalPenyesuaian',
+            'totalJumlahPenyesuaian',
+            'totalOpname',
+            'totalNonOpname',
+            'totalSelisihPlus',
+            'totalSelisihMinus',
+            'totalTransaksiMasuk',
+            'totalTransaksiKeluar'
         );
     }
 

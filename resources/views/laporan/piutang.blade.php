@@ -24,8 +24,28 @@
         </div>
     </x-slot>
 
+    @php
+    $namaPerusahaan = 'CV. BERKAT JAYA NUSANTARA';
+    $alamatPerusahaan = 'Jl. Jelambar Utama 1 No. 6A RT. 007 RW. 004, Jakarta Barat 11460';
+    $teleponPerusahaan = '(021) 5664892, 5676277';
+    @endphp
+
     <div class="py-6">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+
+            <div class="bg-white shadow-sm sm:rounded-lg p-6 mb-6">
+                <div class="text-center">
+                    <h3 class="text-lg font-bold text-gray-900">
+                        {{ $namaPerusahaan }}
+                    </h3>
+                    <p class="text-sm text-gray-600 mt-1">
+                        {{ $alamatPerusahaan }}
+                    </p>
+                    <p class="text-sm text-gray-600">
+                        Telp: {{ $teleponPerusahaan }}
+                    </p>
+                </div>
+            </div>
 
             <div class="bg-white shadow-sm sm:rounded-lg p-6 mb-6">
                 <form method="GET" action="{{ route('laporan.piutang') }}">
@@ -133,10 +153,16 @@
                 </form>
             </div>
 
+            @php
+            $persentaseTertagih = ($totalPiutang ?? 0) > 0
+            ? (($totalDibayar ?? 0) / ($totalPiutang ?? 1)) * 100
+            : 0;
+            @endphp
+
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Total Data</p>
-                    <p class="text-2xl font-bold">{{ $totalData }}</p>
+                    <p class="text-2xl font-bold">{{ $totalData ?? 0 }}</p>
                     <p class="text-xs text-gray-500 mt-1">
                         Sistem: {{ $totalSistemBerjalan ?? 0 }} | Historis: {{ $totalHistoris ?? 0 }}
                     </p>
@@ -145,21 +171,24 @@
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Total Piutang</p>
                     <p class="text-2xl font-bold">
-                        Rp {{ number_format($totalPiutang, 0, ',', '.') }}
+                        Rp {{ number_format($totalPiutang ?? 0, 0, ',', '.') }}
                     </p>
                 </div>
 
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Total Dibayar</p>
                     <p class="text-2xl font-bold text-blue-700">
-                        Rp {{ number_format($totalDibayar, 0, ',', '.') }}
+                        Rp {{ number_format($totalDibayar ?? 0, 0, ',', '.') }}
+                    </p>
+                    <p class="text-xs text-gray-500 mt-1">
+                        Tertagih: {{ number_format($persentaseTertagih, 2, ',', '.') }}%
                     </p>
                 </div>
 
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Sisa Piutang</p>
                     <p class="text-2xl font-bold text-red-700">
-                        Rp {{ number_format($totalSisa, 0, ',', '.') }}
+                        Rp {{ number_format($totalSisa ?? 0, 0, ',', '.') }}
                     </p>
                 </div>
             </div>
@@ -167,22 +196,22 @@
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Belum Lunas</p>
-                    <p class="text-2xl font-bold text-yellow-700">{{ $totalBelumLunas }}</p>
+                    <p class="text-2xl font-bold text-yellow-700">{{ $totalBelumLunas ?? 0 }}</p>
                 </div>
 
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Sebagian Dibayar</p>
-                    <p class="text-2xl font-bold text-blue-700">{{ $totalSebagian }}</p>
+                    <p class="text-2xl font-bold text-blue-700">{{ $totalSebagian ?? 0 }}</p>
                 </div>
 
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Lunas</p>
-                    <p class="text-2xl font-bold text-green-700">{{ $totalLunas }}</p>
+                    <p class="text-2xl font-bold text-green-700">{{ $totalLunas ?? 0 }}</p>
                 </div>
 
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Lewat Jatuh Tempo</p>
-                    <p class="text-2xl font-bold text-red-700">{{ $totalLewatJatuhTempo }}</p>
+                    <p class="text-2xl font-bold text-red-700">{{ $totalLewatJatuhTempo ?? 0 }}</p>
                 </div>
             </div>
 
@@ -264,7 +293,7 @@
                                     </div>
 
                                     <div class="text-xs text-gray-500">
-                                        {{ $item->customer->nomor_telepon ?? '-' }}
+                                        Telp: {{ $item->customer->nomor_telepon ?? '-' }}
                                     </div>
 
                                     @if ($item->customer?->npwp)
@@ -301,15 +330,15 @@
                                 </td>
 
                                 <td class="border px-3 py-2 text-right">
-                                    Rp {{ number_format($item->total_piutang, 0, ',', '.') }}
+                                    Rp {{ number_format($item->total_piutang ?? 0, 0, ',', '.') }}
                                 </td>
 
                                 <td class="border px-3 py-2 text-right">
-                                    Rp {{ number_format($item->total_dibayar, 0, ',', '.') }}
+                                    Rp {{ number_format($item->total_dibayar ?? 0, 0, ',', '.') }}
                                 </td>
 
                                 <td class="border px-3 py-2 text-right font-semibold">
-                                    Rp {{ number_format($item->sisa_piutang, 0, ',', '.') }}
+                                    Rp {{ number_format($item->sisa_piutang ?? 0, 0, ',', '.') }}
                                 </td>
 
                                 <td class="border px-3 py-2 text-center">

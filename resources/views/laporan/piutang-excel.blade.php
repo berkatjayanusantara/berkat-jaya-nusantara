@@ -1,10 +1,14 @@
 @php
 $namaPerusahaan = 'CV. BERKAT JAYA NUSANTARA';
-$alamatPerusahaan = 'Alamat perusahaan belum diisi';
-$teleponPerusahaan = 'Telepon belum diisi';
+$alamatPerusahaan = 'Jl. Jelambar Utama 1 No. 6A RT. 007 RW. 004, Jakarta Barat 11460';
+$teleponPerusahaan = '(021) 5664892, 5676277';
 
 $periodeAwal = $tanggalAwal === 'awal' ? 'Awal' : $tanggalAwal;
 $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
+
+$persentaseTertagih = ($totalPiutang ?? 0) > 0
+? (($totalDibayar ?? 0) / ($totalPiutang ?? 1)) * 100
+: 0;
 @endphp
 
 <!DOCTYPE html>
@@ -24,6 +28,11 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
             font-weight: bold;
             text-align: center;
             background-color: #eff6ff;
+        }
+
+        .company-info {
+            text-align: center;
+            font-weight: bold;
         }
 
         .title {
@@ -69,8 +78,8 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
             mso-number-format: "#,##0";
         }
 
-        .date-format {
-            mso-number-format: "dd-mm-yyyy";
+        .number-format {
+            mso-number-format: "#,##0.##";
         }
 
         .total-row {
@@ -103,46 +112,42 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
 <body>
     <table border="1">
         <tr>
-            <td colspan="18" class="company-title">
-                {{ $namaPerusahaan }}
-            </td>
+            <td colspan="19" class="company-title">{{ $namaPerusahaan }}</td>
         </tr>
 
         <tr>
-            <td colspan="18" class="text-center">
-                {{ $alamatPerusahaan }} | Telp: {{ $teleponPerusahaan }}
-            </td>
+            <td colspan="19" class="company-info">{{ $alamatPerusahaan }}</td>
         </tr>
 
         <tr>
-            <td colspan="18" class="title">
-                LAPORAN PIUTANG
-            </td>
+            <td colspan="19" class="company-info">Telp: {{ $teleponPerusahaan }}</td>
         </tr>
 
         <tr>
-            <td colspan="18" class="subtitle">
+            <td colspan="19" class="title">LAPORAN PIUTANG</td>
+        </tr>
+
+        <tr>
+            <td colspan="19" class="subtitle">
                 Periode Jatuh Tempo: {{ $periodeAwal }} s/d {{ $periodeAkhir }}
             </td>
         </tr>
 
         <tr>
-            <td colspan="18" class="subtitle">
-                Dicetak: {{ now()->format('d-m-Y H:i') }}
-            </td>
+            <td colspan="19" class="subtitle">Dicetak: {{ now()->format('d-m-Y H:i') }}</td>
         </tr>
 
         <tr>
-            <td colspan="18"></td>
+            <td colspan="19"></td>
         </tr>
 
         <tr class="section-header">
-            <td colspan="18">Ringkasan Laporan</td>
+            <td colspan="19">Ringkasan Laporan</td>
         </tr>
 
         <tr>
             <td class="bold">Total Data</td>
-            <td class="text-center">{{ $totalData }}</td>
+            <td class="text-center">{{ $totalData ?? 0 }}</td>
 
             <td class="bold">Sistem Berjalan</td>
             <td class="text-center">{{ $totalSistemBerjalan ?? 0 }}</td>
@@ -151,31 +156,34 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
             <td class="text-center">{{ $totalHistoris ?? 0 }}</td>
 
             <td class="bold">Belum Lunas</td>
-            <td class="text-center">{{ $totalBelumLunas }}</td>
+            <td class="text-center">{{ $totalBelumLunas ?? 0 }}</td>
 
             <td class="bold">Sebagian Dibayar</td>
-            <td class="text-center">{{ $totalSebagian }}</td>
+            <td class="text-center">{{ $totalSebagian ?? 0 }}</td>
 
             <td class="bold">Lunas</td>
-            <td class="text-center">{{ $totalLunas }}</td>
+            <td class="text-center">{{ $totalLunas ?? 0 }}</td>
 
             <td class="bold">Lewat Jatuh Tempo</td>
-            <td colspan="5" class="text-center">{{ $totalLewatJatuhTempo }}</td>
+            <td class="text-center">{{ $totalLewatJatuhTempo ?? 0 }}</td>
+
+            <td class="bold">Persentase Tertagih</td>
+            <td colspan="4" class="text-center number-format">{{ number_format($persentaseTertagih, 2, ',', '.') }}%</td>
         </tr>
 
         <tr>
             <td class="bold">Total Piutang</td>
-            <td colspan="5" class="text-right currency">{{ $totalPiutang }}</td>
+            <td colspan="5" class="text-right currency">{{ $totalPiutang ?? 0 }}</td>
 
             <td class="bold">Total Dibayar</td>
-            <td colspan="5" class="text-right currency">{{ $totalDibayar }}</td>
+            <td colspan="5" class="text-right currency">{{ $totalDibayar ?? 0 }}</td>
 
             <td class="bold">Total Sisa</td>
-            <td colspan="5" class="text-right currency">{{ $totalSisa }}</td>
+            <td colspan="6" class="text-right currency">{{ $totalSisa ?? 0 }}</td>
         </tr>
 
         <tr>
-            <td colspan="18"></td>
+            <td colspan="19"></td>
         </tr>
 
         <tr class="header">
@@ -197,6 +205,7 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
             <td>Keterangan</td>
             <td>Catatan Piutang</td>
             <td>Catatan Penjualan</td>
+            <td>Alamat Customer</td>
         </tr>
 
         @foreach ($piutang as $item)
@@ -235,28 +244,21 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
         $tipeInvoice = $isHistoris ? 'Historis / Lama' : 'Sistem Berjalan';
         $nomorTelepon = $item->customer->nomor_telepon ?? '-';
         $npwp = $item->customer->npwp ?? '-';
+        $alamatCustomer = $item->customer->alamat ?? '-';
         @endphp
 
         <tr class="{{ $isHistoris ? 'historis' : 'sistem' }}">
-            <td class="text-center">
-                {{ $loop->iteration }}
-            </td>
+            <td class="text-center">{{ $loop->iteration }}</td>
 
-            <td class="text-format">
-                {{ $item->nomor_invoice }}
-            </td>
+            <td class="text-format">{{ $item->nomor_invoice }}</td>
 
-            <td class="text-format">
-                {{ $item->penjualan->nomor_dokumen_asli ?? '-' }}
-            </td>
+            <td class="text-format">{{ $item->penjualan->nomor_dokumen_asli ?? '-' }}</td>
 
             <td class="text-center">
                 {{ $item->penjualan?->tanggal_penjualan ? $item->penjualan->tanggal_penjualan->format('d-m-Y') : '-' }}
             </td>
 
-            <td>
-                {{ $item->customer->nama_customer ?? '-' }}
-            </td>
+            <td>{{ $item->customer->nama_customer ?? '-' }}</td>
 
             <td class="text-format">
                 @if ($nomorTelepon !== '-')
@@ -274,69 +276,53 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
                 @endif
             </td>
 
-            <td class="text-center">
-                {{ ucfirst($item->penjualan->metode_pembayaran ?? '-') }}
-            </td>
+            <td class="text-center">{{ ucfirst($item->penjualan->metode_pembayaran ?? '-') }}</td>
 
             <td class="text-center">
-                {{ str_replace('_', ' ', ucfirst($item->penjualan->status_pembayaran ?? '-')) }}
+                {{ ucwords(str_replace('_', ' ', $item->penjualan->status_pembayaran ?? '-')) }}
             </td>
 
-            <td class="text-center">
-                {{ $tipeInvoice }}
-            </td>
+            <td class="text-center">{{ $tipeInvoice }}</td>
 
             <td class="text-center">
                 {{ $item->tanggal_jatuh_tempo ? $item->tanggal_jatuh_tempo->format('d-m-Y') : '-' }}
             </td>
 
-            <td class="text-center {{ $statusClass }}">
-                {{ $statusText }}
-            </td>
+            <td class="text-center {{ $statusClass }}">{{ $statusText }}</td>
 
-            <td class="text-right currency">
-                {{ $item->total_piutang }}
-            </td>
+            <td class="text-right currency">{{ $item->total_piutang ?? 0 }}</td>
 
-            <td class="text-right currency">
-                {{ $item->total_dibayar }}
-            </td>
+            <td class="text-right currency">{{ $item->total_dibayar ?? 0 }}</td>
 
-            <td class="text-right currency">
-                {{ $item->sisa_piutang }}
-            </td>
+            <td class="text-right currency">{{ $item->sisa_piutang ?? 0 }}</td>
 
-            <td class="text-center {{ $keteranganClass }}">
-                {{ $keterangan }}
-            </td>
+            <td class="text-center {{ $keteranganClass }}">{{ $keterangan }}</td>
 
-            <td>
-                {{ $item->catatan ?? '-' }}
-            </td>
+            <td>{{ $item->catatan ?? '-' }}</td>
 
-            <td>
-                {{ $item->penjualan->catatan ?? '-' }}
-            </td>
+            <td>{{ $item->penjualan->catatan ?? '-' }}</td>
+
+            <td>{{ $alamatCustomer }}</td>
         </tr>
         @endforeach
 
         <tr>
-            <td colspan="18"></td>
+            <td colspan="19"></td>
         </tr>
 
         <tr class="total-row">
             <td colspan="12" class="bold">TOTAL PIUTANG</td>
-            <td colspan="6" class="text-right currency">{{ $totalPiutang }}</td>
+            <td colspan="7" class="text-right currency">{{ $totalPiutang ?? 0 }}</td>
         </tr>
 
         <tr class="total-row">
             <td colspan="12" class="bold">TOTAL DIBAYAR</td>
-            <td colspan="6" class="text-right currency">{{ $totalDibayar }}</td>
+            <td colspan="7" class="text-right currency">{{ $totalDibayar ?? 0 }}</td>
         </tr>
 
         <tr class="total-row">
             <td colspan="12" class="bold">TOTAL SISA PIUTANG</td>
-            <td colspan="6" class="text-right currency">{{ $totalSisa }}</td>
+            <td colspan="7" class="text-right currency">{{ $totalSisa ?? 0 }}</td>
         </tr>
     </table>
 </body>

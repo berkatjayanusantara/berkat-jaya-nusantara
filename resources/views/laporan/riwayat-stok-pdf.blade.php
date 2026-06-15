@@ -1,12 +1,12 @@
 @php
 $namaPerusahaan = 'CV. BERKAT JAYA NUSANTARA';
-$alamatPerusahaan = 'Alamat perusahaan belum diisi';
-$teleponPerusahaan = 'Telepon belum diisi';
+$alamatPerusahaan = 'Jl. Jelambar Utama 1 No. 6A RT. 007 RW. 004, Jakarta Barat 11460';
+$teleponPerusahaan = '(021) 5664892, 5676277';
 
 $periodeAwal = $tanggalAwal === 'awal' ? 'Awal' : $tanggalAwal;
 $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
 
-$nettoPerubahan = $totalMasuk - $totalKeluar + $totalSelisihPlus - $totalSelisihMinus;
+$nettoPerubahan = ($totalMasuk ?? 0) - ($totalKeluar ?? 0) + ($totalSelisihPlus ?? 0) - ($totalSelisihMinus ?? 0);
 @endphp
 
 <!DOCTYPE html>
@@ -34,13 +34,14 @@ $nettoPerubahan = $totalMasuk - $totalKeluar + $totalSelisihPlus - $totalSelisih
             text-align: center;
             font-size: 8px;
             color: #4b5563;
-            margin-bottom: 4px;
+            margin-bottom: 2px;
         }
 
         .title {
             text-align: center;
             font-size: 16px;
             font-weight: bold;
+            margin-top: 6px;
             margin-bottom: 3px;
         }
 
@@ -150,17 +151,11 @@ $nettoPerubahan = $totalMasuk - $totalKeluar + $totalSelisihPlus - $totalSelisih
 </head>
 
 <body>
-    <div class="company">
-        {{ $namaPerusahaan }}
-    </div>
+    <div class="company">{{ $namaPerusahaan }}</div>
+    <div class="company-info">{{ $alamatPerusahaan }}</div>
+    <div class="company-info">Telp: {{ $teleponPerusahaan }}</div>
 
-    <div class="company-info">
-        {{ $alamatPerusahaan }} | Telp: {{ $teleponPerusahaan }}
-    </div>
-
-    <div class="title">
-        LAPORAN RIWAYAT STOK
-    </div>
+    <div class="title">LAPORAN RIWAYAT STOK</div>
 
     <div class="subtitle">
         Periode: {{ $periodeAwal }} s/d {{ $periodeAkhir }}
@@ -172,53 +167,39 @@ $nettoPerubahan = $totalMasuk - $totalKeluar + $totalSelisihPlus - $totalSelisih
         <tr>
             <td>
                 <div class="summary-label">Total Data</div>
-                <div class="summary-value">
-                    {{ number_format($totalData, 0, ',', '.') }}
-                </div>
+                <div class="summary-value">{{ number_format($totalData ?? 0, 0, ',', '.') }}</div>
             </td>
 
             <td>
                 <div class="summary-label">Total Barang Masuk</div>
-                <div class="summary-value">
-                    +{{ number_format($totalMasuk, 0, ',', '.') }}
-                </div>
+                <div class="summary-value">+{{ number_format($totalMasuk ?? 0, 0, ',', '.') }}</div>
             </td>
 
             <td>
                 <div class="summary-label">Total Barang Keluar</div>
-                <div class="summary-value">
-                    -{{ number_format($totalKeluar, 0, ',', '.') }}
-                </div>
+                <div class="summary-value">-{{ number_format($totalKeluar ?? 0, 0, ',', '.') }}</div>
             </td>
 
             <td>
                 <div class="summary-label">Jumlah Penyesuaian</div>
-                <div class="summary-value">
-                    {{ number_format($totalPenyesuaian, 0, ',', '.') }}
-                </div>
+                <div class="summary-value">{{ number_format($totalPenyesuaian ?? 0, 0, ',', '.') }}</div>
             </td>
         </tr>
 
         <tr>
             <td>
                 <div class="summary-label">Stock Opname</div>
-                <div class="summary-value">
-                    {{ number_format($totalOpname, 0, ',', '.') }}
-                </div>
+                <div class="summary-value">{{ number_format($totalOpname ?? 0, 0, ',', '.') }}</div>
             </td>
 
             <td>
                 <div class="summary-label">Selisih Bertambah</div>
-                <div class="summary-value">
-                    +{{ number_format($totalSelisihPlus, 0, ',', '.') }}
-                </div>
+                <div class="summary-value">+{{ number_format($totalSelisihPlus ?? 0, 0, ',', '.') }}</div>
             </td>
 
             <td>
                 <div class="summary-label">Selisih Berkurang</div>
-                <div class="summary-value">
-                    -{{ number_format($totalSelisihMinus, 0, ',', '.') }}
-                </div>
+                <div class="summary-value">-{{ number_format($totalSelisihMinus ?? 0, 0, ',', '.') }}</div>
             </td>
 
             <td>
@@ -280,17 +261,13 @@ $nettoPerubahan = $totalMasuk - $totalKeluar + $totalSelisihPlus - $totalSelisih
                 @endphp
 
                 <tr>
-                <td class="text-center">
-                    {{ $loop->iteration }}
-                </td>
+                <td class="text-center">{{ $loop->iteration }}</td>
 
                 <td class="text-center">
                     {{ $item->tanggal ? $item->tanggal->format('d-m-Y') : '-' }}
                 </td>
 
-                <td>
-                    {{ $item->barang->kode_barang ?? '-' }}
-                </td>
+                <td>{{ $item->barang->kode_barang ?? '-' }}</td>
 
                 <td>
                     {{ $item->barang->nama_barang ?? '-' }}
@@ -301,46 +278,30 @@ $nettoPerubahan = $totalMasuk - $totalKeluar + $totalSelisihPlus - $totalSelisih
                 </td>
 
                 <td class="text-center">
-                    <span class="{{ $jenisClass }}">
-                        {{ $jenisLabel }}
-                    </span>
+                    <span class="{{ $jenisClass }}">{{ $jenisLabel }}</span>
                 </td>
 
                 <td class="text-center">
                     @if ($isOpname)
-                    <span class="status-opname">
-                        Opname
-                    </span>
+                    <span class="status-opname">Opname</span>
                     @else
                     Transaksi
                     @endif
                 </td>
 
-                <td class="text-right">
-                    {{ number_format($item->jumlah, 0, ',', '.') }}
-                </td>
+                <td class="text-right">{{ number_format($item->jumlah ?? 0, 0, ',', '.') }}</td>
+
+                <td class="text-right">{{ number_format($stokSebelum, 0, ',', '.') }}</td>
+
+                <td class="text-right">{{ number_format($stokSesudah, 0, ',', '.') }}</td>
 
                 <td class="text-right">
-                    {{ number_format($stokSebelum, 0, ',', '.') }}
+                    <span class="{{ $selisihClass }}">{{ $selisihText }}</span>
                 </td>
 
-                <td class="text-right">
-                    {{ number_format($stokSesudah, 0, ',', '.') }}
-                </td>
+                <td>{{ $item->sumber_transaksi ?? '-' }}</td>
 
-                <td class="text-right">
-                    <span class="{{ $selisihClass }}">
-                        {{ $selisihText }}
-                    </span>
-                </td>
-
-                <td>
-                    {{ $item->sumber_transaksi ?? '-' }}
-                </td>
-
-                <td>
-                    {{ $item->keterangan ?? '-' }}
-                </td>
+                <td>{{ $item->keterangan ?? '-' }}</td>
                 </tr>
                 @empty
                 <tr>

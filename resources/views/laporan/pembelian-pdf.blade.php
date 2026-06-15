@@ -1,7 +1,7 @@
 @php
 $namaPerusahaan = 'CV. BERKAT JAYA NUSANTARA';
-$alamatPerusahaan = 'Alamat perusahaan belum diisi';
-$teleponPerusahaan = 'Telepon belum diisi';
+$alamatPerusahaan = 'Jl. Jelambar Utama 1 No. 6A RT. 007 RW. 004, Jakarta Barat 11460';
+$teleponPerusahaan = '(021) 5664892, 5676277';
 
 $periodeAwal = $tanggalAwal === 'awal' ? 'Awal' : $tanggalAwal;
 $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
@@ -17,7 +17,7 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
     <style>
         body {
             font-family: DejaVu Sans, sans-serif;
-            font-size: 8px;
+            font-size: 7.5px;
             color: #111827;
         }
 
@@ -32,13 +32,14 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
             text-align: center;
             font-size: 8px;
             color: #4b5563;
-            margin-bottom: 4px;
+            margin-bottom: 2px;
         }
 
         .title {
             text-align: center;
             font-size: 16px;
             font-weight: bold;
+            margin-top: 6px;
             margin-bottom: 3px;
         }
 
@@ -61,12 +62,12 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
         }
 
         .summary-label {
-            font-size: 7.5px;
+            font-size: 7px;
             color: #4b5563;
         }
 
         .summary-value {
-            font-size: 9.5px;
+            font-size: 9px;
             font-weight: bold;
             margin-top: 2px;
         }
@@ -79,14 +80,14 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
         .data-table th {
             border: 1px solid #9ca3af;
             background-color: #e5e7eb;
-            padding: 4px 3px;
+            padding: 4px 2px;
             font-weight: bold;
             text-align: center;
         }
 
         .data-table td {
             border: 1px solid #d1d5db;
-            padding: 3px;
+            padding: 3px 2px;
             vertical-align: top;
         }
 
@@ -134,7 +135,7 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
         }
 
         .small-text {
-            font-size: 7px;
+            font-size: 6.8px;
             color: #4b5563;
         }
 
@@ -153,7 +154,11 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
     </div>
 
     <div class="company-info">
-        {{ $alamatPerusahaan }} | Telp: {{ $teleponPerusahaan }}
+        {{ $alamatPerusahaan }}
+    </div>
+
+    <div class="company-info">
+        Telp: {{ $teleponPerusahaan }}
     </div>
 
     <div class="title">
@@ -170,7 +175,7 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
         <tr>
             <td>
                 <div class="summary-label">Total Transaksi</div>
-                <div class="summary-value">{{ $totalTransaksi }}</div>
+                <div class="summary-value">{{ $totalTransaksi ?? 0 }}</div>
                 <div class="small-text">
                     Sistem: {{ $totalSistemBerjalan ?? 0 }} | Historis: {{ $totalHistoris ?? 0 }}
                 </div>
@@ -179,21 +184,21 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
             <td>
                 <div class="summary-label">Total Subtotal</div>
                 <div class="summary-value">
-                    Rp {{ number_format($totalSubtotal, 0, ',', '.') }}
+                    Rp {{ number_format($totalSubtotal ?? 0, 0, ',', '.') }}
                 </div>
             </td>
 
             <td>
                 <div class="summary-label">Total Pajak</div>
                 <div class="summary-value">
-                    Rp {{ number_format($totalPajak, 0, ',', '.') }}
+                    Rp {{ number_format($totalPajak ?? 0, 0, ',', '.') }}
                 </div>
             </td>
 
             <td>
                 <div class="summary-label">Total Akhir</div>
                 <div class="summary-value">
-                    Rp {{ number_format($totalAkhir, 0, ',', '.') }}
+                    Rp {{ number_format($totalAkhir ?? 0, 0, ',', '.') }}
                 </div>
             </td>
         </tr>
@@ -202,21 +207,21 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
             <td>
                 <div class="summary-label">Total Dipesan</div>
                 <div class="summary-value">
-                    {{ number_format($totalDipesan, 0, ',', '.') }}
+                    {{ number_format($totalDipesan ?? 0, 0, ',', '.') }}
                 </div>
             </td>
 
             <td>
                 <div class="summary-label">Total Diterima</div>
                 <div class="summary-value">
-                    {{ number_format($totalDiterima, 0, ',', '.') }}
+                    {{ number_format($totalDiterima ?? 0, 0, ',', '.') }}
                 </div>
             </td>
 
             <td>
                 <div class="summary-label">Sisa Belum Dikirim</div>
                 <div class="summary-value">
-                    {{ number_format($totalSisa, 0, ',', '.') }}
+                    {{ number_format($totalSisa ?? 0, 0, ',', '.') }}
                 </div>
             </td>
 
@@ -251,17 +256,17 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
             <tr>
                 <th style="width: 3%;">No</th>
                 <th style="width: 7%;">Tanggal</th>
-                <th style="width: 15%;">Dokumen</th>
+                <th style="width: 14%;">Dokumen</th>
                 <th style="width: 14%;">Supplier</th>
                 <th style="width: 8%;">Status</th>
                 <th style="width: 7%;">Tipe</th>
-                <th style="width: 7%;">Stok</th>
+                <th style="width: 6%;">Stok</th>
                 <th style="width: 6%;">Pesan</th>
                 <th style="width: 6%;">Terima</th>
                 <th style="width: 6%;">Sisa</th>
                 <th style="width: 8%;">Subtotal</th>
                 <th style="width: 6%;">Pajak</th>
-                <th style="width: 7%;">Total</th>
+                <th style="width: 9%;">Total</th>
             </tr>
         </thead>
 
@@ -337,7 +342,11 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
                     {{ $item->supplier->nama_supplier ?? '-' }}
                     <br>
                     <span class="small-text">
-                        {{ $item->supplier->nomor_telepon ?? '-' }}
+                        Telp: {{ $item->supplier->nomor_telepon ?? '-' }}
+                    </span>
+                    <br>
+                    <span class="small-text">
+                        {{ $item->supplier->alamat ?? '-' }}
                     </span>
                 </td>
 

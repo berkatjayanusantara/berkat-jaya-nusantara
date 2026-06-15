@@ -24,8 +24,28 @@
         </div>
     </x-slot>
 
+    @php
+    $namaPerusahaan = 'CV. BERKAT JAYA NUSANTARA';
+    $alamatPerusahaan = 'Jl. Jelambar Utama 1 No. 6A RT. 007 RW. 004, Jakarta Barat 11460';
+    $teleponPerusahaan = '(021) 5664892, 5676277';
+    @endphp
+
     <div class="py-6">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+
+            <div class="bg-white shadow-sm sm:rounded-lg p-6 mb-6">
+                <div class="text-center">
+                    <h3 class="text-lg font-bold text-gray-900">
+                        {{ $namaPerusahaan }}
+                    </h3>
+                    <p class="text-sm text-gray-600 mt-1">
+                        {{ $alamatPerusahaan }}
+                    </p>
+                    <p class="text-sm text-gray-600">
+                        Telp: {{ $teleponPerusahaan }}
+                    </p>
+                </div>
+            </div>
 
             <div class="bg-white shadow-sm sm:rounded-lg p-6 mb-6">
                 <form method="GET" action="{{ route('laporan.riwayatStok') }}">
@@ -117,35 +137,35 @@
             </div>
 
             @php
-            $nettoPerubahan = $totalMasuk - $totalKeluar + $totalSelisihPlus - $totalSelisihMinus;
+            $nettoPerubahan = ($totalMasuk ?? 0) - ($totalKeluar ?? 0) + ($totalSelisihPlus ?? 0) - ($totalSelisihMinus ?? 0);
             @endphp
 
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Total Data</p>
                     <p class="text-2xl font-bold">
-                        {{ number_format($totalData, 0, ',', '.') }}
+                        {{ number_format($totalData ?? 0, 0, ',', '.') }}
                     </p>
                 </div>
 
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Total Barang Masuk</p>
                     <p class="text-2xl font-bold text-green-700">
-                        +{{ number_format($totalMasuk, 0, ',', '.') }}
+                        +{{ number_format($totalMasuk ?? 0, 0, ',', '.') }}
                     </p>
                 </div>
 
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Total Barang Keluar</p>
                     <p class="text-2xl font-bold text-red-700">
-                        -{{ number_format($totalKeluar, 0, ',', '.') }}
+                        -{{ number_format($totalKeluar ?? 0, 0, ',', '.') }}
                     </p>
                 </div>
 
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Jumlah Penyesuaian</p>
                     <p class="text-2xl font-bold text-yellow-700">
-                        {{ number_format($totalPenyesuaian, 0, ',', '.') }}
+                        {{ number_format($totalPenyesuaian ?? 0, 0, ',', '.') }}
                     </p>
                 </div>
             </div>
@@ -154,21 +174,24 @@
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Jumlah Stock Opname</p>
                     <p class="text-2xl font-bold text-blue-700">
-                        {{ number_format($totalOpname, 0, ',', '.') }}
+                        {{ number_format($totalOpname ?? 0, 0, ',', '.') }}
+                    </p>
+                    <p class="text-xs text-gray-500 mt-1">
+                        Non-opname: {{ number_format($totalNonOpname ?? 0, 0, ',', '.') }}
                     </p>
                 </div>
 
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Total Selisih Bertambah</p>
                     <p class="text-2xl font-bold text-green-700">
-                        +{{ number_format($totalSelisihPlus, 0, ',', '.') }}
+                        +{{ number_format($totalSelisihPlus ?? 0, 0, ',', '.') }}
                     </p>
                 </div>
 
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Total Selisih Berkurang</p>
                     <p class="text-2xl font-bold text-red-700">
-                        -{{ number_format($totalSelisihMinus, 0, ',', '.') }}
+                        -{{ number_format($totalSelisihMinus ?? 0, 0, ',', '.') }}
                     </p>
                 </div>
 
@@ -277,7 +300,7 @@
                                 </td>
 
                                 <td class="border px-3 py-2 text-right font-semibold">
-                                    {{ number_format($item->jumlah, 0, ',', '.') }}
+                                    {{ number_format($item->jumlah ?? 0, 0, ',', '.') }}
                                 </td>
 
                                 <td class="border px-3 py-2 text-right">

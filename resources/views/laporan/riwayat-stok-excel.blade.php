@@ -1,12 +1,12 @@
 @php
 $namaPerusahaan = 'CV. BERKAT JAYA NUSANTARA';
-$alamatPerusahaan = 'Alamat perusahaan belum diisi';
-$teleponPerusahaan = 'Telepon belum diisi';
+$alamatPerusahaan = 'Jl. Jelambar Utama 1 No. 6A RT. 007 RW. 004, Jakarta Barat 11460';
+$teleponPerusahaan = '(021) 5664892, 5676277';
 
 $periodeAwal = $tanggalAwal === 'awal' ? 'Awal' : $tanggalAwal;
 $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
 
-$nettoPerubahan = $totalMasuk - $totalKeluar + $totalSelisihPlus - $totalSelisihMinus;
+$nettoPerubahan = ($totalMasuk ?? 0) - ($totalKeluar ?? 0) + ($totalSelisihPlus ?? 0) - ($totalSelisihMinus ?? 0);
 @endphp
 
 <!DOCTYPE html>
@@ -26,6 +26,11 @@ $nettoPerubahan = $totalMasuk - $totalKeluar + $totalSelisihPlus - $totalSelisih
             font-weight: bold;
             text-align: center;
             background-color: #eff6ff;
+        }
+
+        .company-info {
+            text-align: center;
+            font-weight: bold;
         }
 
         .title {
@@ -97,33 +102,27 @@ $nettoPerubahan = $totalMasuk - $totalKeluar + $totalSelisihPlus - $totalSelisih
 <body>
     <table border="1">
         <tr>
-            <td colspan="16" class="company-title">
-                {{ $namaPerusahaan }}
-            </td>
+            <td colspan="16" class="company-title">{{ $namaPerusahaan }}</td>
         </tr>
 
         <tr>
-            <td colspan="16" class="text-center">
-                {{ $alamatPerusahaan }} | Telp: {{ $teleponPerusahaan }}
-            </td>
+            <td colspan="16" class="company-info">{{ $alamatPerusahaan }}</td>
         </tr>
 
         <tr>
-            <td colspan="16" class="title">
-                LAPORAN RIWAYAT STOK
-            </td>
+            <td colspan="16" class="company-info">Telp: {{ $teleponPerusahaan }}</td>
         </tr>
 
         <tr>
-            <td colspan="16" class="subtitle">
-                Periode: {{ $periodeAwal }} s/d {{ $periodeAkhir }}
-            </td>
+            <td colspan="16" class="title">LAPORAN RIWAYAT STOK</td>
         </tr>
 
         <tr>
-            <td colspan="16" class="subtitle">
-                Dicetak: {{ now()->format('d-m-Y H:i') }}
-            </td>
+            <td colspan="16" class="subtitle">Periode: {{ $periodeAwal }} s/d {{ $periodeAkhir }}</td>
+        </tr>
+
+        <tr>
+            <td colspan="16" class="subtitle">Dicetak: {{ now()->format('d-m-Y H:i') }}</td>
         </tr>
 
         <tr>
@@ -136,25 +135,25 @@ $nettoPerubahan = $totalMasuk - $totalKeluar + $totalSelisihPlus - $totalSelisih
 
         <tr>
             <td class="bold">Total Data</td>
-            <td class="text-center number-format">{{ $totalData }}</td>
+            <td class="text-center number-format">{{ $totalData ?? 0 }}</td>
 
             <td class="bold">Total Barang Masuk</td>
-            <td class="text-center number-format">{{ $totalMasuk }}</td>
+            <td class="text-center number-format">{{ $totalMasuk ?? 0 }}</td>
 
             <td class="bold">Total Barang Keluar</td>
-            <td class="text-center number-format">{{ $totalKeluar }}</td>
+            <td class="text-center number-format">{{ $totalKeluar ?? 0 }}</td>
 
             <td class="bold">Jumlah Penyesuaian</td>
-            <td class="text-center number-format">{{ $totalPenyesuaian }}</td>
+            <td class="text-center number-format">{{ $totalPenyesuaian ?? 0 }}</td>
 
             <td class="bold">Jumlah Stock Opname</td>
-            <td class="text-center number-format">{{ $totalOpname }}</td>
+            <td class="text-center number-format">{{ $totalOpname ?? 0 }}</td>
 
             <td class="bold">Selisih Bertambah</td>
-            <td class="text-center number-format">{{ $totalSelisihPlus }}</td>
+            <td class="text-center number-format">{{ $totalSelisihPlus ?? 0 }}</td>
 
             <td class="bold">Selisih Berkurang</td>
-            <td class="text-center number-format">{{ $totalSelisihMinus }}</td>
+            <td class="text-center number-format">{{ $totalSelisihMinus ?? 0 }}</td>
 
             <td class="bold">Netto Perubahan</td>
             <td class="text-center number-format">{{ $nettoPerubahan }}</td>
@@ -214,65 +213,39 @@ $nettoPerubahan = $totalMasuk - $totalKeluar + $totalSelisihPlus - $totalSelisih
             @endphp
 
             <tr>
-            <td class="text-center">
-                {{ $loop->iteration }}
-            </td>
+            <td class="text-center">{{ $loop->iteration }}</td>
 
             <td class="text-center">
                 {{ $item->tanggal ? $item->tanggal->format('d-m-Y') : '-' }}
             </td>
 
-            <td class="text-format">
-                {{ $item->barang->kode_barang ?? '-' }}
-            </td>
+            <td class="text-format">{{ $item->barang->kode_barang ?? '-' }}</td>
 
-            <td>
-                {{ $item->barang->nama_barang ?? '-' }}
-            </td>
+            <td>{{ $item->barang->nama_barang ?? '-' }}</td>
 
-            <td class="text-center">
-                {{ strtoupper($item->barang->satuan ?? '-') }}
-            </td>
+            <td class="text-center">{{ strtoupper($item->barang->satuan ?? '-') }}</td>
 
-            <td class="text-center {{ $jenisClass }}">
-                {{ $jenisLabel }}
-            </td>
+            <td class="text-center {{ $jenisClass }}">{{ $jenisLabel }}</td>
 
             <td class="text-center {{ $isOpname ? 'info' : '' }}">
                 {{ $isOpname ? 'Stock Opname' : 'Transaksi' }}
             </td>
 
-            <td class="text-center number-format">
-                {{ $item->jumlah }}
-            </td>
+            <td class="text-center number-format">{{ $item->jumlah ?? 0 }}</td>
 
-            <td class="text-center number-format">
-                {{ $stokSebelum }}
-            </td>
+            <td class="text-center number-format">{{ $stokSebelum }}</td>
 
-            <td class="text-center number-format">
-                {{ $stokSesudah }}
-            </td>
+            <td class="text-center number-format">{{ $stokSesudah }}</td>
 
-            <td class="text-center number-format {{ $selisihClass }}">
-                {{ $selisih }}
-            </td>
+            <td class="text-center number-format {{ $selisihClass }}">{{ $selisih }}</td>
 
-            <td class="text-center {{ $selisihClass }}">
-                {{ $arahSelisih }}
-            </td>
+            <td class="text-center {{ $selisihClass }}">{{ $arahSelisih }}</td>
 
-            <td class="text-format">
-                {{ $item->sumber_transaksi ?? '-' }}
-            </td>
+            <td class="text-format">{{ $item->sumber_transaksi ?? '-' }}</td>
 
-            <td>
-                {{ $item->keterangan ?? '-' }}
-            </td>
+            <td>{{ $item->keterangan ?? '-' }}</td>
 
-            <td>
-                {{ $item->user->nama_user ?? '-' }}
-            </td>
+            <td>{{ $item->user->nama_user ?? '-' }}</td>
 
             <td class="text-center">
                 {{ $item->created_at ? $item->created_at->format('d-m-Y H:i') : '-' }}
@@ -286,37 +259,37 @@ $nettoPerubahan = $totalMasuk - $totalKeluar + $totalSelisihPlus - $totalSelisih
 
             <tr class="total-row">
                 <td colspan="8" class="bold">TOTAL DATA</td>
-                <td colspan="8" class="text-center number-format">{{ $totalData }}</td>
+                <td colspan="8" class="text-center number-format">{{ $totalData ?? 0 }}</td>
             </tr>
 
             <tr class="total-row">
                 <td colspan="8" class="bold">TOTAL BARANG MASUK</td>
-                <td colspan="8" class="text-center number-format">{{ $totalMasuk }}</td>
+                <td colspan="8" class="text-center number-format">{{ $totalMasuk ?? 0 }}</td>
             </tr>
 
             <tr class="total-row">
                 <td colspan="8" class="bold">TOTAL BARANG KELUAR</td>
-                <td colspan="8" class="text-center number-format">{{ $totalKeluar }}</td>
+                <td colspan="8" class="text-center number-format">{{ $totalKeluar ?? 0 }}</td>
             </tr>
 
             <tr class="total-row">
                 <td colspan="8" class="bold">JUMLAH PENYESUAIAN</td>
-                <td colspan="8" class="text-center number-format">{{ $totalPenyesuaian }}</td>
+                <td colspan="8" class="text-center number-format">{{ $totalPenyesuaian ?? 0 }}</td>
             </tr>
 
             <tr class="total-row">
                 <td colspan="8" class="bold">JUMLAH STOCK OPNAME</td>
-                <td colspan="8" class="text-center number-format">{{ $totalOpname }}</td>
+                <td colspan="8" class="text-center number-format">{{ $totalOpname ?? 0 }}</td>
             </tr>
 
             <tr class="total-row">
                 <td colspan="8" class="bold">TOTAL SELISIH BERTAMBAH</td>
-                <td colspan="8" class="text-center number-format">{{ $totalSelisihPlus }}</td>
+                <td colspan="8" class="text-center number-format">{{ $totalSelisihPlus ?? 0 }}</td>
             </tr>
 
             <tr class="total-row">
                 <td colspan="8" class="bold">TOTAL SELISIH BERKURANG</td>
-                <td colspan="8" class="text-center number-format">{{ $totalSelisihMinus }}</td>
+                <td colspan="8" class="text-center number-format">{{ $totalSelisihMinus ?? 0 }}</td>
             </tr>
 
             <tr class="total-row">

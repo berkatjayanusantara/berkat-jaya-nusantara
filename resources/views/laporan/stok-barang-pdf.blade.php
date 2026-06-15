@@ -1,9 +1,9 @@
 @php
 $namaPerusahaan = 'CV. BERKAT JAYA NUSANTARA';
-$alamatPerusahaan = 'Alamat perusahaan belum diisi';
-$teleponPerusahaan = 'Telepon belum diisi';
+$alamatPerusahaan = 'Jl. Jelambar Utama 1 No. 6A RT. 007 RW. 004, Jakarta Barat 11460';
+$teleponPerusahaan = '(021) 5664892, 5676277';
 
-$totalPotensiMargin = $totalEstimasiNilaiJual - $totalNilaiStok;
+$totalPotensiMargin = ($totalEstimasiNilaiJual ?? 0) - ($totalNilaiStok ?? 0);
 @endphp
 
 <!DOCTYPE html>
@@ -31,13 +31,14 @@ $totalPotensiMargin = $totalEstimasiNilaiJual - $totalNilaiStok;
             text-align: center;
             font-size: 8px;
             color: #4b5563;
-            margin-bottom: 4px;
+            margin-bottom: 2px;
         }
 
         .title {
             text-align: center;
             font-size: 16px;
             font-weight: bold;
+            margin-top: 6px;
             margin-bottom: 3px;
         }
 
@@ -137,20 +138,14 @@ $totalPotensiMargin = $totalEstimasiNilaiJual - $totalNilaiStok;
 </head>
 
 <body>
-    <div class="company">
-        {{ $namaPerusahaan }}
-    </div>
+    <div class="company">{{ $namaPerusahaan }}</div>
+    <div class="company-info">{{ $alamatPerusahaan }}</div>
+    <div class="company-info">Telp: {{ $teleponPerusahaan }}</div>
 
-    <div class="company-info">
-        {{ $alamatPerusahaan }} | Telp: {{ $teleponPerusahaan }}
-    </div>
-
-    <div class="title">
-        LAPORAN STOK BARANG
-    </div>
+    <div class="title">LAPORAN STOK BARANG</div>
 
     <div class="subtitle">
-        Batas Stok Rendah: {{ $batasStokRendah }}
+        Batas Stok Rendah: {{ $batasStokRendah ?? 5 }}
         |
         Dicetak: {{ now()->format('d-m-Y H:i') }}
     </div>
@@ -159,47 +154,39 @@ $totalPotensiMargin = $totalEstimasiNilaiJual - $totalNilaiStok;
         <tr>
             <td>
                 <div class="summary-label">Total Jenis Barang</div>
-                <div class="summary-value">{{ $totalBarang }}</div>
+                <div class="summary-value">{{ $totalBarang ?? 0 }}</div>
             </td>
 
             <td>
                 <div class="summary-label">Total Stok</div>
-                <div class="summary-value">
-                    {{ number_format($totalStok, 0, ',', '.') }}
-                </div>
+                <div class="summary-value">{{ number_format($totalStok ?? 0, 0, ',', '.') }}</div>
             </td>
 
             <td>
                 <div class="summary-label">Barang Kosong</div>
-                <div class="summary-value">{{ $totalBarangKosong }}</div>
+                <div class="summary-value">{{ $totalBarangKosong ?? 0 }}</div>
             </td>
 
             <td>
                 <div class="summary-label">Stok Rendah</div>
-                <div class="summary-value">{{ $totalBarangStokRendah }}</div>
+                <div class="summary-value">{{ $totalBarangStokRendah ?? 0 }}</div>
             </td>
         </tr>
 
         <tr>
             <td>
                 <div class="summary-label">Estimasi Nilai Stok</div>
-                <div class="summary-value">
-                    Rp {{ number_format($totalNilaiStok, 0, ',', '.') }}
-                </div>
+                <div class="summary-value">Rp {{ number_format($totalNilaiStok ?? 0, 0, ',', '.') }}</div>
             </td>
 
             <td>
                 <div class="summary-label">Estimasi Nilai Jual</div>
-                <div class="summary-value">
-                    Rp {{ number_format($totalEstimasiNilaiJual, 0, ',', '.') }}
-                </div>
+                <div class="summary-value">Rp {{ number_format($totalEstimasiNilaiJual ?? 0, 0, ',', '.') }}</div>
             </td>
 
             <td colspan="2">
                 <div class="summary-label">Estimasi Margin Kotor</div>
-                <div class="summary-value">
-                    Rp {{ number_format($totalPotensiMargin, 0, ',', '.') }}
-                </div>
+                <div class="summary-value">Rp {{ number_format($totalPotensiMargin, 0, ',', '.') }}</div>
             </td>
         </tr>
     </table>
@@ -241,7 +228,7 @@ $totalPotensiMargin = $totalEstimasiNilaiJual - $totalNilaiStok;
             if ($stokSaatIni <= 0) {
                 $statusStok='Kosong' ;
                 $statusClass='status-kosong' ;
-                } elseif ($stokSaatIni <=$batasStokRendah) {
+                } elseif ($stokSaatIni <=($batasStokRendah ?? 5)) {
                 $statusStok='Rendah' ;
                 $statusClass='status-rendah' ;
                 } else {
@@ -252,8 +239,7 @@ $totalPotensiMargin = $totalEstimasiNilaiJual - $totalNilaiStok;
                 $statusBarangClass=$item->status_aktif ? 'status-aktif' : 'status-nonaktif';
 
                 if ($tipePerhitungan === 'isi_kemasan') {
-                $perhitunganText =
-                'Isi Kemasan';
+                $perhitunganText = 'Isi Kemasan';
                 $perhitunganDetail =
                 '1 ' . strtoupper($satuan) . ' = ' .
                 rtrim(rtrim(number_format($isiPerSatuan, 3, ',', '.'), '0'), ',') .
@@ -267,69 +253,45 @@ $totalPotensiMargin = $totalEstimasiNilaiJual - $totalNilaiStok;
                 @endphp
 
                 <tr>
-                    <td class="text-center">
-                        {{ $loop->iteration }}
-                    </td>
+                    <td class="text-center">{{ $loop->iteration }}</td>
 
-                    <td>
-                        {{ $item->kode_barang }}
-                    </td>
+                    <td>{{ $item->kode_barang }}</td>
 
                     <td>
                         {{ $item->nama_barang }}
 
                         @if (!$item->status_aktif)
                         <br>
-                        <span class="{{ $statusBarangClass }}">
-                            Nonaktif
-                        </span>
+                        <span class="{{ $statusBarangClass }}">Nonaktif</span>
                         @endif
                     </td>
 
-                    <td class="text-center">
-                        {{ strtoupper($satuan) }}
-                    </td>
+                    <td class="text-center">{{ strtoupper($satuan) }}</td>
 
                     <td>
                         {{ $perhitunganText }}
                         <br>
-                        <span class="small-text">
-                            {{ $perhitunganDetail }}
-                        </span>
+                        <span class="small-text">{{ $perhitunganDetail }}</span>
                     </td>
 
-                    <td class="text-center">
-                        {{ number_format($stokSaatIni, 0, ',', '.') }}
-                    </td>
+                    <td class="text-center">{{ number_format($stokSaatIni, 0, ',', '.') }}</td>
 
-                    <td class="text-right">
-                        Rp {{ number_format($hargaBeli, 0, ',', '.') }}
-                    </td>
+                    <td class="text-right">Rp {{ number_format($hargaBeli, 0, ',', '.') }}</td>
 
-                    <td class="text-right">
-                        Rp {{ number_format($nilaiStok, 0, ',', '.') }}
-                    </td>
+                    <td class="text-right">Rp {{ number_format($nilaiStok, 0, ',', '.') }}</td>
 
                     <td class="text-right">
                         Rp {{ number_format($hargaJual, 0, ',', '.') }}
                         <br>
-                        <span class="small-text">
-                            / {{ strtoupper($satuanHarga) }}
-                        </span>
+                        <span class="small-text">/ {{ strtoupper($satuanHarga) }}</span>
                     </td>
 
-                    <td class="text-right">
-                        Rp {{ number_format($estimasiNilaiJual, 0, ',', '.') }}
-                    </td>
+                    <td class="text-right">Rp {{ number_format($estimasiNilaiJual, 0, ',', '.') }}</td>
 
-                    <td class="text-right">
-                        Rp {{ number_format($estimasiMargin, 0, ',', '.') }}
-                    </td>
+                    <td class="text-right">Rp {{ number_format($estimasiMargin, 0, ',', '.') }}</td>
 
                     <td class="text-center">
-                        <span class="{{ $statusClass }}">
-                            {{ $statusStok }}
-                        </span>
+                        <span class="{{ $statusClass }}">{{ $statusStok }}</span>
                     </td>
                 </tr>
                 @empty

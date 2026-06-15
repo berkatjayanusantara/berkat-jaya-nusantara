@@ -24,8 +24,28 @@
         </div>
     </x-slot>
 
+    @php
+    $namaPerusahaan = 'CV. BERKAT JAYA NUSANTARA';
+    $alamatPerusahaan = 'Jl. Jelambar Utama 1 No. 6A RT. 007 RW. 004, Jakarta Barat 11460';
+    $teleponPerusahaan = '(021) 5664892, 5676277';
+    @endphp
+
     <div class="py-6">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+
+            <div class="bg-white shadow-sm sm:rounded-lg p-6 mb-6">
+                <div class="text-center">
+                    <h3 class="text-lg font-bold text-gray-900">
+                        {{ $namaPerusahaan }}
+                    </h3>
+                    <p class="text-sm text-gray-600 mt-1">
+                        {{ $alamatPerusahaan }}
+                    </p>
+                    <p class="text-sm text-gray-600">
+                        Telp: {{ $teleponPerusahaan }}
+                    </p>
+                </div>
+            </div>
 
             <div class="bg-white shadow-sm sm:rounded-lg p-6 mb-6">
                 <form method="GET" action="{{ route('laporan.stokBarang') }}">
@@ -65,7 +85,7 @@
                             <label class="block mb-1 font-medium">Batas Stok Rendah</label>
                             <input type="number"
                                 name="batas_stok_rendah"
-                                value="{{ request('batas_stok_rendah', $batasStokRendah) }}"
+                                value="{{ request('batas_stok_rendah', $batasStokRendah ?? 5) }}"
                                 min="1"
                                 class="w-full border-gray-300 rounded-md shadow-sm">
                         </div>
@@ -95,36 +115,39 @@
             </div>
 
             @php
-            $totalPotensiMargin = $totalEstimasiNilaiJual - $totalNilaiStok;
+            $totalPotensiMargin = ($totalEstimasiNilaiJual ?? 0) - ($totalNilaiStok ?? 0);
             @endphp
 
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Total Jenis Barang</p>
-                    <p class="text-2xl font-bold">{{ $totalBarang }}</p>
+                    <p class="text-2xl font-bold">{{ $totalBarang ?? 0 }}</p>
+                    <p class="text-xs text-gray-500 mt-1">
+                        Aktif: {{ $totalBarangAktif ?? '-' }} | Nonaktif: {{ $totalBarangNonaktif ?? '-' }}
+                    </p>
                 </div>
 
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Total Stok</p>
                     <p class="text-2xl font-bold">
-                        {{ number_format($totalStok, 0, ',', '.') }}
+                        {{ number_format($totalStok ?? 0, 0, ',', '.') }}
                     </p>
                 </div>
 
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Barang Kosong</p>
                     <p class="text-2xl font-bold text-red-700">
-                        {{ $totalBarangKosong }}
+                        {{ $totalBarangKosong ?? 0 }}
                     </p>
                 </div>
 
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Stok Rendah</p>
                     <p class="text-2xl font-bold text-yellow-700">
-                        {{ $totalBarangStokRendah }}
+                        {{ $totalBarangStokRendah ?? 0 }}
                     </p>
                     <p class="text-xs text-gray-500 mt-1">
-                        Batas rendah: {{ $batasStokRendah }}
+                        Batas rendah: {{ $batasStokRendah ?? 5 }}
                     </p>
                 </div>
             </div>
@@ -133,7 +156,7 @@
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Estimasi Nilai Stok</p>
                     <p class="text-2xl font-bold">
-                        Rp {{ number_format($totalNilaiStok, 0, ',', '.') }}
+                        Rp {{ number_format($totalNilaiStok ?? 0, 0, ',', '.') }}
                     </p>
                     <p class="text-xs text-gray-500 mt-1">
                         Stok saat ini × harga beli terakhir.
@@ -143,7 +166,7 @@
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Estimasi Nilai Jual</p>
                     <p class="text-2xl font-bold text-green-700">
-                        Rp {{ number_format($totalEstimasiNilaiJual, 0, ',', '.') }}
+                        Rp {{ number_format($totalEstimasiNilaiJual ?? 0, 0, ',', '.') }}
                     </p>
                     <p class="text-xs text-gray-500 mt-1">
                         Stok saat ini × harga jual default.
@@ -202,7 +225,7 @@
                                 $statusStok='Kosong' ;
                                 $statusClass='bg-red-100 text-red-700' ;
                                 $rowClass='bg-red-50' ;
-                                } elseif ($stokSaatIni <=$batasStokRendah) {
+                                } elseif ($stokSaatIni <=($batasStokRendah ?? 5)) {
                                 $statusStok='Stok Rendah' ;
                                 $statusClass='bg-yellow-100 text-yellow-700' ;
                                 $rowClass='bg-yellow-50' ;
