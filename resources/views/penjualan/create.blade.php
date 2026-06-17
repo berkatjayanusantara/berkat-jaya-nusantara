@@ -51,7 +51,7 @@
 
                         <div>
                             <div class="flex items-center justify-between mb-1">
-                                <label class="block font-medium">Customer</label>
+                                <label class="block font-medium">Customer <span class="text-red-600">*</span></label>
 
                                 <button type="button"
                                     id="btnBukaModalCustomer"
@@ -119,10 +119,12 @@
                                                     data-satuan="{{ $item->satuan }}"
                                                     data-tipe-perhitungan="{{ $item->tipe_perhitungan_harga ?? 'normal' }}"
                                                     data-satuan-hitung="{{ $item->satuan_hitung_harga }}"
-                                                    data-isi-per-satuan="{{ $item->isi_per_satuan ?? 1 }}">
+                                                    data-isi-per-satuan="{{ $item->isi_per_satuan ?? 1 }}"
+                                                    data-kena-ppn="{{ ($item->kena_ppn ?? true) ? 1 : 0 }}">
                                                     {{ $item->kode_barang }} - {{ $item->nama_barang }}
                                                     | Stok: {{ $item->stok_saat_ini }} {{ strtoupper($item->satuan) }}
                                                     | Harga: Rp {{ number_format($item->harga_jual_default, 0, ',', '.') }}
+                                                    | {{ ($item->kena_ppn ?? true) ? 'PPN' : 'Non PPN' }}
                                                     @if (($item->tipe_perhitungan_harga ?? 'normal') === 'isi_kemasan')
                                                     / {{ strtoupper($item->satuan_hitung_harga) }}
                                                     | 1 {{ strtoupper($item->satuan) }} = {{ rtrim(rtrim(number_format($item->isi_per_satuan, 3, ',', '.'), '0'), ',') }} {{ strtoupper($item->satuan_hitung_harga) }}
@@ -135,6 +137,7 @@
 
                                             <p class="text-sm text-gray-500 mt-1 stok-info">Stok tersedia: -</p>
                                             <p class="text-sm text-blue-600 mt-1 perhitungan-info">Perhitungan: -</p>
+                                            <p class="text-sm text-purple-600 mt-1 ppn-info">PPN: -</p>
                                         </td>
 
                                         <td class="border px-3 py-2">
@@ -187,10 +190,12 @@
                                                 data-satuan="{{ $item->satuan }}"
                                                 data-tipe-perhitungan="{{ $item->tipe_perhitungan_harga ?? 'normal' }}"
                                                 data-satuan-hitung="{{ $item->satuan_hitung_harga }}"
-                                                data-isi-per-satuan="{{ $item->isi_per_satuan ?? 1 }}">
+                                                data-isi-per-satuan="{{ $item->isi_per_satuan ?? 1 }}"
+                                                data-kena-ppn="{{ ($item->kena_ppn ?? true) ? 1 : 0 }}">
                                                 {{ $item->kode_barang }} - {{ $item->nama_barang }}
                                                 | Stok: {{ $item->stok_saat_ini }} {{ strtoupper($item->satuan) }}
                                                 | Harga: Rp {{ number_format($item->harga_jual_default, 0, ',', '.') }}
+                                                | {{ ($item->kena_ppn ?? true) ? 'PPN' : 'Non PPN' }}
                                                 @if (($item->tipe_perhitungan_harga ?? 'normal') === 'isi_kemasan')
                                                 / {{ strtoupper($item->satuan_hitung_harga) }}
                                                 | 1 {{ strtoupper($item->satuan) }} = {{ rtrim(rtrim(number_format($item->isi_per_satuan, 3, ',', '.'), '0'), ',') }} {{ strtoupper($item->satuan_hitung_harga) }}
@@ -203,6 +208,7 @@
 
                                         <p class="text-sm text-gray-500 mt-1 stok-info">Stok tersedia: -</p>
                                         <p class="text-sm text-blue-600 mt-1 perhitungan-info">Perhitungan: -</p>
+                                        <p class="text-sm text-purple-600 mt-1 ppn-info">PPN: -</p>
                                     </td>
 
                                     <td class="border px-3 py-2">
@@ -302,7 +308,7 @@
                                 </select>
 
                                 <p class="text-sm text-gray-500 mt-1">
-                                    Tarif PPN sistem: 11%. Default mengikuti kebiasaan owner, yaitu harga sudah termasuk PPN.
+                                    Tarif PPN sistem: 11%. PPN hanya dihitung dari barang yang statusnya kena PPN.
                                 </p>
                             </div>
 
@@ -384,6 +390,16 @@
                             <div class="flex justify-between mb-2">
                                 <span>Subtotal Penjualan</span>
                                 <strong id="totalSubtotal">Rp 0</strong>
+                            </div>
+
+                            <div class="flex justify-between mb-2">
+                                <span>Subtotal Barang Kena PPN</span>
+                                <strong id="totalKenaPpn">Rp 0</strong>
+                            </div>
+
+                            <div class="flex justify-between mb-2">
+                                <span>Subtotal Barang Non PPN</span>
+                                <strong id="totalNonPpn">Rp 0</strong>
                             </div>
 
                             <div class="flex justify-between mb-2">
@@ -609,6 +625,7 @@
                 tipePerhitungan: selectedOption.getAttribute('data-tipe-perhitungan') || 'normal',
                 satuanHitung: selectedOption.getAttribute('data-satuan-hitung') || '',
                 isiPerSatuan: parseFloat(selectedOption.getAttribute('data-isi-per-satuan')) || 1,
+                kenaPpn: selectedOption.getAttribute('data-kena-ppn') === '1',
             };
         }
 
@@ -621,6 +638,7 @@
             const perhitunganInfo = row.querySelector('.perhitungan-info');
             const satuanJumlahInfo = row.querySelector('.satuan-jumlah-info');
             const hargaInfo = row.querySelector('.harga-info');
+            const ppnInfo = row.querySelector('.ppn-info');
 
             if (!detail) {
                 hargaInput.value = 0;
@@ -628,6 +646,7 @@
                 perhitunganInfo.innerText = 'Perhitungan: -';
                 satuanJumlahInfo.innerText = '-';
                 hargaInfo.innerText = '-';
+                ppnInfo.innerText = 'PPN: -';
                 return;
             }
 
@@ -642,6 +661,10 @@
                 perhitunganInfo.innerText = 'Perhitungan: jumlah ' + detail.satuan + ' x harga per ' + detail.satuan;
                 hargaInfo.innerText = 'Harga per ' + detail.satuan;
             }
+
+            ppnInfo.innerText = detail.kenaPpn ?
+                'PPN: Barang ini kena PPN' :
+                'PPN: Barang ini tidak kena PPN';
         }
 
         function hitungSubtotalRow(row) {
@@ -654,36 +677,36 @@
             return jumlah * harga;
         }
 
-        function hitungPpn(totalSubtotal) {
+        function hitungPpn(totalSubtotal, subtotalKenaPpn, subtotalNonPpn) {
             const tarifPpn = 11;
             const modePpn = document.getElementById('modePpn').value;
 
             if (modePpn === 'tanpa_ppn') {
                 return {
-                    dpp: totalSubtotal,
+                    dpp: 0,
                     ppn: 0,
                     totalAkhir: totalSubtotal,
-                    keterangan: 'Transaksi tidak menggunakan PPN.'
+                    keterangan: 'Transaksi tidak menggunakan PPN. Semua nilai PPN menjadi Rp0.'
                 };
             }
 
             if (modePpn === 'exclude') {
-                const ppn = totalSubtotal * (tarifPpn / 100);
+                const ppn = subtotalKenaPpn * (tarifPpn / 100);
                 return {
-                    dpp: totalSubtotal,
+                    dpp: subtotalKenaPpn,
                     ppn: ppn,
                     totalAkhir: totalSubtotal + ppn,
-                    keterangan: 'Harga belum termasuk PPN. PPN 11% ditambahkan ke total akhir.'
+                    keterangan: 'Harga belum termasuk PPN. PPN 11% hanya dihitung dari barang yang kena PPN.'
                 };
             }
 
-            const dpp = totalSubtotal * 100 / 111;
-            const ppn = totalSubtotal - dpp;
+            const dpp = subtotalKenaPpn * 100 / 111;
+            const ppn = subtotalKenaPpn - dpp;
             return {
                 dpp: dpp,
                 ppn: ppn,
                 totalAkhir: totalSubtotal,
-                keterangan: 'Harga sudah termasuk PPN. PPN dipisahkan dari total dan tidak ditambahkan lagi.'
+                keterangan: 'Harga sudah termasuk PPN. PPN hanya dipisahkan dari barang yang kena PPN.'
             };
         }
 
@@ -707,8 +730,7 @@
                     nilaiPenyesuaian: -nominal,
                     totalAkhir: Math.max(totalSebelumPenyesuaian - nominal, 0),
                     keterangan: nominal > totalSebelumPenyesuaian ?
-                        'Peringatan: nominal pengurangan lebih besar dari total sebelum penyesuaian.' :
-                        'Total akhir dikurangi setelah perhitungan PPN.'
+                        'Peringatan: nominal pengurangan lebih besar dari total sebelum penyesuaian.' : 'Total akhir dikurangi setelah perhitungan PPN.'
                 };
             }
 
@@ -724,9 +746,7 @@
             const nominalElement = document.getElementById('nominalPenyesuaianTotal');
             const keteranganElement = document.getElementById('keteranganPenyesuaianTotal');
 
-            if (!jenisElement || !nominalElement || !keteranganElement) {
-                return;
-            }
+            if (!jenisElement || !nominalElement || !keteranganElement) return;
 
             const aktif = jenisElement.value !== 'tidak_ada';
 
@@ -741,17 +761,28 @@
 
         function hitungTotal() {
             let totalSubtotal = 0;
+            let subtotalKenaPpn = 0;
+            let subtotalNonPpn = 0;
 
             document.querySelectorAll('#tableBarang tbody tr').forEach(function(row) {
+                const detail = getDetailBarangDariRow(row);
                 const subtotal = hitungSubtotalRow(row);
                 row.querySelector('.subtotal-text').innerText = formatRupiah(subtotal);
                 totalSubtotal += subtotal;
+
+                if (detail && detail.kenaPpn) {
+                    subtotalKenaPpn += subtotal;
+                } else {
+                    subtotalNonPpn += subtotal;
+                }
             });
 
-            const hasilPpn = hitungPpn(totalSubtotal);
+            const hasilPpn = hitungPpn(totalSubtotal, subtotalKenaPpn, subtotalNonPpn);
             const hasilPenyesuaian = hitungPenyesuaianTotal(hasilPpn.totalAkhir);
 
             document.getElementById('totalSubtotal').innerText = formatRupiah(totalSubtotal);
+            document.getElementById('totalKenaPpn').innerText = formatRupiah(subtotalKenaPpn);
+            document.getElementById('totalNonPpn').innerText = formatRupiah(subtotalNonPpn);
             document.getElementById('totalDpp').innerText = formatRupiah(hasilPpn.dpp);
             document.getElementById('totalPajak').innerText = formatRupiah(hasilPpn.ppn);
             document.getElementById('totalSebelumPenyesuaian').innerText = formatRupiah(hasilPpn.totalAkhir);
@@ -889,7 +920,6 @@
                     value: String(customer.id_customer),
                     text: text
                 });
-                customerSelect.tomselect.addItem(String(customer.id_customer), true);
                 customerSelect.tomselect.setValue(String(customer.id_customer), true);
                 customerSelect.tomselect.refreshOptions(false);
             } else {

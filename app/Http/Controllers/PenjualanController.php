@@ -27,10 +27,13 @@ class PenjualanController extends Controller
 
         $penjualan = Penjualan::with(['customer', 'user'])
             ->when($search, function ($query, $search) {
-                $query->where('nomor_invoice', 'like', "%{$search}%")
-                    ->orWhereHas('customer', function ($customerQuery) use ($search) {
-                        $customerQuery->where('nama_customer', 'like', "%{$search}%");
-                    });
+                $query->where(function ($subQuery) use ($search) {
+                    $subQuery->where('nomor_invoice', 'like', "%{$search}%")
+                        ->orWhere('nomor_dokumen_asli', 'like', "%{$search}%")
+                        ->orWhereHas('customer', function ($customerQuery) use ($search) {
+                            $customerQuery->where('nama_customer', 'like', "%{$search}%");
+                        });
+                });
             })
             ->orderBy('tanggal_penjualan', 'desc')
             ->orderBy('created_at', 'desc')
@@ -41,13 +44,8 @@ class PenjualanController extends Controller
 
     public function create()
     {
-        $customers = Customer::where('status_aktif', true)
-            ->orderBy('nama_customer')
-            ->get();
-
-        $barang = Barang::where('status_aktif', true)
-            ->orderBy('nama_barang')
-            ->get();
+        $customers = Customer::where('status_aktif', true)->orderBy('nama_customer')->get();
+        $barang = Barang::where('status_aktif', true)->orderBy('nama_barang')->get();
 
         return view('penjualan.create', compact('customers', 'barang'));
     }
@@ -57,27 +55,10 @@ class PenjualanController extends Controller
         $request->validate($this->rulesPenjualan($request, null));
 
         DB::transaction(function () use ($request) {
-            $subtotalPenjualan = 0;
-
-            foreach ($request->id_barang as $index => $idBarang) {
-                $barang = Barang::where('id_barang', $idBarang)
-                    ->lockForUpdate()
-                    ->firstOrFail();
-
-                $jumlah = (int) $request->jumlah[$index];
-
-                if ($jumlah > $barang->stok_saat_ini) {
-                    throw ValidationException::withMessages([
-                        'stok' => 'Stok barang ' . $barang->nama_barang . ' tidak mencukupi. Stok tersedia: ' . $barang->stok_saat_ini . ' ' . $barang->satuan,
-                    ]);
-                }
-
-                $hargaJual = (float) $request->harga_jual[$index];
-                $subtotalPenjualan += $this->hitungSubtotalDetail($barang, $jumlah, $hargaJual);
-            }
-
+            $ringkasanSubtotal = $this->hitungSubtotalPenjualanDariRequest($request, true);
             $perhitunganPpn = $this->hitungPpnPenjualan(
-                $subtotalPenjualan,
+                $ringkasanSubtotal['subtotal_penjualan'],
+                $ringkasanSubtotal['subtotal_kena_ppn'],
                 $request->mode_ppn
             );
 
@@ -88,17 +69,15 @@ class PenjualanController extends Controller
                 $request->keterangan_penyesuaian_total
             );
 
-            $statusPembayaran = $request->metode_pembayaran === 'tunai'
-                ? 'lunas'
-                : 'belum_lunas';
-
-            $nomorInvoice = trim($request->nomor_invoice);
+            $statusPembayaran = $request->metode_pembayaran === 'tunai' ? 'lunas' : 'belum_lunas';
 
             $penjualan = Penjualan::create(array_merge([
-                'nomor_invoice' => $nomorInvoice,
+                'nomor_invoice' => trim($request->nomor_invoice),
                 'tanggal_penjualan' => $request->tanggal_penjualan,
                 'id_customer' => $request->id_customer,
-                'subtotal' => $subtotalPenjualan,
+                'subtotal' => $ringkasanSubtotal['subtotal_penjualan'],
+                'subtotal_kena_ppn' => $perhitunganPpn['subtotal_kena_ppn'],
+                'subtotal_non_ppn' => $perhitunganPpn['subtotal_non_ppn'],
                 'dpp_ppn' => $perhitunganPpn['dpp_ppn'],
                 'persentase_pajak' => $perhitunganPpn['persentase_pajak'],
                 'mode_ppn' => $perhitunganPpn['mode_ppn'],
@@ -111,69 +90,12 @@ class PenjualanController extends Controller
                 'total_akhir' => $perhitunganTotal['total_akhir'],
                 'metode_pembayaran' => $request->metode_pembayaran,
                 'status_pembayaran' => $statusPembayaran,
-                'tanggal_jatuh_tempo' => $request->metode_pembayaran === 'kredit'
-                    ? $request->tanggal_jatuh_tempo
-                    : null,
+                'tanggal_jatuh_tempo' => $request->metode_pembayaran === 'kredit' ? $request->tanggal_jatuh_tempo : null,
                 'catatan' => $request->catatan,
                 'dibuat_oleh' => Auth::id(),
             ], $this->ambilDataFakturPajak($request)));
 
-            foreach ($request->id_barang as $index => $idBarang) {
-                $barang = Barang::where('id_barang', $idBarang)
-                    ->lockForUpdate()
-                    ->firstOrFail();
-
-                $jumlah = (int) $request->jumlah[$index];
-                $hargaJual = (float) $request->harga_jual[$index];
-
-                if ($jumlah > $barang->stok_saat_ini) {
-                    throw ValidationException::withMessages([
-                        'stok' => 'Stok barang ' . $barang->nama_barang . ' tidak mencukupi. Stok tersedia: ' . $barang->stok_saat_ini . ' ' . $barang->satuan,
-                    ]);
-                }
-
-                $tipePerhitunganHarga = $barang->tipe_perhitungan_harga ?? 'normal';
-                $satuanTransaksi = $barang->satuan;
-                $satuanHitungHarga = $tipePerhitunganHarga === 'isi_kemasan'
-                    ? $barang->satuan_hitung_harga
-                    : $barang->satuan;
-                $isiPerSatuan = $tipePerhitunganHarga === 'isi_kemasan'
-                    ? (float) $barang->isi_per_satuan
-                    : 1;
-                $subtotalDetail = $this->hitungSubtotalDetail($barang, $jumlah, $hargaJual);
-
-                DetailPenjualan::create([
-                    'id_penjualan' => $penjualan->id_penjualan,
-                    'id_barang' => $barang->id_barang,
-                    'jumlah' => $jumlah,
-                    'harga_jual' => $hargaJual,
-                    'tipe_perhitungan_harga' => $tipePerhitunganHarga,
-                    'satuan_transaksi' => $satuanTransaksi,
-                    'satuan_hitung_harga' => $satuanHitungHarga,
-                    'isi_per_satuan' => $isiPerSatuan,
-                    'subtotal' => $subtotalDetail,
-                ]);
-
-                $stokSebelum = $barang->stok_saat_ini;
-                $stokSesudah = $stokSebelum - $jumlah;
-
-                $barang->update([
-                    'stok_saat_ini' => $stokSesudah,
-                ]);
-
-                RiwayatStok::create([
-                    'id_barang' => $barang->id_barang,
-                    'tanggal' => $request->tanggal_penjualan,
-                    'jenis_pergerakan' => 'keluar',
-                    'jumlah' => $jumlah,
-                    'stok_sebelum' => $stokSebelum,
-                    'stok_sesudah' => $stokSesudah,
-                    'sumber_transaksi' => $penjualan->nomor_invoice,
-                    'keterangan' => 'Stok keluar dari penjualan',
-                    'dibuat_oleh' => Auth::id(),
-                    'created_at' => now(),
-                ]);
-            }
+            $this->simpanDetailPenjualanDariRequest($penjualan, $request, true, 'Stok keluar dari penjualan');
 
             if ($request->metode_pembayaran === 'kredit') {
                 Piutang::create([
@@ -190,18 +112,12 @@ class PenjualanController extends Controller
             }
         });
 
-        return redirect()
-            ->route('penjualan.index')
-            ->with('success', 'Transaksi penjualan berhasil disimpan.');
+        return redirect()->route('penjualan.index')->with('success', 'Transaksi penjualan berhasil disimpan.');
     }
 
     public function edit(Penjualan $penjualan)
     {
-        $penjualan->load([
-            'customer',
-            'detailPenjualan.barang',
-            'piutang.pembayaranPiutang',
-        ]);
+        $penjualan->load(['customer', 'detailPenjualan.barang', 'piutang.pembayaranPiutang']);
 
         $customers = Customer::where('status_aktif', true)
             ->orWhere('id_customer', $penjualan->id_customer)
@@ -221,14 +137,9 @@ class PenjualanController extends Controller
         $request->validate($this->rulesPenjualan($request, $penjualan));
 
         DB::transaction(function () use ($request, $penjualan) {
-            $penjualan->load([
-                'detailPenjualan',
-                'piutang.pembayaranPiutang',
-            ]);
+            $penjualan->load(['detailPenjualan', 'piutang.pembayaranPiutang']);
 
-            $totalDibayarLama = $penjualan->piutang
-                ? (float) $penjualan->piutang->total_dibayar
-                : 0;
+            $totalDibayarLama = $penjualan->piutang ? (float) $penjualan->piutang->total_dibayar : 0;
 
             if ($request->metode_pembayaran === 'tunai' && $totalDibayarLama > 0) {
                 throw ValidationException::withMessages([
@@ -240,9 +151,7 @@ class PenjualanController extends Controller
 
             if ($affectStock) {
                 foreach ($penjualan->detailPenjualan as $detailLama) {
-                    $barangLama = Barang::where('id_barang', $detailLama->id_barang)
-                        ->lockForUpdate()
-                        ->first();
+                    $barangLama = Barang::where('id_barang', $detailLama->id_barang)->lockForUpdate()->first();
 
                     if (!$barangLama) {
                         continue;
@@ -251,9 +160,7 @@ class PenjualanController extends Controller
                     $stokSebelum = $barangLama->stok_saat_ini;
                     $stokSesudah = $stokSebelum + $detailLama->jumlah;
 
-                    $barangLama->update([
-                        'stok_saat_ini' => $stokSesudah,
-                    ]);
+                    $barangLama->update(['stok_saat_ini' => $stokSesudah]);
 
                     RiwayatStok::create([
                         'id_barang' => $barangLama->id_barang,
@@ -270,27 +177,10 @@ class PenjualanController extends Controller
                 }
             }
 
-            $subtotalPenjualan = 0;
-
-            foreach ($request->id_barang as $index => $idBarang) {
-                $barang = Barang::where('id_barang', $idBarang)
-                    ->lockForUpdate()
-                    ->firstOrFail();
-
-                $jumlah = (int) $request->jumlah[$index];
-                $hargaJual = (float) $request->harga_jual[$index];
-
-                if ($affectStock && $jumlah > $barang->stok_saat_ini) {
-                    throw ValidationException::withMessages([
-                        'stok' => 'Stok barang ' . $barang->nama_barang . ' tidak mencukupi. Stok tersedia: ' . $barang->stok_saat_ini . ' ' . $barang->satuan,
-                    ]);
-                }
-
-                $subtotalPenjualan += $this->hitungSubtotalDetail($barang, $jumlah, $hargaJual);
-            }
-
+            $ringkasanSubtotal = $this->hitungSubtotalPenjualanDariRequest($request, $affectStock);
             $perhitunganPpn = $this->hitungPpnPenjualan(
-                $subtotalPenjualan,
+                $ringkasanSubtotal['subtotal_penjualan'],
+                $ringkasanSubtotal['subtotal_kena_ppn'],
                 $request->mode_ppn
             );
 
@@ -301,17 +191,15 @@ class PenjualanController extends Controller
                 $request->keterangan_penyesuaian_total
             );
 
-            $statusPembayaran = $this->hitungStatusPembayaran(
-                $request->metode_pembayaran,
-                $perhitunganTotal['total_akhir'],
-                $totalDibayarLama
-            );
+            $statusPembayaran = $this->hitungStatusPembayaran($request->metode_pembayaran, $perhitunganTotal['total_akhir'], $totalDibayarLama);
 
             $penjualan->update(array_merge([
                 'nomor_invoice' => trim($request->nomor_invoice),
                 'tanggal_penjualan' => $request->tanggal_penjualan,
                 'id_customer' => $request->id_customer,
-                'subtotal' => $subtotalPenjualan,
+                'subtotal' => $ringkasanSubtotal['subtotal_penjualan'],
+                'subtotal_kena_ppn' => $perhitunganPpn['subtotal_kena_ppn'],
+                'subtotal_non_ppn' => $perhitunganPpn['subtotal_non_ppn'],
                 'dpp_ppn' => $perhitunganPpn['dpp_ppn'],
                 'persentase_pajak' => $perhitunganPpn['persentase_pajak'],
                 'mode_ppn' => $perhitunganPpn['mode_ppn'],
@@ -324,95 +212,22 @@ class PenjualanController extends Controller
                 'total_akhir' => $perhitunganTotal['total_akhir'],
                 'metode_pembayaran' => $request->metode_pembayaran,
                 'status_pembayaran' => $statusPembayaran,
-                'tanggal_jatuh_tempo' => $request->metode_pembayaran === 'kredit'
-                    ? $request->tanggal_jatuh_tempo
-                    : null,
+                'tanggal_jatuh_tempo' => $request->metode_pembayaran === 'kredit' ? $request->tanggal_jatuh_tempo : null,
                 'catatan' => $request->catatan,
             ], $this->ambilDataFakturPajak($request)));
 
             $penjualan->detailPenjualan()->delete();
+            $this->simpanDetailPenjualanDariRequest($penjualan, $request, $affectStock, 'Stok keluar dari edit penjualan');
 
-            foreach ($request->id_barang as $index => $idBarang) {
-                $barang = Barang::where('id_barang', $idBarang)
-                    ->lockForUpdate()
-                    ->firstOrFail();
-
-                $jumlah = (int) $request->jumlah[$index];
-                $hargaJual = (float) $request->harga_jual[$index];
-
-                if ($affectStock && $jumlah > $barang->stok_saat_ini) {
-                    throw ValidationException::withMessages([
-                        'stok' => 'Stok barang ' . $barang->nama_barang . ' tidak mencukupi. Stok tersedia: ' . $barang->stok_saat_ini . ' ' . $barang->satuan,
-                    ]);
-                }
-
-                $tipePerhitunganHarga = $barang->tipe_perhitungan_harga ?? 'normal';
-                $satuanTransaksi = $barang->satuan;
-                $satuanHitungHarga = $tipePerhitunganHarga === 'isi_kemasan'
-                    ? $barang->satuan_hitung_harga
-                    : $barang->satuan;
-                $isiPerSatuan = $tipePerhitunganHarga === 'isi_kemasan'
-                    ? (float) $barang->isi_per_satuan
-                    : 1;
-                $subtotalDetail = $this->hitungSubtotalDetail($barang, $jumlah, $hargaJual);
-
-                DetailPenjualan::create([
-                    'id_penjualan' => $penjualan->id_penjualan,
-                    'id_barang' => $barang->id_barang,
-                    'jumlah' => $jumlah,
-                    'harga_jual' => $hargaJual,
-                    'tipe_perhitungan_harga' => $tipePerhitunganHarga,
-                    'satuan_transaksi' => $satuanTransaksi,
-                    'satuan_hitung_harga' => $satuanHitungHarga,
-                    'isi_per_satuan' => $isiPerSatuan,
-                    'subtotal' => $subtotalDetail,
-                ]);
-
-                if ($affectStock) {
-                    $stokSebelum = $barang->stok_saat_ini;
-                    $stokSesudah = $stokSebelum - $jumlah;
-
-                    $barang->update([
-                        'stok_saat_ini' => $stokSesudah,
-                    ]);
-
-                    RiwayatStok::create([
-                        'id_barang' => $barang->id_barang,
-                        'tanggal' => $request->tanggal_penjualan,
-                        'jenis_pergerakan' => 'keluar',
-                        'jumlah' => $jumlah,
-                        'stok_sebelum' => $stokSebelum,
-                        'stok_sesudah' => $stokSesudah,
-                        'sumber_transaksi' => $penjualan->nomor_invoice,
-                        'keterangan' => 'Stok keluar dari edit penjualan',
-                        'dibuat_oleh' => Auth::id(),
-                        'created_at' => now(),
-                    ]);
-                }
-            }
-
-            $this->sinkronkanPiutangSetelahEdit(
-                $penjualan,
-                $request,
-                $perhitunganTotal['total_akhir'],
-                $totalDibayarLama
-            );
+            $this->sinkronkanPiutangSetelahEdit($penjualan, $request, $perhitunganTotal['total_akhir'], $totalDibayarLama);
         });
 
-        return redirect()
-            ->route('penjualan.show', $penjualan->id_penjualan)
-            ->with('success', 'Transaksi penjualan berhasil diperbarui.');
+        return redirect()->route('penjualan.show', $penjualan->id_penjualan)->with('success', 'Transaksi penjualan berhasil diperbarui.');
     }
 
     public function show(Penjualan $penjualan)
     {
-        $penjualan->load([
-            'customer',
-            'user',
-            'detailPenjualan.barang',
-            'piutang',
-        ]);
-
+        $penjualan->load(['customer', 'user', 'detailPenjualan.barang', 'piutang']);
         return view('penjualan.show', compact('penjualan'));
     }
 
@@ -427,6 +242,11 @@ class PenjualanController extends Controller
 
         $modePpn = $this->normalisasiModePpn($penjualan->mode_ppn ?? null, $penjualan);
         $labelModePpn = $this->labelModePpn($modePpn);
+
+        $isInvoiceHistoris = (bool) ($penjualan->is_historical ?? false);
+        $nomorInvoiceTampil = $isInvoiceHistoris && !empty($penjualan->nomor_dokumen_asli)
+            ? $penjualan->nomor_dokumen_asli
+            : $penjualan->nomor_invoice;
 
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
@@ -469,37 +289,72 @@ class PenjualanController extends Controller
         $sheet->getStyle('A2')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
         $sheet->setCellValue('A4', 'Nomor Invoice');
-        $sheet->setCellValue('B4', $penjualan->nomor_invoice);
-        $sheet->setCellValue('D4', 'Tanggal');
-        $sheet->setCellValue('E4', $penjualan->tanggal_penjualan ? $penjualan->tanggal_penjualan->format('d-m-Y') : '-');
+        $sheet->setCellValue('B4', $nomorInvoiceTampil);
 
-        $sheet->setCellValue('A5', 'Customer');
-        $sheet->setCellValue('B5', $penjualan->customer->nama_customer ?? '-');
-        $sheet->setCellValue('D5', 'Metode Bayar');
-        $sheet->setCellValue('E5', ucfirst($penjualan->metode_pembayaran ?? '-'));
+        if ($isInvoiceHistoris && !empty($penjualan->nomor_invoice)) {
+            $sheet->setCellValue('A5', 'Nomor Sistem');
+            $sheet->setCellValue('B5', $penjualan->nomor_invoice);
 
-        $sheet->setCellValue('A6', 'NPWP');
-        $sheet->setCellValue('B6', $penjualan->customer->npwp ?? '-');
-        $sheet->setCellValue('D6', 'Status');
-        $sheet->setCellValue('E6', str_replace('_', ' ', ucfirst($penjualan->status_pembayaran ?? '-')));
+            $sheet->setCellValue('D4', 'Tanggal');
+            $sheet->setCellValue('E4', $penjualan->tanggal_penjualan ? $penjualan->tanggal_penjualan->format('d-m-Y') : '-');
 
-        $sheet->setCellValue('A7', 'Mode PPN');
-        $sheet->setCellValue('B7', $labelModePpn);
-        $sheet->setCellValue('D7', 'Butuh Faktur Pajak');
-        $sheet->setCellValue('E7', $penjualan->butuh_faktur_pajak ? 'Ya' : 'Tidak');
+            $sheet->setCellValue('D5', 'Metode Bayar');
+            $sheet->setCellValue('E5', ucfirst($penjualan->metode_pembayaran ?? '-'));
+
+            $sheet->setCellValue('A6', 'Customer');
+            $sheet->setCellValue('B6', $penjualan->customer->nama_customer ?? '-');
+            $sheet->setCellValue('D6', 'Status');
+            $sheet->setCellValue('E6', str_replace('_', ' ', ucfirst($penjualan->status_pembayaran ?? '-')));
+
+            $sheet->setCellValue('A7', 'NPWP');
+            $sheet->setCellValue('B7', $penjualan->customer->npwp ?? '-');
+
+            $sheet->setCellValue('A8', 'Mode PPN');
+            $sheet->setCellValue('B8', $labelModePpn);
+            $sheet->setCellValue('D8', 'Butuh Faktur Pajak');
+            $sheet->setCellValue('E8', $penjualan->butuh_faktur_pajak ? 'Ya' : 'Tidak');
+
+            $infoRowFaktur = 9;
+            $rowTanpaFaktur = 10;
+            $rowDenganFaktur = 12;
+        } else {
+            $sheet->setCellValue('D4', 'Tanggal');
+            $sheet->setCellValue('E4', $penjualan->tanggal_penjualan ? $penjualan->tanggal_penjualan->format('d-m-Y') : '-');
+
+            $sheet->setCellValue('A5', 'Customer');
+            $sheet->setCellValue('B5', $penjualan->customer->nama_customer ?? '-');
+            $sheet->setCellValue('D5', 'Metode Bayar');
+            $sheet->setCellValue('E5', ucfirst($penjualan->metode_pembayaran ?? '-'));
+
+            $sheet->setCellValue('A6', 'NPWP');
+            $sheet->setCellValue('B6', $penjualan->customer->npwp ?? '-');
+            $sheet->setCellValue('D6', 'Status');
+            $sheet->setCellValue('E6', str_replace('_', ' ', ucfirst($penjualan->status_pembayaran ?? '-')));
+
+            $sheet->setCellValue('A7', 'Mode PPN');
+            $sheet->setCellValue('B7', $labelModePpn);
+            $sheet->setCellValue('D7', 'Butuh Faktur Pajak');
+            $sheet->setCellValue('E7', $penjualan->butuh_faktur_pajak ? 'Ya' : 'Tidak');
+
+            $infoRowFaktur = 8;
+            $rowTanpaFaktur = 9;
+            $rowDenganFaktur = 11;
+        }
 
         if ($penjualan->butuh_faktur_pajak) {
-            $sheet->setCellValue('A8', 'No Faktur');
-            $sheet->setCellValue('B8', $penjualan->nomor_faktur_pajak ?? '-');
-            $sheet->setCellValue('D8', 'Tanggal Faktur');
-            $sheet->setCellValue('E8', $penjualan->tanggal_faktur_pajak ? $penjualan->tanggal_faktur_pajak->format('d-m-Y') : '-');
-            $sheet->setCellValue('A9', 'Nama Faktur');
-            $sheet->setCellValue('B9', $penjualan->nama_faktur_pajak ?? '-');
-            $sheet->setCellValue('D9', 'NPWP Faktur');
-            $sheet->setCellValue('E9', $penjualan->npwp_faktur_pajak ?? '-');
-            $row = 11;
+            $sheet->setCellValue('A' . $infoRowFaktur, 'No Faktur');
+            $sheet->setCellValue('B' . $infoRowFaktur, $penjualan->nomor_faktur_pajak ?? '-');
+            $sheet->setCellValue('D' . $infoRowFaktur, 'Tanggal Faktur');
+            $sheet->setCellValue('E' . $infoRowFaktur, $penjualan->tanggal_faktur_pajak ? $penjualan->tanggal_faktur_pajak->format('d-m-Y') : '-');
+
+            $sheet->setCellValue('A' . ($infoRowFaktur + 1), 'Nama Faktur');
+            $sheet->setCellValue('B' . ($infoRowFaktur + 1), $penjualan->nama_faktur_pajak ?? '-');
+            $sheet->setCellValue('D' . ($infoRowFaktur + 1), 'NPWP Faktur');
+            $sheet->setCellValue('E' . ($infoRowFaktur + 1), $penjualan->npwp_faktur_pajak ?? '-');
+
+            $row = $rowDenganFaktur;
         } else {
-            $row = 9;
+            $row = $rowTanpaFaktur;
         }
 
         $sheet->fromArray(['No', 'Kode Barang', 'Nama Barang', 'Qty', 'Harga', 'Subtotal', 'Keterangan'], null, 'A' . $row);
@@ -587,7 +442,7 @@ class PenjualanController extends Controller
         $sheet->getStyle('A1:G' . $row)->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
         $sheet->getStyle('A1:G' . $row)->getAlignment()->setWrapText(true);
 
-        $safeInvoice = preg_replace('/[^A-Za-z0-9\-_]+/', '-', $penjualan->nomor_invoice ?? 'nota');
+        $safeInvoice = preg_replace('/[^A-Za-z0-9\-_]+/', '-', $nomorInvoiceTampil ?? 'nota');
         $safeInvoice = trim(preg_replace('/-+/', '-', $safeInvoice), '-');
         $fileName = 'Invoice-' . ($safeInvoice ?: 'nota') . '.xlsx';
 
@@ -601,46 +456,35 @@ class PenjualanController extends Controller
         ]);
     }
 
+
     private function rulesPenjualan(Request $request, ?Penjualan $penjualan): array
     {
         $uniqueInvoice = Rule::unique('penjualan', 'nomor_invoice');
-
         if ($penjualan) {
             $uniqueInvoice->ignore($penjualan->id_penjualan, 'id_penjualan');
         }
 
         return [
-            'nomor_invoice' => [
-                'required',
-                'string',
-                'max:100',
-                $uniqueInvoice,
-            ],
+            'nomor_invoice' => ['required', 'string', 'max:100', $uniqueInvoice],
             'tanggal_penjualan' => 'required|date',
             'id_customer' => 'required|exists:customers,id_customer',
             'mode_ppn' => 'required|in:tanpa_ppn,include,exclude',
-
             'jenis_penyesuaian_total' => 'nullable|in:tidak_ada,tambah,kurang',
             'nominal_penyesuaian_total' => 'nullable|numeric|min:0',
             'keterangan_penyesuaian_total' => 'nullable|string',
-
             'butuh_faktur_pajak' => 'nullable|boolean',
             'nomor_faktur_pajak' => 'nullable|string|max:100',
             'tanggal_faktur_pajak' => 'nullable|date',
             'nama_faktur_pajak' => 'nullable|required_if:butuh_faktur_pajak,1|string|max:255',
             'npwp_faktur_pajak' => 'nullable|required_if:butuh_faktur_pajak,1|string|max:50',
             'alamat_faktur_pajak' => 'nullable|string',
-
             'metode_pembayaran' => 'required|in:tunai,kredit',
             'tanggal_jatuh_tempo' => 'nullable|required_if:metode_pembayaran,kredit|date',
             'catatan' => 'nullable|string',
-
             'id_barang' => 'required|array|min:1',
             'id_barang.*' => 'required|exists:barang,id_barang',
-
             'jumlah' => 'required|array|min:1',
             'jumlah.*' => 'required|integer|min:1',
-
             'harga_jual' => 'required|array|min:1',
             'harga_jual.*' => 'required|numeric|min:0',
         ];
@@ -648,21 +492,126 @@ class PenjualanController extends Controller
 
     private function hitungSubtotalDetail(Barang $barang, int $jumlah, float $hargaJual): float
     {
-        $tipePerhitunganHarga = $barang->tipe_perhitungan_harga ?? 'normal';
-
-        if ($tipePerhitunganHarga === 'isi_kemasan') {
-            $isiPerSatuan = (float) ($barang->isi_per_satuan ?? 1);
-
-            return $jumlah * $isiPerSatuan * $hargaJual;
+        if (($barang->tipe_perhitungan_harga ?? 'normal') === 'isi_kemasan') {
+            return round($jumlah * (float) ($barang->isi_per_satuan ?? 1) * $hargaJual, 2);
         }
 
-        return $jumlah * $hargaJual;
+        return round($jumlah * $hargaJual, 2);
     }
 
-    private function hitungPpnPenjualan(float $subtotalPenjualan, string $modePpn): array
+    private function hitungSubtotalPenjualanDariRequest(Request $request, bool $cekStok = true): array
+    {
+        $subtotalPenjualan = 0;
+        $subtotalKenaPpn = 0;
+
+        foreach ($request->id_barang as $index => $idBarang) {
+            $barang = Barang::where('id_barang', $idBarang)->lockForUpdate()->firstOrFail();
+            $jumlah = (int) $request->jumlah[$index];
+
+            if ($cekStok && $jumlah > $barang->stok_saat_ini) {
+                throw ValidationException::withMessages([
+                    'stok' => 'Stok barang ' . $barang->nama_barang . ' tidak mencukupi. Stok tersedia: ' . $barang->stok_saat_ini . ' ' . $barang->satuan,
+                ]);
+            }
+
+            $subtotalDetail = $this->hitungSubtotalDetail($barang, $jumlah, (float) $request->harga_jual[$index]);
+            $subtotalPenjualan += $subtotalDetail;
+
+            if ((bool) ($barang->kena_ppn ?? true)) {
+                $subtotalKenaPpn += $subtotalDetail;
+            }
+        }
+
+        return [
+            'subtotal_penjualan' => round($subtotalPenjualan, 2),
+            'subtotal_kena_ppn' => round($subtotalKenaPpn, 2),
+            'subtotal_non_ppn' => round(max($subtotalPenjualan - $subtotalKenaPpn, 0), 2),
+        ];
+    }
+
+    private function hitungPpnDetail(float $subtotalDetail, bool $kenaPpn, string $modePpn): array
+    {
+        $tarifPpn = 11.0;
+        $subtotal = round(max($subtotalDetail, 0), 2);
+
+        if (!$kenaPpn || $modePpn === 'tanpa_ppn') {
+            return ['dpp_ppn' => 0, 'nilai_ppn' => 0];
+        }
+
+        if ($modePpn === 'exclude') {
+            return ['dpp_ppn' => $subtotal, 'nilai_ppn' => round($subtotal * ($tarifPpn / 100), 2)];
+        }
+
+        $dppPpn = round($subtotal * 100 / 111, 2);
+        return ['dpp_ppn' => $dppPpn, 'nilai_ppn' => round($subtotal - $dppPpn, 2)];
+    }
+
+    private function simpanDetailPenjualanDariRequest(Penjualan $penjualan, Request $request, bool $affectStock, string $keteranganRiwayat): void
+    {
+        $modePpn = $this->normalisasiModePpn($request->mode_ppn ?? null);
+
+        foreach ($request->id_barang as $index => $idBarang) {
+            $barang = Barang::where('id_barang', $idBarang)->lockForUpdate()->firstOrFail();
+            $jumlah = (int) $request->jumlah[$index];
+            $hargaJual = (float) $request->harga_jual[$index];
+
+            if ($affectStock && $jumlah > $barang->stok_saat_ini) {
+                throw ValidationException::withMessages([
+                    'stok' => 'Stok barang ' . $barang->nama_barang . ' tidak mencukupi. Stok tersedia: ' . $barang->stok_saat_ini . ' ' . $barang->satuan,
+                ]);
+            }
+
+            $tipePerhitunganHarga = $barang->tipe_perhitungan_harga ?? 'normal';
+            $satuanTransaksi = $barang->satuan;
+            $satuanHitungHarga = $tipePerhitunganHarga === 'isi_kemasan' ? $barang->satuan_hitung_harga : $barang->satuan;
+            $isiPerSatuan = $tipePerhitunganHarga === 'isi_kemasan' ? (float) $barang->isi_per_satuan : 1;
+            $subtotalDetail = $this->hitungSubtotalDetail($barang, $jumlah, $hargaJual);
+            $kenaPpn = (bool) ($barang->kena_ppn ?? true);
+            $ppnDetail = $this->hitungPpnDetail($subtotalDetail, $kenaPpn, $modePpn);
+
+            DetailPenjualan::create([
+                'id_penjualan' => $penjualan->id_penjualan,
+                'id_barang' => $barang->id_barang,
+                'jumlah' => $jumlah,
+                'harga_jual' => $hargaJual,
+                'tipe_perhitungan_harga' => $tipePerhitunganHarga,
+                'satuan_transaksi' => $satuanTransaksi,
+                'satuan_hitung_harga' => $satuanHitungHarga,
+                'isi_per_satuan' => $isiPerSatuan,
+                'kena_ppn' => $kenaPpn,
+                'dpp_ppn' => $ppnDetail['dpp_ppn'],
+                'nilai_ppn' => $ppnDetail['nilai_ppn'],
+                'subtotal' => $subtotalDetail,
+            ]);
+
+            if ($affectStock) {
+                $stokSebelum = $barang->stok_saat_ini;
+                $stokSesudah = $stokSebelum - $jumlah;
+
+                $barang->update(['stok_saat_ini' => $stokSesudah]);
+
+                RiwayatStok::create([
+                    'id_barang' => $barang->id_barang,
+                    'tanggal' => $request->tanggal_penjualan,
+                    'jenis_pergerakan' => 'keluar',
+                    'jumlah' => $jumlah,
+                    'stok_sebelum' => $stokSebelum,
+                    'stok_sesudah' => $stokSesudah,
+                    'sumber_transaksi' => $penjualan->nomor_invoice,
+                    'keterangan' => $keteranganRiwayat,
+                    'dibuat_oleh' => Auth::id(),
+                    'created_at' => now(),
+                ]);
+            }
+        }
+    }
+
+    private function hitungPpnPenjualan(float $subtotalPenjualan, float $subtotalKenaPpn, string $modePpn): array
     {
         $tarifPpn = 11.0;
         $subtotal = round(max($subtotalPenjualan, 0), 2);
+        $subtotalPpnable = round(max($subtotalKenaPpn, 0), 2);
+        $subtotalNonPpn = round(max($subtotal - $subtotalPpnable, 0), 2);
 
         if (!in_array($modePpn, ['tanpa_ppn', 'include', 'exclude'], true)) {
             $modePpn = 'include';
@@ -671,8 +620,10 @@ class PenjualanController extends Controller
         if ($modePpn === 'tanpa_ppn') {
             return [
                 'mode_ppn' => 'tanpa_ppn',
+                'subtotal_kena_ppn' => $subtotalPpnable,
+                'subtotal_non_ppn' => $subtotalNonPpn,
                 'persentase_pajak' => 0,
-                'dpp_ppn' => $subtotal,
+                'dpp_ppn' => 0,
                 'nilai_pajak' => 0,
                 'pajak_ditambahkan' => false,
                 'total_akhir' => $subtotal,
@@ -680,25 +631,26 @@ class PenjualanController extends Controller
         }
 
         if ($modePpn === 'exclude') {
-            $nilaiPpn = round($subtotal * ($tarifPpn / 100), 2);
-
+            $nilaiPpn = round($subtotalPpnable * ($tarifPpn / 100), 2);
             return [
                 'mode_ppn' => 'exclude',
+                'subtotal_kena_ppn' => $subtotalPpnable,
+                'subtotal_non_ppn' => $subtotalNonPpn,
                 'persentase_pajak' => $tarifPpn,
-                'dpp_ppn' => $subtotal,
+                'dpp_ppn' => $subtotalPpnable,
                 'nilai_pajak' => $nilaiPpn,
                 'pajak_ditambahkan' => true,
                 'total_akhir' => round($subtotal + $nilaiPpn, 2),
             ];
         }
 
-        // Mode include: harga yang diinput admin sudah termasuk PPN 11%.
-        // DPP = Total x 100 / 111, PPN = Total - DPP.
-        $dppPpn = round($subtotal * 100 / 111, 2);
-        $nilaiPpn = round($subtotal - $dppPpn, 2);
+        $dppPpn = round($subtotalPpnable * 100 / 111, 2);
+        $nilaiPpn = round($subtotalPpnable - $dppPpn, 2);
 
         return [
             'mode_ppn' => 'include',
+            'subtotal_kena_ppn' => $subtotalPpnable,
+            'subtotal_non_ppn' => $subtotalNonPpn,
             'persentase_pajak' => $tarifPpn,
             'dpp_ppn' => $dppPpn,
             'nilai_pajak' => $nilaiPpn,
@@ -711,13 +663,11 @@ class PenjualanController extends Controller
     {
         $totalSebelum = round(max($totalSebelumPenyesuaian, 0), 2);
         $jenis = $jenisPenyesuaian ?: 'tidak_ada';
-
         if (!in_array($jenis, ['tidak_ada', 'tambah', 'kurang'], true)) {
             $jenis = 'tidak_ada';
         }
 
         $nominal = round(max((float) ($nominalPenyesuaian ?? 0), 0), 2);
-
         if ($jenis === 'tidak_ada') {
             $nominal = 0;
         }
@@ -729,7 +679,6 @@ class PenjualanController extends Controller
         }
 
         $totalAkhir = $totalSebelum;
-
         if ($jenis === 'tambah') {
             $totalAkhir = $totalSebelum + $nominal;
         } elseif ($jenis === 'kurang') {
@@ -764,15 +713,12 @@ class PenjualanController extends Controller
         if ($metodePembayaran === 'tunai') {
             return 'lunas';
         }
-
         if ($totalDibayar >= $totalAkhir && $totalAkhir > 0) {
             return 'lunas';
         }
-
         if ($totalDibayar > 0) {
             return 'sebagian';
         }
-
         return 'belum_lunas';
     }
 
@@ -784,16 +730,11 @@ class PenjualanController extends Controller
             if ($penjualan->piutang && $totalDibayarLama <= 0) {
                 $penjualan->piutang->delete();
             }
-
             return;
         }
 
         $sisaPiutang = max($totalAkhir - $totalDibayarLama, 0);
-        $statusPiutang = $this->hitungStatusPiutang(
-            $sisaPiutang,
-            $totalDibayarLama,
-            $request->tanggal_jatuh_tempo
-        );
+        $statusPiutang = $this->hitungStatusPiutang($sisaPiutang, $totalDibayarLama, $request->tanggal_jatuh_tempo);
 
         if ($penjualan->piutang) {
             $penjualan->piutang->update([
@@ -806,7 +747,6 @@ class PenjualanController extends Controller
                 'status_piutang' => $statusPiutang,
                 'catatan' => 'Piutang diperbarui dari edit transaksi penjualan',
             ]);
-
             return;
         }
 
@@ -828,15 +768,12 @@ class PenjualanController extends Controller
         if ($sisaPiutang <= 0) {
             return 'lunas';
         }
-
         if ($tanggalJatuhTempo && now()->toDateString() > $tanggalJatuhTempo) {
             return 'jatuh_tempo';
         }
-
         if ($totalDibayar > 0) {
             return 'sebagian_dibayar';
         }
-
         return 'belum_lunas';
     }
 
@@ -845,15 +782,12 @@ class PenjualanController extends Controller
         if (in_array($modePpn, ['tanpa_ppn', 'include', 'exclude'], true)) {
             return $modePpn;
         }
-
         if (!$penjualan) {
             return 'include';
         }
-
         if ((float) ($penjualan->persentase_pajak ?? 0) <= 0) {
             return 'tanpa_ppn';
         }
-
         return ($penjualan->pajak_ditambahkan ?? false) ? 'exclude' : 'include';
     }
 
@@ -864,29 +798,5 @@ class PenjualanController extends Controller
             'include' => 'Harga Sudah Termasuk PPN',
             'exclude' => 'Harga Belum Termasuk PPN',
         ][$modePpn] ?? 'Harga Sudah Termasuk PPN';
-    }
-
-    private function generateNomorInvoice(bool $lock = false)
-    {
-        $tanggal = now()->format('Ymd');
-        $prefix = 'INV-' . $tanggal . '-';
-
-        $query = Penjualan::where('nomor_invoice', 'like', $prefix . '%')
-            ->orderBy('nomor_invoice', 'desc');
-
-        if ($lock) {
-            $query->lockForUpdate();
-        }
-
-        $lastPenjualan = $query->first();
-
-        if (!$lastPenjualan) {
-            return $prefix . '0001';
-        }
-
-        $lastNumber = (int) substr($lastPenjualan->nomor_invoice, -4);
-        $newNumber = $lastNumber + 1;
-
-        return $prefix . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
     }
 }

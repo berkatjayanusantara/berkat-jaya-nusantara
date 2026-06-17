@@ -53,6 +53,7 @@
                                 <th class="border px-3 py-2 text-right">Harga Beli</th>
                                 <th class="border px-3 py-2 text-right">Harga Jual</th>
                                 <th class="border px-3 py-2 text-left">Perhitungan Harga</th>
+                                <th class="border px-3 py-2 text-center">PPN</th>
                                 <th class="border px-3 py-2 text-center">Status</th>
                                 <th class="border px-3 py-2 text-center">Aksi</th>
                             </tr>
@@ -117,6 +118,18 @@
                                 </td>
 
                                 <td class="border px-3 py-2 text-center">
+                                    @if ($item->kena_ppn ?? true)
+                                    <span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-sm">
+                                        Kena PPN
+                                    </span>
+                                    @else
+                                    <span class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-sm">
+                                        Non PPN
+                                    </span>
+                                    @endif
+                                </td>
+
+                                <td class="border px-3 py-2 text-center">
                                     @if ($item->status_aktif)
                                     <span class="px-2 py-1 bg-green-100 text-green-700 rounded text-sm">
                                         Aktif
@@ -153,7 +166,7 @@
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="10" class="border px-3 py-4 text-center text-gray-500">
+                                <td colspan="11" class="border px-3 py-4 text-center text-gray-500">
                                     Data barang belum tersedia.
                                 </td>
                             </tr>

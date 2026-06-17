@@ -87,8 +87,13 @@ class PembelianController extends Controller
             ],
             'tanggal_pembelian' => 'required|date',
             'id_supplier' => 'required|exists:suppliers,id_supplier',
-            'persentase_pajak' => 'nullable|numeric|min:0|max:100',
-            'pajak_ditambahkan' => 'nullable|in:0,1',
+
+            // Pajak pembelian dibuat manual sesuai dokumen/nota supplier.
+            'nilai_pajak' => 'nullable|numeric|min:0',
+            'biaya_lain' => 'nullable|numeric|min:0',
+            'potongan_diskon' => 'nullable|numeric|min:0',
+            'keterangan_penyesuaian_total' => 'nullable|string',
+
             'catatan' => 'nullable|string',
 
             'id_barang' => 'required|array|min:1',
@@ -135,14 +140,25 @@ class PembelianController extends Controller
                 ? 'sebagian'
                 : 'lengkap';
 
-            $persentasePajak = (float) ($request->persentase_pajak ?? 0);
-            $nilaiPajak = $subtotalPembelian * ($persentasePajak / 100);
+            $nilaiPajak = (float) ($request->nilai_pajak ?? 0);
+            $biayaLain = (float) ($request->biaya_lain ?? 0);
+            $potonganDiskon = (float) ($request->potongan_diskon ?? 0);
 
-            $pajakDitambahkan = (bool) $request->boolean('pajak_ditambahkan');
+            $totalSebelumPotongan = $subtotalPembelian + $nilaiPajak + $biayaLain;
 
-            $totalAkhir = $pajakDitambahkan
-                ? $subtotalPembelian + $nilaiPajak
-                : $subtotalPembelian;
+            if ($potonganDiskon > $totalSebelumPotongan) {
+                throw ValidationException::withMessages([
+                    'potongan_diskon' => 'Potongan/diskon tidak boleh lebih besar dari subtotal + PPN supplier + biaya lain.',
+                ]);
+            }
+
+            $totalAkhir = $totalSebelumPotongan - $potonganDiskon;
+
+            // Persentase pajak tetap diisi untuk kompatibilitas laporan lama,
+            // tetapi sumber utama pajak pembelian sekarang adalah nominal nilai_pajak.
+            $persentasePajak = $subtotalPembelian > 0
+                ? round(($nilaiPajak / $subtotalPembelian) * 100, 2)
+                : 0;
 
             $pembelian = Pembelian::create([
                 'nomor_pembelian' => trim($request->nomor_pembelian),
@@ -152,9 +168,15 @@ class PembelianController extends Controller
                 'id_supplier' => $request->id_supplier,
                 'status_penerimaan' => $statusPenerimaan,
                 'subtotal' => $subtotalPembelian,
+
                 'persentase_pajak' => $persentasePajak,
                 'nilai_pajak' => $nilaiPajak,
-                'pajak_ditambahkan' => $pajakDitambahkan,
+                'pajak_ditambahkan' => true,
+
+                'biaya_lain' => $biayaLain,
+                'potongan_diskon' => $potonganDiskon,
+                'keterangan_penyesuaian_total' => $request->keterangan_penyesuaian_total,
+
                 'total_akhir' => $totalAkhir,
                 'catatan' => $request->catatan,
                 'dibuat_oleh' => Auth::id(),
@@ -259,8 +281,13 @@ class PembelianController extends Controller
             ],
             'tanggal_pembelian' => 'required|date',
             'id_supplier' => 'required|exists:suppliers,id_supplier',
-            'persentase_pajak' => 'nullable|numeric|min:0|max:100',
-            'pajak_ditambahkan' => 'nullable|in:0,1',
+
+            // Pajak pembelian dibuat manual sesuai dokumen/nota supplier.
+            'nilai_pajak' => 'nullable|numeric|min:0',
+            'biaya_lain' => 'nullable|numeric|min:0',
+            'potongan_diskon' => 'nullable|numeric|min:0',
+            'keterangan_penyesuaian_total' => 'nullable|string',
+
             'catatan' => 'nullable|string',
 
             'id_barang' => 'required|array|min:1',
@@ -355,14 +382,25 @@ class PembelianController extends Controller
                 ? 'sebagian'
                 : 'lengkap';
 
-            $persentasePajak = (float) ($request->persentase_pajak ?? 0);
-            $nilaiPajak = $subtotalPembelian * ($persentasePajak / 100);
+            $nilaiPajak = (float) ($request->nilai_pajak ?? 0);
+            $biayaLain = (float) ($request->biaya_lain ?? 0);
+            $potonganDiskon = (float) ($request->potongan_diskon ?? 0);
 
-            $pajakDitambahkan = (bool) $request->boolean('pajak_ditambahkan');
+            $totalSebelumPotongan = $subtotalPembelian + $nilaiPajak + $biayaLain;
 
-            $totalAkhir = $pajakDitambahkan
-                ? $subtotalPembelian + $nilaiPajak
-                : $subtotalPembelian;
+            if ($potonganDiskon > $totalSebelumPotongan) {
+                throw ValidationException::withMessages([
+                    'potongan_diskon' => 'Potongan/diskon tidak boleh lebih besar dari subtotal + PPN supplier + biaya lain.',
+                ]);
+            }
+
+            $totalAkhir = $totalSebelumPotongan - $potonganDiskon;
+
+            // Persentase pajak tetap diisi untuk kompatibilitas laporan lama,
+            // tetapi sumber utama pajak pembelian sekarang adalah nominal nilai_pajak.
+            $persentasePajak = $subtotalPembelian > 0
+                ? round(($nilaiPajak / $subtotalPembelian) * 100, 2)
+                : 0;
 
             $nomorPembelianLama = $pembelian->nomor_pembelian;
 
@@ -374,9 +412,15 @@ class PembelianController extends Controller
                 'id_supplier' => $request->id_supplier,
                 'status_penerimaan' => $statusPenerimaan,
                 'subtotal' => $subtotalPembelian,
+
                 'persentase_pajak' => $persentasePajak,
                 'nilai_pajak' => $nilaiPajak,
-                'pajak_ditambahkan' => $pajakDitambahkan,
+                'pajak_ditambahkan' => true,
+
+                'biaya_lain' => $biayaLain,
+                'potongan_diskon' => $potonganDiskon,
+                'keterangan_penyesuaian_total' => $request->keterangan_penyesuaian_total,
+
                 'total_akhir' => $totalAkhir,
                 'catatan' => $request->catatan,
             ]);
@@ -473,7 +517,6 @@ class PembelianController extends Controller
             'detailPembelian.barang',
         ]);
 
-        $pajakDitambahkan = $pembelian->pajak_ditambahkan ?? true;
         $statusPenerimaan = $pembelian->status_penerimaan ?? 'lengkap';
 
         $namaPerusahaan = 'CV. BERKAT JAYA NUSANTARA';
@@ -486,9 +529,14 @@ class PembelianController extends Controller
             default => 'Belum Dikirim',
         };
 
-        $modePajak = $pajakDitambahkan
-            ? 'Pajak ditambahkan ke total akhir'
-            : 'Pajak hanya ditampilkan dan tidak ditambahkan ke total akhir';
+        $nilaiPajak = (float) ($pembelian->nilai_pajak ?? 0);
+        $biayaLain = (float) ($pembelian->biaya_lain ?? 0);
+        $potonganDiskon = (float) ($pembelian->potongan_diskon ?? 0);
+        $subtotalPembelian = (float) ($pembelian->subtotal ?? 0);
+        $totalSebelumPotongan = $subtotalPembelian + $nilaiPajak + $biayaLain;
+        $keteranganPenyesuaian = $pembelian->keterangan_penyesuaian_total ?? null;
+
+        $modePajak = 'PPN supplier diinput manual sesuai nominal pada invoice/faktur supplier';
 
         $formatAngka = function ($angka) {
             return rtrim(rtrim(number_format((float) $angka, 3, ',', '.'), '0'), ',');
@@ -744,7 +792,7 @@ class PembelianController extends Controller
         $sheet->mergeCells('B12:E12');
         $sheet->setCellValueExplicit('B12', ': ' . ($supplier->npwp ?? '-'), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
 
-        $sheet->setCellValue('F12', 'Mode Pajak');
+        $sheet->setCellValue('F12', 'Pajak Pembelian');
         $sheet->mergeCells('G12:J12');
         $sheet->setCellValue('G12', ': ' . $modePajak);
 
@@ -756,16 +804,28 @@ class PembelianController extends Controller
         $sheet->mergeCells('G13:J13');
         $sheet->setCellValue('G13', ': ' . ($pembelian->catatan ?? '-'));
 
+        if ($keteranganPenyesuaian) {
+            $sheet->setCellValue('F14', 'Catatan Total');
+            $sheet->mergeCells('G14:J14');
+            $sheet->setCellValue('G14', ': ' . $keteranganPenyesuaian);
+            $sheet->getStyle('F14')->getFont()->setBold(true);
+            $sheet->getStyle('A14:J14')->applyFromArray($leftStyle);
+
+            $daftarBarangTitleRow = 16;
+            $headerRow = 17;
+        } else {
+            $daftarBarangTitleRow = 15;
+            $headerRow = 16;
+        }
+
         $sheet->getStyle('A10:A13')->getFont()->setBold(true);
         $sheet->getStyle('F10:F13')->getFont()->setBold(true);
         $sheet->getStyle('A10:J13')->applyFromArray($leftStyle);
 
-        $sheet->mergeCells('A15:J15');
-        $sheet->setCellValue('A15', 'Daftar Barang Dibeli');
-        $sheet->getStyle('A15')->getFont()->setBold(true);
-        $sheet->getStyle('A15:J15')->applyFromArray($bottomBorder);
-
-        $headerRow = 16;
+        $sheet->mergeCells('A' . $daftarBarangTitleRow . ':J' . $daftarBarangTitleRow);
+        $sheet->setCellValue('A' . $daftarBarangTitleRow, 'Daftar Barang Dibeli');
+        $sheet->getStyle('A' . $daftarBarangTitleRow)->getFont()->setBold(true);
+        $sheet->getStyle('A' . $daftarBarangTitleRow . ':J' . $daftarBarangTitleRow)->applyFromArray($bottomBorder);
 
         $headers = [
             'A' => 'No',
@@ -825,7 +885,7 @@ class PembelianController extends Controller
 
         $sheet->mergeCells('A' . $row . ':H' . $row);
         $sheet->setCellValue('I' . $row, 'Subtotal Diterima');
-        $sheet->setCellValue('J' . $row, $pembelian->subtotal);
+        $sheet->setCellValue('J' . $row, $subtotalPembelian);
         $sheet->getStyle('I' . $row . ':J' . $row)->getFont()->setBold(true);
         $sheet->getStyle('I' . $row . ':J' . $row)->applyFromArray($bottomBorder);
         $sheet->getStyle('I' . $row)->applyFromArray($rightStyle);
@@ -834,8 +894,38 @@ class PembelianController extends Controller
         $row++;
 
         $sheet->mergeCells('A' . $row . ':H' . $row);
-        $sheet->setCellValue('I' . $row, 'Pajak ' . number_format($pembelian->persentase_pajak, 2, ',', '.') . '%');
-        $sheet->setCellValue('J' . $row, $pembelian->nilai_pajak);
+        $sheet->setCellValue('I' . $row, 'PPN Supplier');
+        $sheet->setCellValue('J' . $row, $nilaiPajak);
+        $sheet->getStyle('I' . $row . ':J' . $row)->getFont()->setBold(true);
+        $sheet->getStyle('I' . $row . ':J' . $row)->applyFromArray($bottomBorder);
+        $sheet->getStyle('I' . $row)->applyFromArray($rightStyle);
+        $sheet->getStyle('J' . $row)->applyFromArray($rightStyle);
+        $sheet->getStyle('J' . $row)->getNumberFormat()->setFormatCode('"Rp" #,##0');
+        $row++;
+
+        $sheet->mergeCells('A' . $row . ':H' . $row);
+        $sheet->setCellValue('I' . $row, 'Biaya Lain / Ongkir');
+        $sheet->setCellValue('J' . $row, $biayaLain);
+        $sheet->getStyle('I' . $row . ':J' . $row)->getFont()->setBold(true);
+        $sheet->getStyle('I' . $row . ':J' . $row)->applyFromArray($bottomBorder);
+        $sheet->getStyle('I' . $row)->applyFromArray($rightStyle);
+        $sheet->getStyle('J' . $row)->applyFromArray($rightStyle);
+        $sheet->getStyle('J' . $row)->getNumberFormat()->setFormatCode('"Rp" #,##0');
+        $row++;
+
+        $sheet->mergeCells('A' . $row . ':H' . $row);
+        $sheet->setCellValue('I' . $row, 'Total Sebelum Potongan');
+        $sheet->setCellValue('J' . $row, $totalSebelumPotongan);
+        $sheet->getStyle('I' . $row . ':J' . $row)->getFont()->setBold(true);
+        $sheet->getStyle('I' . $row . ':J' . $row)->applyFromArray($bottomBorder);
+        $sheet->getStyle('I' . $row)->applyFromArray($rightStyle);
+        $sheet->getStyle('J' . $row)->applyFromArray($rightStyle);
+        $sheet->getStyle('J' . $row)->getNumberFormat()->setFormatCode('"Rp" #,##0');
+        $row++;
+
+        $sheet->mergeCells('A' . $row . ':H' . $row);
+        $sheet->setCellValue('I' . $row, 'Potongan / Diskon');
+        $sheet->setCellValue('J' . $row, $potonganDiskon > 0 ? -$potonganDiskon : 0);
         $sheet->getStyle('I' . $row . ':J' . $row)->getFont()->setBold(true);
         $sheet->getStyle('I' . $row . ':J' . $row)->applyFromArray($bottomBorder);
         $sheet->getStyle('I' . $row)->applyFromArray($rightStyle);
@@ -853,9 +943,15 @@ class PembelianController extends Controller
         $sheet->getStyle('J' . $row)->getNumberFormat()->setFormatCode('"Rp" #,##0');
         $row++;
 
-        if (!$pajakDitambahkan) {
+        $sheet->mergeCells('I' . $row . ':J' . $row);
+        $sheet->setCellValue('I' . $row, 'Catatan: PPN pembelian diinput manual sesuai dokumen supplier.');
+        $sheet->getStyle('I' . $row . ':J' . $row)->getFont()->setItalic(true)->setSize(10);
+        $sheet->getStyle('I' . $row . ':J' . $row)->applyFromArray($rightStyle);
+        $row++;
+
+        if ($keteranganPenyesuaian) {
             $sheet->mergeCells('I' . $row . ':J' . $row);
-            $sheet->setCellValue('I' . $row, 'Catatan: Pajak hanya ditampilkan dan tidak ditambahkan ke total akhir.');
+            $sheet->setCellValue('I' . $row, 'Catatan Penyesuaian: ' . $keteranganPenyesuaian);
             $sheet->getStyle('I' . $row . ':J' . $row)->getFont()->setItalic(true)->setSize(10);
             $sheet->getStyle('I' . $row . ':J' . $row)->applyFromArray($rightStyle);
             $row++;
@@ -935,6 +1031,7 @@ class PembelianController extends Controller
             'Cache-Control' => 'max-age=0',
         ]);
     }
+
 
     private function generateNomorPembelian(bool $lock = false)
     {

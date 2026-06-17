@@ -3,6 +3,7 @@
 
     @php
     $oldIdBarang = old('id_barang');
+    $oldJumlahDipesan = old('jumlah_dipesan');
     $oldJumlah = old('jumlah');
     $oldHargaBeli = old('harga_beli');
 
@@ -12,6 +13,7 @@
     foreach ($oldIdBarang as $index => $idBarang) {
     $rows[] = [
     'id_barang' => $idBarang,
+    'jumlah_dipesan' => $oldJumlahDipesan[$index] ?? 1,
     'jumlah' => $oldJumlah[$index] ?? 1,
     'harga_beli' => $oldHargaBeli[$index] ?? 0,
     ];
@@ -20,12 +22,23 @@
     foreach ($pembelian->detailPembelian as $detail) {
     $rows[] = [
     'id_barang' => $detail->id_barang,
+    'jumlah_dipesan' => $detail->jumlah_dipesan ?? $detail->jumlah,
     'jumlah' => $detail->jumlah,
     'harga_beli' => $detail->harga_beli,
     ];
     }
     }
+
+    if (count($rows) === 0) {
+    $rows[] = [
+    'id_barang' => '',
+    'jumlah_dipesan' => 1,
+    'jumlah' => 1,
+    'harga_beli' => 0,
+    ];
+    }
     @endphp
+
 
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
@@ -38,7 +51,8 @@
 
             <div class="mb-4 p-4 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-md">
                 <strong>Catatan:</strong>
-                Invoice pembelian lama adalah data historis. Perubahan data ini tidak akan menambah atau mengurangi stok barang.
+                Invoice pembelian lama adalah data historis dan <strong>tidak akan menambah stok barang</strong>.
+                Fiturnya disamakan dengan pembelian biasa agar input admin tetap konsisten.
             </div>
 
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
@@ -61,7 +75,7 @@
                     @csrf
                     @method('PUT')
 
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                         <div>
                             <label class="block mb-1 font-medium">Nomor Sistem</label>
                             <input type="text"
@@ -70,7 +84,7 @@
                                 readonly>
 
                             <p class="text-sm text-gray-500 mt-1">
-                                Nomor sistem historis tidak diubah.
+                                Nomor sistem dibuat otomatis. Nomor utama history memakai dokumen asli.
                             </p>
                         </div>
 
@@ -100,11 +114,50 @@
                         </div>
 
                         <div>
-                            <label class="block mb-1 font-medium">Supplier</label>
+                            <label class="block mb-1 font-medium">
+                                Nomor Delivery Order Supplier
+                            </label>
+                            <input type="text"
+                                name="nomor_delivery_order"
+                                value="{{ old('nomor_delivery_order', $pembelian->nomor_delivery_order) }}"
+                                placeholder="Contoh: DO-SUP-20260612-0001"
+                                class="w-full border-gray-300 rounded-md shadow-sm">
+
+                            <p class="text-sm text-gray-500 mt-1">
+                                Opsional. Isi sesuai dokumen DO dari supplier.
+                            </p>
+                        </div>
+
+                        <div>
+                            <label class="block mb-1 font-medium">
+                                Nomor Surat Jalan Supplier
+                            </label>
+                            <input type="text"
+                                name="nomor_surat_jalan"
+                                value="{{ old('nomor_surat_jalan', $pembelian->nomor_surat_jalan) }}"
+                                placeholder="Contoh: SJ-SUP-20260612-0001"
+                                class="w-full border-gray-300 rounded-md shadow-sm">
+
+                            <p class="text-sm text-gray-500 mt-1">
+                                Opsional. Isi sesuai surat jalan dari supplier.
+                            </p>
+                        </div>
+
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="block font-medium">Supplier <span class="text-red-600">*</span></label>
+
+                                <button type="button"
+                                    id="btnBukaModalSupplier"
+                                    class="text-sm px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700">
+                                    + Tambah Supplier
+                                </button>
+                            </div>
+
                             <select name="id_supplier"
                                 id="supplierSelect"
                                 class="w-full border-gray-300 rounded-md shadow-sm"
-                                placeholder="Cari supplier..."
+                                placeholder="Cari kode atau nama supplier..."
                                 required>
                                 <option value="">-- Cari / Pilih Supplier --</option>
 
@@ -123,6 +176,10 @@
                                 </option>
                                 @endforeach
                             </select>
+
+                            <p class="text-sm text-gray-500 mt-1">
+                                Bisa cari supplier lama atau tambah supplier baru.
+                            </p>
                         </div>
                     </div>
 
@@ -134,9 +191,10 @@
                                 <thead class="bg-gray-100">
                                     <tr>
                                         <th class="border px-3 py-2 text-left">Barang</th>
-                                        <th class="border px-3 py-2 text-right">Jumlah</th>
+                                        <th class="border px-3 py-2 text-right">Jumlah Dipesan</th>
+                                        <th class="border px-3 py-2 text-right">Jumlah Diterima</th>
                                         <th class="border px-3 py-2 text-right">Harga Beli</th>
-                                        <th class="border px-3 py-2 text-right">Subtotal</th>
+                                        <th class="border px-3 py-2 text-right">Subtotal Diterima</th>
                                         <th class="border px-3 py-2 text-center">Aksi</th>
                                     </tr>
                                 </thead>
@@ -144,7 +202,7 @@
                                 <tbody>
                                     @foreach ($rows as $row)
                                     <tr>
-                                        <td class="border px-3 py-2 min-w-[420px]">
+                                        <td class="border px-3 py-2 min-w-[360px]">
                                             <select name="id_barang[]"
                                                 class="w-full barang-select"
                                                 placeholder="Cari kode atau nama barang..."
@@ -153,8 +211,6 @@
 
                                                 @foreach ($barang as $item)
                                                 <option value="{{ $item->id_barang }}"
-                                                    data-harga="{{ $item->harga_beli_terakhir ?? 0 }}"
-                                                    data-satuan="{{ $item->satuan }}"
                                                     {{ (string) $row['id_barang'] === (string) $item->id_barang ? 'selected' : '' }}>
                                                     {{ $item->kode_barang }} - {{ $item->nama_barang }}
                                                     | Stok saat ini: {{ $item->stok_saat_ini }} {{ strtoupper($item->satuan) }}
@@ -162,23 +218,24 @@
                                                 </option>
                                                 @endforeach
                                             </select>
+                                        </td>
 
-                                            <p class="text-sm text-gray-500 mt-1 satuan-info">
-                                                Satuan: -
-                                            </p>
+                                        <td class="border px-3 py-2">
+                                            <input type="number"
+                                                name="jumlah_dipesan[]"
+                                                value="{{ $row['jumlah_dipesan'] }}"
+                                                min="1"
+                                                class="w-full border-gray-300 rounded-md shadow-sm text-right jumlah-dipesan-input"
+                                                required>
                                         </td>
 
                                         <td class="border px-3 py-2">
                                             <input type="number"
                                                 name="jumlah[]"
                                                 value="{{ $row['jumlah'] }}"
-                                                min="1"
+                                                min="0"
                                                 class="w-full border-gray-300 rounded-md shadow-sm text-right jumlah-input"
                                                 required>
-
-                                            <p class="text-xs text-gray-500 mt-1 satuan-jumlah-info text-right">
-                                                -
-                                            </p>
                                         </td>
 
                                         <td class="border px-3 py-2">
@@ -189,13 +246,9 @@
                                                 step="0.01"
                                                 class="w-full border-gray-300 rounded-md shadow-sm text-right harga-input"
                                                 required>
-
-                                            <p class="text-xs text-gray-500 mt-1 text-right">
-                                                / satuan
-                                            </p>
                                         </td>
 
-                                        <td class="border px-3 py-2 text-right min-w-[160px]">
+                                        <td class="border px-3 py-2 text-right">
                                             <span class="subtotal-text">Rp 0</span>
                                         </td>
 
@@ -209,72 +262,67 @@
                                     @endforeach
                                 </tbody>
                             </table>
+
+                            <template id="templateBarangRow">
+                                <tr>
+                                    <td class="border px-3 py-2 min-w-[360px]">
+                                        <select name="id_barang[]"
+                                            class="w-full barang-select"
+                                            placeholder="Cari kode atau nama barang..."
+                                            required>
+                                            <option value="">-- Cari / Pilih Barang --</option>
+
+                                            @foreach ($barang as $item)
+                                            <option value="{{ $item->id_barang }}">
+                                                {{ $item->kode_barang }} - {{ $item->nama_barang }}
+                                                | Stok saat ini: {{ $item->stok_saat_ini }} {{ strtoupper($item->satuan) }}
+                                                | Harga beli terakhir: Rp {{ number_format($item->harga_beli_terakhir ?? 0, 0, ',', '.') }}
+                                            </option>
+                                            @endforeach
+                                        </select>
+                                    </td>
+
+                                    <td class="border px-3 py-2">
+                                        <input type="number"
+                                            name="jumlah_dipesan[]"
+                                            value="1"
+                                            min="1"
+                                            class="w-full border-gray-300 rounded-md shadow-sm text-right jumlah-dipesan-input"
+                                            required>
+                                    </td>
+
+                                    <td class="border px-3 py-2">
+                                        <input type="number"
+                                            name="jumlah[]"
+                                            value="1"
+                                            min="0"
+                                            class="w-full border-gray-300 rounded-md shadow-sm text-right jumlah-input"
+                                            required>
+                                    </td>
+
+                                    <td class="border px-3 py-2">
+                                        <input type="number"
+                                            name="harga_beli[]"
+                                            value="0"
+                                            min="0"
+                                            step="0.01"
+                                            class="w-full border-gray-300 rounded-md shadow-sm text-right harga-input"
+                                            required>
+                                    </td>
+
+                                    <td class="border px-3 py-2 text-right">
+                                        <span class="subtotal-text">Rp 0</span>
+                                    </td>
+
+                                    <td class="border px-3 py-2 text-center">
+                                        <button type="button"
+                                            class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 btn-hapus">
+                                            Hapus
+                                        </button>
+                                    </td>
+                                </tr>
+                            </template>
                         </div>
-
-                        <template id="templateBarangRow">
-                            <tr>
-                                <td class="border px-3 py-2 min-w-[420px]">
-                                    <select name="id_barang[]"
-                                        class="w-full barang-select"
-                                        placeholder="Cari kode atau nama barang..."
-                                        required>
-                                        <option value="">-- Cari / Pilih Barang --</option>
-
-                                        @foreach ($barang as $item)
-                                        <option value="{{ $item->id_barang }}"
-                                            data-harga="{{ $item->harga_beli_terakhir ?? 0 }}"
-                                            data-satuan="{{ $item->satuan }}">
-                                            {{ $item->kode_barang }} - {{ $item->nama_barang }}
-                                            | Stok saat ini: {{ $item->stok_saat_ini }} {{ strtoupper($item->satuan) }}
-                                            | Harga beli terakhir: Rp {{ number_format($item->harga_beli_terakhir ?? 0, 0, ',', '.') }}
-                                        </option>
-                                        @endforeach
-                                    </select>
-
-                                    <p class="text-sm text-gray-500 mt-1 satuan-info">
-                                        Satuan: -
-                                    </p>
-                                </td>
-
-                                <td class="border px-3 py-2">
-                                    <input type="number"
-                                        name="jumlah[]"
-                                        value="1"
-                                        min="1"
-                                        class="w-full border-gray-300 rounded-md shadow-sm text-right jumlah-input"
-                                        required>
-
-                                    <p class="text-xs text-gray-500 mt-1 satuan-jumlah-info text-right">
-                                        -
-                                    </p>
-                                </td>
-
-                                <td class="border px-3 py-2">
-                                    <input type="number"
-                                        name="harga_beli[]"
-                                        value="0"
-                                        min="0"
-                                        step="0.01"
-                                        class="w-full border-gray-300 rounded-md shadow-sm text-right harga-input"
-                                        required>
-
-                                    <p class="text-xs text-gray-500 mt-1 text-right">
-                                        / satuan
-                                    </p>
-                                </td>
-
-                                <td class="border px-3 py-2 text-right min-w-[160px]">
-                                    <span class="subtotal-text">Rp 0</span>
-                                </td>
-
-                                <td class="border px-3 py-2 text-center">
-                                    <button type="button"
-                                        class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 btn-hapus">
-                                        Hapus
-                                    </button>
-                                </td>
-                            </tr>
-                        </template>
 
                         <button type="button"
                             id="btnTambahBarang"
@@ -292,56 +340,72 @@
                         </div>
 
                         <div class="bg-gray-50 p-4 rounded-md border">
+                            <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md text-sm text-blue-800">
+                                <strong>PPN Pembelian Manual:</strong>
+                                isi nominal PPN sesuai yang tertera pada invoice/faktur supplier.
+                                Sistem tidak menghitung otomatis dari persen agar total mengikuti dokumen supplier.
+                            </div>
+
                             <div class="mb-4">
-                                <label class="block mb-1 font-medium">Persentase Pajak (%)</label>
+                                <label class="block mb-1 font-medium">PPN dari Supplier (Rp)</label>
                                 <input type="number"
-                                    name="persentase_pajak"
-                                    id="persentasePajak"
-                                    value="{{ old('persentase_pajak', $pembelian->persentase_pajak) }}"
+                                    name="nilai_pajak"
+                                    id="nilaiPajak"
+                                    value="{{ old('nilai_pajak', $pembelian->nilai_pajak ?? 0) }}"
                                     min="0"
-                                    max="100"
                                     step="0.01"
                                     class="w-full border-gray-300 rounded-md shadow-sm text-right">
                             </div>
 
                             <div class="mb-4">
-                                <label class="block mb-2 font-medium">Perhitungan Pajak</label>
+                                <label class="block mb-1 font-medium">Biaya Lain / Ongkir (Rp)</label>
+                                <input type="number"
+                                    name="biaya_lain"
+                                    id="biayaLain"
+                                    value="{{ old('biaya_lain', $pembelian->biaya_lain ?? 0) }}"
+                                    min="0"
+                                    step="0.01"
+                                    class="w-full border-gray-300 rounded-md shadow-sm text-right">
+                            </div>
 
-                                <div class="space-y-2">
-                                    <label class="flex items-start gap-2">
-                                        <input type="radio"
-                                            name="pajak_ditambahkan"
-                                            value="1"
-                                            class="mt-1"
-                                            {{ old('pajak_ditambahkan', ($pembelian->pajak_ditambahkan ?? true) ? '1' : '0') == '1' ? 'checked' : '' }}>
+                            <div class="mb-4">
+                                <label class="block mb-1 font-medium">Potongan / Diskon (Rp)</label>
+                                <input type="number"
+                                    name="potongan_diskon"
+                                    id="potonganDiskon"
+                                    value="{{ old('potongan_diskon', $pembelian->potongan_diskon ?? 0) }}"
+                                    min="0"
+                                    step="0.01"
+                                    class="w-full border-gray-300 rounded-md shadow-sm text-right">
+                            </div>
 
-                                        <span>
-                                            <strong>Pajak ditambahkan ke total</strong>
-                                        </span>
-                                    </label>
-
-                                    <label class="flex items-start gap-2">
-                                        <input type="radio"
-                                            name="pajak_ditambahkan"
-                                            value="0"
-                                            class="mt-1"
-                                            {{ old('pajak_ditambahkan', ($pembelian->pajak_ditambahkan ?? true) ? '1' : '0') == '0' ? 'checked' : '' }}>
-
-                                        <span>
-                                            <strong>Pajak hanya ditampilkan</strong>
-                                        </span>
-                                    </label>
-                                </div>
+                            <div class="mb-4">
+                                <label class="block mb-1 font-medium">Catatan Penyesuaian Total</label>
+                                <textarea name="keterangan_penyesuaian_total"
+                                    id="keteranganPenyesuaianTotal"
+                                    rows="2"
+                                    class="w-full border-gray-300 rounded-md shadow-sm"
+                                    placeholder="Contoh: PPN sesuai faktur supplier, ongkir, diskon supplier">{{ old('keterangan_penyesuaian_total', $pembelian->keterangan_penyesuaian_total) }}</textarea>
                             </div>
 
                             <div class="flex justify-between mb-2">
-                                <span>Subtotal</span>
+                                <span>Subtotal Barang Diterima</span>
                                 <strong id="totalSubtotal">Rp 0</strong>
                             </div>
 
                             <div class="flex justify-between mb-2">
-                                <span>Nilai Pajak</span>
+                                <span>PPN dari Supplier</span>
                                 <strong id="totalPajak">Rp 0</strong>
+                            </div>
+
+                            <div class="flex justify-between mb-2">
+                                <span>Biaya Lain / Ongkir</span>
+                                <strong id="totalBiayaLain">Rp 0</strong>
+                            </div>
+
+                            <div class="flex justify-between mb-2">
+                                <span>Potongan / Diskon</span>
+                                <strong id="totalPotongan">Rp 0</strong>
                             </div>
 
                             <div class="flex justify-between border-t pt-2 text-lg">
@@ -358,8 +422,8 @@
                         </a>
 
                         <button type="submit"
-                            class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
-                            onclick="return confirm('Update invoice pembelian lama? Data ini tetap tidak akan memengaruhi stok.')">
+                            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                            onclick="return confirm('Update invoice pembelian lama? Data ini tetap tidak akan menambah stok.')">
                             Update Invoice Lama
                         </button>
                     </div>
@@ -369,11 +433,98 @@
         </div>
     </div>
 
+    <div id="modalSupplier"
+        class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-lg w-full max-w-2xl mx-4">
+            <div class="flex items-center justify-between border-b px-6 py-4">
+                <h3 class="text-lg font-semibold">Tambah Supplier Baru</h3>
+
+                <button type="button"
+                    id="btnTutupModalSupplier"
+                    class="text-gray-500 hover:text-gray-800 text-2xl leading-none">
+                    &times;
+                </button>
+            </div>
+
+            <form id="formQuickSupplier" class="p-6">
+                @csrf
+
+                <div id="quickSupplierMessage"
+                    class="hidden mb-4 p-4 rounded-md whitespace-pre-line">
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="md:col-span-2">
+                        <label class="block mb-1 font-medium">
+                            Nama Perusahaan Supplier <span class="text-red-600">*</span>
+                        </label>
+                        <input type="text"
+                            name="nama_supplier"
+                            id="quickNamaSupplier"
+                            placeholder="Contoh: PT Berkat Jaya Nusantara"
+                            class="w-full border-gray-300 rounded-md shadow-sm"
+                            required>
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block mb-1 font-medium">Nomor Telepon</label>
+                        <input type="text"
+                            name="nomor_telepon"
+                            id="quickNomorTelepon"
+                            placeholder="Contoh: 08123456789"
+                            class="w-full border-gray-300 rounded-md shadow-sm">
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block mb-1 font-medium">NPWP Perusahaan</label>
+                        <input type="text"
+                            name="npwp"
+                            id="quickNpwpSupplier"
+                            placeholder="Contoh: 01.234.567.8-999.000"
+                            class="w-full border-gray-300 rounded-md shadow-sm">
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block mb-1 font-medium">Alamat</label>
+                        <textarea name="alamat"
+                            id="quickAlamatSupplier"
+                            rows="2"
+                            placeholder="Alamat lengkap perusahaan supplier..."
+                            class="w-full border-gray-300 rounded-md shadow-sm"></textarea>
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block mb-1 font-medium">Catatan</label>
+                        <textarea name="catatan"
+                            id="quickCatatanSupplier"
+                            rows="2"
+                            placeholder="Catatan tambahan tentang supplier..."
+                            class="w-full border-gray-300 rounded-md shadow-sm"></textarea>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-2 mt-6">
+                    <button type="button"
+                        id="btnBatalSupplier"
+                        class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
+                        Batal
+                    </button>
+
+                    <button type="submit"
+                        id="btnSimpanQuickSupplier"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                        Simpan Supplier
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 
     <script>
         function formatRupiah(angka) {
-            return 'Rp ' + new Intl.NumberFormat('id-ID').format(angka);
+            return 'Rp ' + new Intl.NumberFormat('id-ID').format(Math.round(parseFloat(angka) || 0));
         }
 
         function initSupplierSelect() {
@@ -388,7 +539,7 @@
                 allowEmptyOption: true,
                 maxOptions: 100,
                 searchField: ['text'],
-                placeholder: 'Cari supplier...'
+                placeholder: 'Cari kode, nama, nomor telepon, atau NPWP supplier...'
             });
         }
 
@@ -402,12 +553,7 @@
                 allowEmptyOption: true,
                 maxOptions: 100,
                 searchField: ['text'],
-                placeholder: 'Cari kode atau nama barang...',
-                onChange: function() {
-                    const row = selectElement.closest('tr');
-                    updateBarangInfo(row);
-                    hitungTotal();
-                }
+                placeholder: 'Cari kode atau nama barang...'
             });
         }
 
@@ -417,75 +563,182 @@
             });
         }
 
-        function getSelectedOption(selectElement) {
-            if (!selectElement || !selectElement.value) {
-                return null;
-            }
-
-            return selectElement.querySelector('option[value="' + selectElement.value + '"]');
-        }
-
-        function updateBarangInfo(row) {
-            if (!row) {
-                return;
-            }
-
-            const select = row.querySelector('.barang-select');
-            const selectedOption = getSelectedOption(select);
-
-            const satuanInfo = row.querySelector('.satuan-info');
-            const satuanJumlahInfo = row.querySelector('.satuan-jumlah-info');
-
-            if (!selectedOption) {
-                satuanInfo.innerText = 'Satuan: -';
-                satuanJumlahInfo.innerText = '-';
-                return;
-            }
-
-            const satuan = selectedOption.getAttribute('data-satuan') || '';
-
-            satuanInfo.innerText = satuan ? 'Satuan: ' + satuan.toUpperCase() : 'Satuan: -';
-            satuanJumlahInfo.innerText = satuan ? satuan.toUpperCase() : '-';
-        }
-
         function hitungTotal() {
             let totalSubtotal = 0;
 
             document.querySelectorAll('#tableBarang tbody tr').forEach(function(row) {
-                const jumlah = parseFloat(row.querySelector('.jumlah-input').value) || 0;
-                const harga = parseFloat(row.querySelector('.harga-input').value) || 0;
-                const subtotal = jumlah * harga;
+                const jumlahDipesanInput = row.querySelector('.jumlah-dipesan-input');
+                const jumlahDiterimaInput = row.querySelector('.jumlah-input');
+                const hargaInput = row.querySelector('.harga-input');
+
+                const jumlahDipesan = parseFloat(jumlahDipesanInput.value) || 0;
+                const jumlahDiterima = parseFloat(jumlahDiterimaInput.value) || 0;
+                const harga = parseFloat(hargaInput.value) || 0;
+
+                if (jumlahDiterima > jumlahDipesan) {
+                    jumlahDiterimaInput.value = jumlahDipesan;
+                }
+
+                const jumlahFinal = parseFloat(jumlahDiterimaInput.value) || 0;
+                const subtotal = jumlahFinal * harga;
 
                 row.querySelector('.subtotal-text').innerText = formatRupiah(subtotal);
                 totalSubtotal += subtotal;
             });
 
-            const persentasePajak = parseFloat(document.getElementById('persentasePajak').value) || 0;
-            const nilaiPajak = totalSubtotal * (persentasePajak / 100);
+            const nilaiPajak = parseFloat(document.getElementById('nilaiPajak').value) || 0;
+            const biayaLain = parseFloat(document.getElementById('biayaLain').value) || 0;
+            const potonganDiskon = parseFloat(document.getElementById('potonganDiskon').value) || 0;
 
-            const pajakDitambahkanInput = document.querySelector('input[name="pajak_ditambahkan"]:checked');
-            const pajakDitambahkan = pajakDitambahkanInput ? pajakDitambahkanInput.value === '1' : true;
-
-            const totalAkhir = pajakDitambahkan ? totalSubtotal + nilaiPajak : totalSubtotal;
+            const totalSebelumPotongan = totalSubtotal + nilaiPajak + biayaLain;
+            const totalAkhir = Math.max(totalSebelumPotongan - potonganDiskon, 0);
 
             document.getElementById('totalSubtotal').innerText = formatRupiah(totalSubtotal);
             document.getElementById('totalPajak').innerText = formatRupiah(nilaiPajak);
+            document.getElementById('totalBiayaLain').innerText = formatRupiah(biayaLain);
+            document.getElementById('totalPotongan').innerText = formatRupiah(potonganDiskon);
             document.getElementById('totalAkhir').innerText = formatRupiah(totalAkhir);
+        }
+
+        function bukaModalSupplier() {
+            const modal = document.getElementById('modalSupplier');
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            document.getElementById('quickSupplierMessage').classList.add('hidden');
+            document.getElementById('quickNamaSupplier').focus();
+        }
+
+        function tutupModalSupplier() {
+            const modal = document.getElementById('modalSupplier');
+
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+
+            document.getElementById('formQuickSupplier').reset();
+            document.getElementById('quickSupplierMessage').classList.add('hidden');
+        }
+
+        function tampilkanPesanSupplier(type, message) {
+            const box = document.getElementById('quickSupplierMessage');
+
+            box.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'bg-green-100', 'text-green-700', 'bg-yellow-100', 'text-yellow-700');
+
+            if (type === 'error') {
+                box.classList.add('bg-red-100', 'text-red-700');
+            } else if (type === 'exists') {
+                box.classList.add('bg-yellow-100', 'text-yellow-700');
+            } else {
+                box.classList.add('bg-green-100', 'text-green-700');
+            }
+
+            box.innerText = message;
+        }
+
+        function buatTextSupplier(supplier) {
+            let text = supplier.kode_supplier + ' - ' + supplier.nama_supplier;
+
+            if (supplier.nomor_telepon) {
+                text += ' | ' + supplier.nomor_telepon;
+            }
+
+            if (supplier.npwp) {
+                text += ' | NPWP: ' + supplier.npwp;
+            }
+
+            return text;
+        }
+
+        function pilihSupplier(supplier) {
+            const supplierSelect = document.getElementById('supplierSelect');
+            const text = buatTextSupplier(supplier);
+
+            let option = supplierSelect.querySelector('option[value="' + supplier.id_supplier + '"]');
+
+            if (!option) {
+                option = new Option(text, supplier.id_supplier, true, true);
+                supplierSelect.add(option);
+            } else {
+                option.text = text;
+            }
+
+            if (supplierSelect.tomselect) {
+                supplierSelect.tomselect.addOption({
+                    value: String(supplier.id_supplier),
+                    text: text
+                });
+
+                supplierSelect.tomselect.setValue(String(supplier.id_supplier), true);
+                supplierSelect.tomselect.refreshOptions(false);
+            } else {
+                supplierSelect.value = supplier.id_supplier;
+            }
+        }
+
+        async function simpanQuickSupplier(event) {
+            event.preventDefault();
+
+            const form = document.getElementById('formQuickSupplier');
+            const button = document.getElementById('btnSimpanQuickSupplier');
+            const formData = new FormData(form);
+
+            button.disabled = true;
+            button.innerText = 'Menyimpan...';
+
+            try {
+                const response = await fetch("{{ route('suppliers.quickStore') }}", {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
+                        'Accept': 'application/json'
+                    },
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    let pesan = 'Supplier gagal disimpan.';
+
+                    if (data.errors) {
+                        pesan = Object.values(data.errors).flat().join('\n');
+                    } else if (data.message) {
+                        pesan = data.message;
+                    }
+
+                    tampilkanPesanSupplier('error', pesan);
+                    return;
+                }
+
+                pilihSupplier(data.supplier);
+
+                if (data.status === 'exists') {
+                    tampilkanPesanSupplier('exists', data.message || 'Supplier sudah tersedia dan langsung dipilih.');
+                } else {
+                    tampilkanPesanSupplier('success', data.message || 'Supplier baru berhasil ditambahkan dan langsung dipilih.');
+                }
+
+                setTimeout(function() {
+                    tutupModalSupplier();
+                }, 800);
+            } catch (error) {
+                tampilkanPesanSupplier('error', 'Terjadi kesalahan. Silakan coba lagi.');
+            } finally {
+                button.disabled = false;
+                button.innerText = 'Simpan Supplier';
+            }
         }
 
         document.addEventListener('input', function(e) {
             if (
+                e.target.classList.contains('jumlah-dipesan-input') ||
                 e.target.classList.contains('jumlah-input') ||
                 e.target.classList.contains('harga-input') ||
-                e.target.id === 'persentasePajak' ||
-                e.target.name === 'pajak_ditambahkan'
+                e.target.id === 'nilaiPajak' ||
+                e.target.id === 'biayaLain' ||
+                e.target.id === 'potonganDiskon'
             ) {
-                hitungTotal();
-            }
-        });
-
-        document.addEventListener('change', function(e) {
-            if (e.target.name === 'pajak_ditambahkan') {
                 hitungTotal();
             }
         });
@@ -501,7 +754,6 @@
             const lastRow = rows[rows.length - 1];
 
             initBarangSelect(lastRow.querySelector('.barang-select'));
-            updateBarangInfo(lastRow);
             hitungTotal();
         });
 
@@ -526,14 +778,14 @@
             }
         });
 
+        document.getElementById('btnBukaModalSupplier').addEventListener('click', bukaModalSupplier);
+        document.getElementById('btnTutupModalSupplier').addEventListener('click', tutupModalSupplier);
+        document.getElementById('btnBatalSupplier').addEventListener('click', tutupModalSupplier);
+        document.getElementById('formQuickSupplier').addEventListener('submit', simpanQuickSupplier);
+
         document.addEventListener('DOMContentLoaded', function() {
             initSupplierSelect();
             initAllBarangSelect();
-
-            document.querySelectorAll('#tableBarang tbody tr').forEach(function(row) {
-                updateBarangInfo(row);
-            });
-
             hitungTotal();
         });
     </script>

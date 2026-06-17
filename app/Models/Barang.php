@@ -22,12 +22,14 @@ class Barang extends Model
         'tipe_perhitungan_harga',
         'satuan_hitung_harga',
         'isi_per_satuan',
+        'kena_ppn',
         'keterangan',
         'status_aktif',
     ];
 
     protected $casts = [
         'status_aktif' => 'boolean',
+        'kena_ppn' => 'boolean',
         'harga_beli_terakhir' => 'decimal:2',
         'harga_jual_default' => 'decimal:2',
         'isi_per_satuan' => 'decimal:3',

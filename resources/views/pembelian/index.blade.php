@@ -33,7 +33,7 @@
                     <input type="text"
                         name="search"
                         value="{{ $search }}"
-                        placeholder="Cari nomor pembelian, DO, surat jalan, atau nama supplier..."
+                        placeholder="Cari nomor pembelian, nomor dokumen asli, DO, surat jalan, atau nama supplier..."
                         class="w-full border-gray-300 rounded-md shadow-sm">
 
                     <button type="submit"
@@ -67,6 +67,12 @@
                             @forelse ($pembelian as $item)
                             @php
                             $statusPenerimaan = $item->status_penerimaan ?? 'lengkap';
+
+                            $isHistoris = (bool) ($item->is_historical ?? false);
+
+                            $nomorPembelianTampil = $isHistoris && $item->nomor_dokumen_asli
+                            ? $item->nomor_dokumen_asli
+                            : $item->nomor_pembelian;
                             @endphp
 
                             <tr>
@@ -76,8 +82,24 @@
 
                                 <td class="border px-3 py-2">
                                     <div class="font-semibold">
-                                        {{ $item->nomor_pembelian }}
+                                        {{ $nomorPembelianTampil }}
                                     </div>
+
+                                    @if ($isHistoris)
+                                    <div class="text-xs text-gray-500">
+                                        Historis
+                                    </div>
+
+                                    @if ($item->nomor_pembelian)
+                                    <div class="text-xs text-gray-500">
+                                        No Sistem: {{ $item->nomor_pembelian }}
+                                    </div>
+                                    @endif
+                                    @else
+                                    <div class="text-xs text-gray-500">
+                                        Transaksi Sistem
+                                    </div>
+                                    @endif
 
                                     @if ($item->nomor_delivery_order)
                                     <div class="text-xs text-gray-500">
@@ -93,7 +115,7 @@
                                 </td>
 
                                 <td class="border px-3 py-2 whitespace-nowrap">
-                                    {{ $item->tanggal_pembelian->format('d-m-Y') }}
+                                    {{ $item->tanggal_pembelian ? $item->tanggal_pembelian->format('d-m-Y') : '-' }}
                                 </td>
 
                                 <td class="border px-3 py-2">
@@ -129,7 +151,18 @@
                                 </td>
 
                                 <td class="border px-3 py-2 text-center">
-                                    <div class="flex justify-center gap-2">
+                                    <div class="flex flex-wrap justify-center gap-2">
+                                        @if ($isHistoris)
+                                        <a href="{{ route('invoice-historis.pembelian.show', ['pembelian' => $item->id_pembelian, 'back_url' => route('pembelian.index', ['search' => $search])]) }}"
+                                            class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
+                                            Detail
+                                        </a>
+
+                                        <a href="{{ route('invoice-historis.pembelian.edit', $item->id_pembelian) }}"
+                                            class="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600">
+                                            Edit
+                                        </a>
+                                        @else
                                         <a href="{{ route('pembelian.show', $item->id_pembelian) }}"
                                             class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
                                             Detail
@@ -139,6 +172,7 @@
                                             class="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600">
                                             Edit
                                         </a>
+                                        @endif
                                     </div>
                                 </td>
                             </tr>

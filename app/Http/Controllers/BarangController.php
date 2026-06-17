@@ -68,6 +68,7 @@ class BarangController extends Controller
                 'numeric',
                 'min:0.001',
             ],
+            'kena_ppn' => 'nullable|boolean',
             'keterangan' => 'nullable|string',
         ]);
 
@@ -87,6 +88,7 @@ class BarangController extends Controller
             'isi_per_satuan' => $tipePerhitunganHarga === 'isi_kemasan'
                 ? $request->isi_per_satuan
                 : 1,
+            'kena_ppn' => $request->boolean('kena_ppn'),
             'keterangan' => $request->keterangan,
             'status_aktif' => true,
         ]);
@@ -138,6 +140,7 @@ class BarangController extends Controller
                 'numeric',
                 'min:0.001',
             ],
+            'kena_ppn' => 'nullable|boolean',
             'keterangan' => 'nullable|string',
             'status_aktif' => 'required|boolean',
         ]);
@@ -157,6 +160,7 @@ class BarangController extends Controller
             'isi_per_satuan' => $tipePerhitunganHarga === 'isi_kemasan'
                 ? $request->isi_per_satuan
                 : 1,
+            'kena_ppn' => $request->boolean('kena_ppn'),
             'keterangan' => $request->keterangan,
             'status_aktif' => $request->status_aktif,
         ]);

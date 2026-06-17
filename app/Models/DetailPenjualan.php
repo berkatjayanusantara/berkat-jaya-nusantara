@@ -23,12 +23,18 @@ class DetailPenjualan extends Model
         'satuan_transaksi',
         'satuan_hitung_harga',
         'isi_per_satuan',
+        'kena_ppn',
+        'dpp_ppn',
+        'nilai_ppn',
         'subtotal',
     ];
 
     protected $casts = [
         'harga_jual' => 'decimal:2',
         'isi_per_satuan' => 'decimal:3',
+        'kena_ppn' => 'boolean',
+        'dpp_ppn' => 'decimal:2',
+        'nilai_ppn' => 'decimal:2',
         'subtotal' => 'decimal:2',
     ];
 

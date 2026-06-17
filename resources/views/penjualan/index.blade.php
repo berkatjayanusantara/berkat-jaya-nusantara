@@ -21,13 +21,19 @@
             </div>
             @endif
 
+            @if (session('error'))
+            <div class="mb-4 p-4 bg-red-100 text-red-800 rounded-md">
+                {{ session('error') }}
+            </div>
+            @endif
+
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
 
                 <form method="GET" action="{{ route('penjualan.index') }}" class="mb-4 flex gap-2">
                     <input type="text"
                         name="search"
                         value="{{ $search }}"
-                        placeholder="Cari nomor invoice atau nama customer..."
+                        placeholder="Cari nomor invoice, nomor dokumen asli, atau nama customer..."
                         class="w-full border-gray-300 rounded-md shadow-sm">
 
                     <button type="submit"
@@ -52,7 +58,6 @@
                                 <th class="border px-3 py-2 text-right">Subtotal</th>
                                 <th class="border px-3 py-2 text-right">Pajak</th>
                                 <th class="border px-3 py-2 text-right">Total Akhir</th>
-                                <th class="border px-3 py-2 text-center">Metode</th>
                                 <th class="border px-3 py-2 text-center">Status</th>
                                 <th class="border px-3 py-2 text-center">Aksi</th>
                             </tr>
@@ -60,17 +65,43 @@
 
                         <tbody>
                             @forelse ($penjualan as $item)
+                            @php
+                            $isHistoris = (bool) ($item->is_historical ?? false);
+
+                            $nomorInvoiceTampil = $isHistoris && $item->nomor_dokumen_asli
+                            ? $item->nomor_dokumen_asli
+                            : $item->nomor_invoice;
+                            @endphp
+
                             <tr>
                                 <td class="border px-3 py-2">
                                     {{ $loop->iteration + ($penjualan->currentPage() - 1) * $penjualan->perPage() }}
                                 </td>
 
                                 <td class="border px-3 py-2">
-                                    {{ $item->nomor_invoice }}
+                                    <div class="font-semibold">
+                                        {{ $nomorInvoiceTampil }}
+                                    </div>
+
+                                    @if ($isHistoris)
+                                    <div class="text-xs text-gray-500">
+                                        Historis
+                                    </div>
+
+                                    @if ($item->nomor_invoice)
+                                    <div class="text-xs text-gray-500">
+                                        No Sistem: {{ $item->nomor_invoice }}
+                                    </div>
+                                    @endif
+                                    @else
+                                    <div class="text-xs text-gray-500">
+                                        Transaksi Sistem
+                                    </div>
+                                    @endif
                                 </td>
 
-                                <td class="border px-3 py-2">
-                                    {{ $item->tanggal_penjualan->format('d-m-Y') }}
+                                <td class="border px-3 py-2 whitespace-nowrap">
+                                    {{ $item->tanggal_penjualan ? $item->tanggal_penjualan->format('d-m-Y') : '-' }}
                                 </td>
 
                                 <td class="border px-3 py-2">
@@ -90,10 +121,6 @@
                                 </td>
 
                                 <td class="border px-3 py-2 text-center">
-                                    {{ ucfirst($item->metode_pembayaran) }}
-                                </td>
-
-                                <td class="border px-3 py-2 text-center">
                                     @if ($item->status_pembayaran === 'lunas')
                                     <span class="px-2 py-1 bg-green-100 text-green-700 rounded text-sm">
                                         Lunas
@@ -110,7 +137,18 @@
                                 </td>
 
                                 <td class="border px-3 py-2 text-center">
-                                    <div class="flex justify-center gap-2">
+                                    <div class="flex flex-wrap justify-center gap-2">
+                                        @if ($isHistoris)
+                                        <a href="{{ route('invoice-historis.penjualan.show', ['penjualan' => $item->id_penjualan, 'back_url' => route('penjualan.index', ['search' => $search])]) }}"
+                                            class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
+                                            Detail
+                                        </a>
+
+                                        <a href="{{ route('invoice-historis.penjualan.edit', $item->id_penjualan) }}"
+                                            class="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600">
+                                            Edit
+                                        </a>
+                                        @else
                                         <a href="{{ route('penjualan.show', $item->id_penjualan) }}"
                                             class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
                                             Detail
@@ -120,12 +158,13 @@
                                             class="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600">
                                             Edit
                                         </a>
+                                        @endif
                                     </div>
                                 </td>
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="10" class="border px-3 py-4 text-center text-gray-500">
+                                <td colspan="9" class="border px-3 py-4 text-center text-gray-500">
                                     Data penjualan belum tersedia.
                                 </td>
                             </tr>
@@ -135,7 +174,7 @@
                 </div>
 
                 <div class="mt-4">
-                    {{ $penjualan->links() }}
+                    {{ $penjualan->appends(['search' => $search])->links() }}
                 </div>
 
             </div>

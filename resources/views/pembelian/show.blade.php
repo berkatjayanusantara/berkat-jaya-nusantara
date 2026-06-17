@@ -3,6 +3,10 @@
     $pajakDitambahkan = $pembelian->pajak_ditambahkan ?? true;
     $statusPenerimaan = $pembelian->status_penerimaan ?? 'lengkap';
     $backUrl = request('back_url', route('pembelian.index'));
+    $isPembelianHistoris = (bool) ($pembelian->is_historical ?? false);
+    $nomorPembelianTampil = $isPembelianHistoris && !empty($pembelian->nomor_dokumen_asli)
+    ? $pembelian->nomor_dokumen_asli
+    : $pembelian->nomor_pembelian;
 
     $namaPerusahaan = 'CV. BERKAT JAYA NUSANTARA';
     $alamatPerusahaan = 'Jl. Jelambar Utama 1 No. 6A RT. 007 RW. 004, Jakarta Barat 11460';
@@ -76,7 +80,7 @@
 
         $terbilangTotal=$bersihkanTerbilang($terbilang(round($pembelian->total_akhir))) . ' rupiah';
 
-        $invoiceFileBase = 'Nota-Pembelian-' . preg_replace('/[^A-Za-z0-9\-_]+/', '-', $pembelian->nomor_pembelian ?? 'nota');
+        $invoiceFileBase = 'Nota-Pembelian-' . preg_replace('/[^A-Za-z0-9\-_]+/', '-', $nomorPembelianTampil ?? 'nota');
         $invoiceFileBase = trim(preg_replace('/-+/', '-', $invoiceFileBase), '-');
         @endphp
 
@@ -859,8 +863,13 @@
                                     INVOICE / NOTA PEMBELIAN
                                 </div>
                                 <div class="invoice-number">
-                                    No: {{ $pembelian->nomor_pembelian }}
+                                    No: {{ $nomorPembelianTampil }}
                                 </div>
+                                @if ($isPembelianHistoris && !empty($pembelian->nomor_pembelian))
+                                <div style="font-size: 10px; margin-top: 1px;">
+                                    No Sistem: {{ $pembelian->nomor_pembelian }}
+                                </div>
+                                @endif
                             </div>
 
                             <div class="invoice-quick-info">
@@ -1002,32 +1011,46 @@
 
                         <div class="total-inline-wrapper">
                             <div class="total-inline">
+                                @php
+                                $biayaLainPembelian = (float) ($pembelian->biaya_lain ?? 0);
+                                $potonganDiskonPembelian = (float) ($pembelian->potongan_diskon ?? 0);
+                                $keteranganPenyesuaianPembelian = $pembelian->keterangan_penyesuaian_total ?? null;
+                                @endphp
+
                                 <div class="total-inline-row">
-                                    <span>Subtotal Diterima</span>
-                                    <strong>
-                                        Rp {{ number_format($pembelian->subtotal, 0, ',', '.') }}
-                                    </strong>
+                                    <span>Subtotal Barang</span>
+                                    <strong>Rp {{ number_format($pembelian->subtotal, 0, ',', '.') }}</strong>
                                 </div>
 
                                 <div class="total-inline-row">
-                                    <span>Pajak {{ number_format($pembelian->persentase_pajak, 2, ',', '.') }}%</span>
-                                    <strong>
-                                        Rp {{ number_format($pembelian->nilai_pajak, 0, ',', '.') }}
-                                    </strong>
+                                    <span>PPN Supplier</span>
+                                    <strong>Rp {{ number_format($pembelian->nilai_pajak, 0, ',', '.') }}</strong>
                                 </div>
 
-                                @if (!$pajakDitambahkan)
-                                <div class="pajak-note">
-                                    Pajak ditampilkan saja
+                                @if ($biayaLainPembelian > 0)
+                                <div class="total-inline-row">
+                                    <span>Biaya Lain / Ongkir</span>
+                                    <strong>Rp {{ number_format($biayaLainPembelian, 0, ',', '.') }}</strong>
+                                </div>
+                                @endif
+
+                                @if ($potonganDiskonPembelian > 0)
+                                <div class="total-inline-row">
+                                    <span>Potongan / Diskon</span>
+                                    <strong>- Rp {{ number_format($potonganDiskonPembelian, 0, ',', '.') }}</strong>
                                 </div>
                                 @endif
 
                                 <div class="total-inline-row total-inline-total">
                                     <span>Total Akhir</span>
-                                    <strong>
-                                        Rp {{ number_format($pembelian->total_akhir, 0, ',', '.') }}
-                                    </strong>
+                                    <strong>Rp {{ number_format($pembelian->total_akhir, 0, ',', '.') }}</strong>
                                 </div>
+
+                                @if ($keteranganPenyesuaianPembelian)
+                                <div class="pajak-note">
+                                    Catatan: {{ $keteranganPenyesuaianPembelian }}
+                                </div>
+                                @endif
                             </div>
                         </div>
 

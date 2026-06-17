@@ -37,7 +37,7 @@
 
                             <input type="text"
                                 name="nomor_pembelian"
-                                value=""
+                                value="{{ old('nomor_pembelian') }}"
                                 placeholder="Contoh: INV-SUP-001 atau PB-20260612-0001"
                                 class="w-full border-gray-300 rounded-md shadow-sm"
                                 required>
@@ -54,7 +54,7 @@
 
                             <input type="text"
                                 name="nomor_delivery_order"
-                                value=""
+                                value="{{ old('nomor_delivery_order') }}"
                                 placeholder="Contoh: DO-SUP-20260612-0001"
                                 class="w-full border-gray-300 rounded-md shadow-sm">
 
@@ -70,7 +70,7 @@
 
                             <input type="text"
                                 name="nomor_surat_jalan"
-                                value=""
+                                value="{{ old('nomor_surat_jalan') }}"
                                 placeholder="Contoh: SJ-SUP-20260612-0001"
                                 class="w-full border-gray-300 rounded-md shadow-sm">
 
@@ -280,59 +280,64 @@
                         </div>
 
                         <div class="bg-gray-50 p-4 rounded-md border">
+                            <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md text-sm text-blue-800">
+                                <strong>PPN Pembelian Manual:</strong>
+                                isi nominal PPN sesuai yang tertera pada invoice/faktur supplier.
+                                Sistem tidak menghitung otomatis dari persen agar total mengikuti dokumen supplier.
+                            </div>
+
                             <div class="mb-4">
-                                <label class="block mb-1 font-medium">Persentase Pajak (%)</label>
+                                <label class="block mb-1 font-medium">PPN dari Supplier (Rp)</label>
                                 <input type="number"
-                                    name="persentase_pajak"
-                                    id="persentasePajak"
-                                    value="{{ old('persentase_pajak', 0) }}"
+                                    name="nilai_pajak"
+                                    id="nilaiPajak"
+                                    value="{{ old('nilai_pajak', 0) }}"
                                     min="0"
-                                    max="100"
                                     step="0.01"
                                     class="w-full border-gray-300 rounded-md shadow-sm text-right">
 
                                 <p class="text-sm text-gray-500 mt-1">
-                                    Pajak tetap bisa ditampilkan, walaupun tidak ditambahkan ke total akhir.
+                                    Isi sesuai nominal PPN pada nota/faktur supplier.
                                 </p>
                             </div>
 
                             <div class="mb-4">
-                                <label class="block mb-2 font-medium">Perhitungan Pajak</label>
+                                <label class="block mb-1 font-medium">Biaya Lain / Ongkir (Rp)</label>
+                                <input type="number"
+                                    name="biaya_lain"
+                                    id="biayaLain"
+                                    value="{{ old('biaya_lain', 0) }}"
+                                    min="0"
+                                    step="0.01"
+                                    class="w-full border-gray-300 rounded-md shadow-sm text-right">
 
-                                <div class="space-y-2">
-                                    <label class="flex items-start gap-2">
-                                        <input type="radio"
-                                            name="pajak_ditambahkan"
-                                            value="1"
-                                            class="mt-1"
-                                            {{ old('pajak_ditambahkan', '1') == '1' ? 'checked' : '' }}>
+                                <p class="text-sm text-gray-500 mt-1">
+                                    Opsional. Contoh: ongkir, biaya bongkar, administrasi, atau biaya tambahan lain.
+                                </p>
+                            </div>
 
-                                        <span>
-                                            <strong>Pajak ditambahkan ke total</strong>
-                                            <br>
-                                            <small class="text-gray-500">
-                                                Untuk pembelian dari supplier yang memang dikenakan pajak.
-                                            </small>
-                                        </span>
-                                    </label>
+                            <div class="mb-4">
+                                <label class="block mb-1 font-medium">Potongan / Diskon (Rp)</label>
+                                <input type="number"
+                                    name="potongan_diskon"
+                                    id="potonganDiskon"
+                                    value="{{ old('potongan_diskon', 0) }}"
+                                    min="0"
+                                    step="0.01"
+                                    class="w-full border-gray-300 rounded-md shadow-sm text-right">
 
-                                    <label class="flex items-start gap-2">
-                                        <input type="radio"
-                                            name="pajak_ditambahkan"
-                                            value="0"
-                                            class="mt-1"
-                                            {{ old('pajak_ditambahkan') == '0' ? 'checked' : '' }}>
+                                <p class="text-sm text-gray-500 mt-1">
+                                    Opsional. Potongan akan mengurangi total akhir pembelian.
+                                </p>
+                            </div>
 
-                                        <span>
-                                            <strong>Pajak hanya ditampilkan</strong>
-                                            <br>
-                                            <small class="text-gray-500">
-                                                Untuk pembelian yang pajaknya hanya ingin dicatat/ditampilkan,
-                                                tetapi tidak menambah total.
-                                            </small>
-                                        </span>
-                                    </label>
-                                </div>
+                            <div class="mb-4">
+                                <label class="block mb-1 font-medium">Catatan Penyesuaian Total</label>
+                                <textarea name="keterangan_penyesuaian_total"
+                                    id="keteranganPenyesuaianTotal"
+                                    rows="2"
+                                    class="w-full border-gray-300 rounded-md shadow-sm"
+                                    placeholder="Contoh: PPN sesuai faktur supplier, ongkir, diskon supplier">{{ old('keterangan_penyesuaian_total') }}</textarea>
                             </div>
 
                             <div class="flex justify-between mb-2">
@@ -341,8 +346,18 @@
                             </div>
 
                             <div class="flex justify-between mb-2">
-                                <span>Nilai Pajak</span>
+                                <span>PPN dari Supplier</span>
                                 <strong id="totalPajak">Rp 0</strong>
+                            </div>
+
+                            <div class="flex justify-between mb-2">
+                                <span>Biaya Lain / Ongkir</span>
+                                <strong id="totalBiayaLain">Rp 0</strong>
+                            </div>
+
+                            <div class="flex justify-between mb-2">
+                                <span>Potongan / Diskon</span>
+                                <strong id="totalPotongan">Rp 0</strong>
                             </div>
 
                             <div class="flex justify-between border-t pt-2 text-lg">
@@ -479,17 +494,13 @@
 
     <script>
         function formatRupiah(angka) {
-            return 'Rp ' + new Intl.NumberFormat('id-ID').format(angka);
+            return 'Rp ' + new Intl.NumberFormat('id-ID').format(Math.round(parseFloat(angka) || 0));
         }
 
         function initSupplierSelect() {
             const supplierSelect = document.getElementById('supplierSelect');
 
-            if (!supplierSelect) {
-                return;
-            }
-
-            if (supplierSelect.tomselect) {
+            if (!supplierSelect || supplierSelect.tomselect) {
                 return;
             }
 
@@ -545,18 +556,17 @@
                 totalSubtotal += subtotal;
             });
 
-            const persentasePajak = parseFloat(document.getElementById('persentasePajak').value) || 0;
-            const nilaiPajak = totalSubtotal * (persentasePajak / 100);
+            const nilaiPajak = parseFloat(document.getElementById('nilaiPajak').value) || 0;
+            const biayaLain = parseFloat(document.getElementById('biayaLain').value) || 0;
+            const potonganDiskon = parseFloat(document.getElementById('potonganDiskon').value) || 0;
 
-            const pajakDitambahkanInput = document.querySelector('input[name="pajak_ditambahkan"]:checked');
-            const pajakDitambahkan = pajakDitambahkanInput ? pajakDitambahkanInput.value === '1' : true;
-
-            const totalAkhir = pajakDitambahkan ?
-                totalSubtotal + nilaiPajak :
-                totalSubtotal;
+            const totalSebelumPotongan = totalSubtotal + nilaiPajak + biayaLain;
+            const totalAkhir = Math.max(totalSebelumPotongan - potonganDiskon, 0);
 
             document.getElementById('totalSubtotal').innerText = formatRupiah(totalSubtotal);
             document.getElementById('totalPajak').innerText = formatRupiah(nilaiPajak);
+            document.getElementById('totalBiayaLain').innerText = formatRupiah(biayaLain);
+            document.getElementById('totalPotongan').innerText = formatRupiah(potonganDiskon);
             document.getElementById('totalAkhir').innerText = formatRupiah(totalAkhir);
         }
 
@@ -637,12 +647,6 @@
                     text: text
                 });
 
-                supplierSelect.tomselect.updateOption(String(supplier.id_supplier), {
-                    value: String(supplier.id_supplier),
-                    text: text
-                });
-
-                supplierSelect.tomselect.addItem(String(supplier.id_supplier), true);
                 supplierSelect.tomselect.setValue(String(supplier.id_supplier), true);
                 supplierSelect.tomselect.refreshOptions(false);
             } else {
@@ -650,15 +654,15 @@
             }
         }
 
-        async function simpanQuickSupplier(e) {
-            e.preventDefault();
+        async function simpanQuickSupplier(event) {
+            event.preventDefault();
 
-            const btn = document.getElementById('btnSimpanQuickSupplier');
             const form = document.getElementById('formQuickSupplier');
+            const button = document.getElementById('btnSimpanQuickSupplier');
             const formData = new FormData(form);
 
-            btn.disabled = true;
-            btn.innerText = 'Menyimpan...';
+            button.disabled = true;
+            button.innerText = 'Menyimpan...';
 
             try {
                 const response = await fetch("{{ route('suppliers.quickStore') }}", {
@@ -695,12 +699,12 @@
 
                 setTimeout(function() {
                     tutupModalSupplier();
-                }, 900);
+                }, 800);
             } catch (error) {
                 tampilkanPesanSupplier('error', 'Terjadi kesalahan. Silakan coba lagi.');
             } finally {
-                btn.disabled = false;
-                btn.innerText = 'Simpan Supplier';
+                button.disabled = false;
+                button.innerText = 'Simpan Supplier';
             }
         }
 
@@ -709,15 +713,10 @@
                 e.target.classList.contains('jumlah-dipesan-input') ||
                 e.target.classList.contains('jumlah-input') ||
                 e.target.classList.contains('harga-input') ||
-                e.target.id === 'persentasePajak' ||
-                e.target.name === 'pajak_ditambahkan'
+                e.target.id === 'nilaiPajak' ||
+                e.target.id === 'biayaLain' ||
+                e.target.id === 'potonganDiskon'
             ) {
-                hitungTotal();
-            }
-        });
-
-        document.addEventListener('change', function(e) {
-            if (e.target.name === 'pajak_ditambahkan') {
                 hitungTotal();
             }
         });
@@ -731,9 +730,8 @@
 
             const rows = tbody.querySelectorAll('tr');
             const lastRow = rows[rows.length - 1];
-            const select = lastRow.querySelector('.barang-select');
 
-            initBarangSelect(select);
+            initBarangSelect(lastRow.querySelector('.barang-select'));
             hitungTotal();
         });
 
@@ -742,7 +740,7 @@
                 const tbody = document.querySelector('#tableBarang tbody');
 
                 if (tbody.querySelectorAll('tr').length <= 1) {
-                    alert('Minimal harus ada satu barang dalam transaksi pembelian.');
+                    alert('Minimal harus ada satu barang.');
                     return;
                 }
 
@@ -758,46 +756,15 @@
             }
         });
 
-        document.getElementById('formPembelian').addEventListener('submit', function(e) {
-            let valid = true;
-            let pesan = '';
-
-            document.querySelectorAll('#tableBarang tbody tr').forEach(function(row) {
-                const jumlahDipesan = parseInt(row.querySelector('.jumlah-dipesan-input').value) || 0;
-                const jumlahDiterima = parseInt(row.querySelector('.jumlah-input').value) || 0;
-
-                if (jumlahDipesan < 1) {
-                    valid = false;
-                    pesan = 'Jumlah dipesan minimal 1.';
-                }
-
-                if (jumlahDiterima > jumlahDipesan) {
-                    valid = false;
-                    pesan = 'Jumlah diterima tidak boleh lebih besar dari jumlah dipesan.';
-                }
-            });
-
-            if (!valid) {
-                e.preventDefault();
-                alert(pesan);
-            }
-        });
+        document.getElementById('btnBukaModalSupplier').addEventListener('click', bukaModalSupplier);
+        document.getElementById('btnTutupModalSupplier').addEventListener('click', tutupModalSupplier);
+        document.getElementById('btnBatalSupplier').addEventListener('click', tutupModalSupplier);
+        document.getElementById('formQuickSupplier').addEventListener('submit', simpanQuickSupplier);
 
         document.addEventListener('DOMContentLoaded', function() {
             initSupplierSelect();
             initAllBarangSelect();
             hitungTotal();
-
-            document.getElementById('btnBukaModalSupplier').addEventListener('click', bukaModalSupplier);
-            document.getElementById('btnTutupModalSupplier').addEventListener('click', tutupModalSupplier);
-            document.getElementById('btnBatalSupplier').addEventListener('click', tutupModalSupplier);
-            document.getElementById('formQuickSupplier').addEventListener('submit', simpanQuickSupplier);
-
-            document.getElementById('modalSupplier').addEventListener('click', function(e) {
-                if (e.target.id === 'modalSupplier') {
-                    tutupModalSupplier();
-                }
-            });
         });
     </script>
 </x-app-layout>

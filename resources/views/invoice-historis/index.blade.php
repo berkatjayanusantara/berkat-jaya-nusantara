@@ -51,6 +51,7 @@
 
             <div class="grid grid-cols-1 gap-6">
 
+                {{-- INVOICE PEMBELIAN LAMA --}}
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
                     <div class="flex items-center justify-between mb-4">
                         <div>
@@ -73,10 +74,11 @@
                             <thead class="bg-gray-100">
                                 <tr>
                                     <th class="border px-3 py-2 text-left">No</th>
-                                    <th class="border px-3 py-2 text-left">No Sistem</th>
-                                    <th class="border px-3 py-2 text-left">No Dokumen Asli</th>
+                                    <th class="border px-3 py-2 text-left">No Invoice / Nota</th>
                                     <th class="border px-3 py-2 text-left">Tanggal</th>
                                     <th class="border px-3 py-2 text-left">Supplier</th>
+                                    <th class="border px-3 py-2 text-center">Jenis</th>
+                                    <th class="border px-3 py-2 text-center">Status Terima</th>
                                     <th class="border px-3 py-2 text-right">Total</th>
                                     <th class="border px-3 py-2 text-center">Aksi</th>
                                 </tr>
@@ -84,6 +86,13 @@
 
                             <tbody>
                                 @forelse ($pembelianHistoris as $item)
+                                @php
+                                $nomorPembelianTampil = $item->nomor_dokumen_asli
+                                ?: $item->nomor_pembelian;
+
+                                $statusPenerimaan = $item->status_penerimaan ?? 'lengkap';
+                                @endphp
+
                                 <tr>
                                     <td class="border px-3 py-2">
                                         {{ $loop->iteration }}
@@ -91,15 +100,30 @@
 
                                     <td class="border px-3 py-2">
                                         <div class="font-semibold">
-                                            {{ $item->nomor_pembelian }}
+                                            {{ $nomorPembelianTampil }}
                                         </div>
+
                                         <div class="text-xs text-gray-500">
                                             Historis
                                         </div>
-                                    </td>
 
-                                    <td class="border px-3 py-2">
-                                        {{ $item->nomor_dokumen_asli ?? '-' }}
+                                        @if ($item->nomor_pembelian)
+                                        <div class="text-xs text-gray-500">
+                                            No Sistem: {{ $item->nomor_pembelian }}
+                                        </div>
+                                        @endif
+
+                                        @if ($item->nomor_delivery_order)
+                                        <div class="text-xs text-gray-500">
+                                            DO: {{ $item->nomor_delivery_order }}
+                                        </div>
+                                        @endif
+
+                                        @if ($item->nomor_surat_jalan)
+                                        <div class="text-xs text-gray-500">
+                                            SJ: {{ $item->nomor_surat_jalan }}
+                                        </div>
+                                        @endif
                                     </td>
 
                                     <td class="border px-3 py-2 whitespace-nowrap">
@@ -108,6 +132,28 @@
 
                                     <td class="border px-3 py-2">
                                         {{ $item->supplier->nama_supplier ?? '-' }}
+                                    </td>
+
+                                    <td class="border px-3 py-2 text-center">
+                                        <span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-sm">
+                                            Historis
+                                        </span>
+                                    </td>
+
+                                    <td class="border px-3 py-2 text-center">
+                                        @if ($statusPenerimaan === 'lengkap')
+                                        <span class="px-2 py-1 bg-green-100 text-green-700 rounded text-sm">
+                                            Lengkap
+                                        </span>
+                                        @elseif ($statusPenerimaan === 'sebagian')
+                                        <span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-sm">
+                                            Sebagian
+                                        </span>
+                                        @else
+                                        <span class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-sm">
+                                            Belum Dikirim
+                                        </span>
+                                        @endif
                                     </td>
 
                                     <td class="border px-3 py-2 text-right font-semibold">
@@ -135,7 +181,7 @@
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="7" class="border px-3 py-4 text-center text-gray-500">
+                                    <td colspan="8" class="border px-3 py-4 text-center text-gray-500">
                                         Belum ada invoice pembelian lama.
                                     </td>
                                 </tr>
@@ -145,6 +191,7 @@
                     </div>
                 </div>
 
+                {{-- INVOICE PENJUALAN LAMA --}}
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
                     <div class="flex items-center justify-between mb-4">
                         <div>
@@ -167,10 +214,10 @@
                             <thead class="bg-gray-100">
                                 <tr>
                                     <th class="border px-3 py-2 text-left">No</th>
-                                    <th class="border px-3 py-2 text-left">No Sistem</th>
-                                    <th class="border px-3 py-2 text-left">No Dokumen Asli</th>
+                                    <th class="border px-3 py-2 text-left">No Invoice</th>
                                     <th class="border px-3 py-2 text-left">Tanggal</th>
                                     <th class="border px-3 py-2 text-left">Customer</th>
+                                    <th class="border px-3 py-2 text-center">Jenis</th>
                                     <th class="border px-3 py-2 text-center">Metode</th>
                                     <th class="border px-3 py-2 text-right">Total</th>
                                     <th class="border px-3 py-2 text-center">Aksi</th>
@@ -179,6 +226,11 @@
 
                             <tbody>
                                 @forelse ($penjualanHistoris as $item)
+                                @php
+                                $nomorInvoiceTampil = $item->nomor_dokumen_asli
+                                ?: $item->nomor_invoice;
+                                @endphp
+
                                 <tr>
                                     <td class="border px-3 py-2">
                                         {{ $loop->iteration }}
@@ -186,15 +238,18 @@
 
                                     <td class="border px-3 py-2">
                                         <div class="font-semibold">
-                                            {{ $item->nomor_invoice }}
+                                            {{ $nomorInvoiceTampil }}
                                         </div>
+
                                         <div class="text-xs text-gray-500">
                                             Historis
                                         </div>
-                                    </td>
 
-                                    <td class="border px-3 py-2">
-                                        {{ $item->nomor_dokumen_asli ?? '-' }}
+                                        @if ($item->nomor_invoice)
+                                        <div class="text-xs text-gray-500">
+                                            No Sistem: {{ $item->nomor_invoice }}
+                                        </div>
+                                        @endif
                                     </td>
 
                                     <td class="border px-3 py-2 whitespace-nowrap">
@@ -206,7 +261,13 @@
                                     </td>
 
                                     <td class="border px-3 py-2 text-center">
-                                        {{ ucfirst($item->metode_pembayaran) }}
+                                        <span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-sm">
+                                            Historis
+                                        </span>
+                                    </td>
+
+                                    <td class="border px-3 py-2 text-center">
+                                        {{ ucfirst($item->metode_pembayaran ?? '-') }}
                                     </td>
 
                                     <td class="border px-3 py-2 text-right font-semibold">
