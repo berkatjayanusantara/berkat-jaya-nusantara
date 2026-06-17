@@ -243,43 +243,18 @@
                 color: var(--invoice-secondary);
             }
 
-            .items-table thead th {
-                background: var(--invoice-primary-soft);
-                color: var(--invoice-secondary);
-                border-top: 1.5px solid var(--invoice-primary);
-                border-bottom: 1px solid var(--invoice-primary);
-                border-left: 1px solid var(--invoice-line);
-                border-right: 1px solid var(--invoice-line);
-                padding: 5px 4px;
-                font-weight: 800;
-            }
-
-            .items-table thead th:first-child {
-                border-left: none;
-            }
-
-            .items-table thead th:last-child {
-                border-right: none;
-            }
-
-            .items-table tbody td {
-                border-bottom: 1px solid var(--invoice-line);
-                border-left: 1px solid var(--invoice-light-line);
-                border-right: 1px solid var(--invoice-light-line);
+            .items-table th,
+            .items-table td {
+                border: 1px solid #000000;
                 padding: 5px 4px;
                 vertical-align: top;
             }
 
-            .items-table tbody td:first-child {
-                border-left: none;
-            }
-
-            .items-table tbody td:last-child {
-                border-right: none;
-            }
-
-            .items-table tbody tr:last-child td {
-                border-bottom: 1.5px solid var(--invoice-primary);
+            .items-table th {
+                background: var(--invoice-primary-soft);
+                color: var(--invoice-secondary);
+                font-weight: 800;
+                text-align: center;
             }
 
             .item-name {
@@ -516,50 +491,47 @@
                 }
 
                 .invoice-copy {
-                    min-height: 134mm !important;
-                    max-height: none !important;
+                    min-height: 285mm !important;
                     overflow: visible !important;
                     border: none !important;
-                    padding: 4mm !important;
+                    padding: 6mm !important;
                     margin: 0 !important;
                     box-sizing: border-box !important;
                     page-break-inside: avoid !important;
                     break-inside: avoid !important;
                 }
 
-                .copy-divider {
-                    margin: 2.5mm 0 !important;
-                    border-top: 1px dashed #000000 !important;
+                .invoice-copy+.invoice-copy {
+                    page-break-before: always !important;
+                    break-before: page !important;
                 }
 
-                .copy-divider span {
-                    top: -6px !important;
-                    font-size: 7px !important;
-                    color: #000000 !important;
+                .copy-divider {
+                    display: none !important;
                 }
 
                 .invoice-copy-header {
                     position: relative !important;
                     justify-content: center !important;
-                    padding: 1mm 21mm 2mm !important;
-                    margin-bottom: 4px !important;
-                    min-height: 16mm !important;
-                    border-bottom: 1.2px solid var(--invoice-primary) !important;
+                    padding: 2mm 34mm 3mm !important;
+                    margin-bottom: 7px !important;
+                    min-height: 32mm !important;
+                    border-bottom: 1.5px solid var(--invoice-primary) !important;
                 }
 
                 .logo-placeholder {
                     left: 0 !important;
-                    width: 14mm !important;
-                    height: 14mm !important;
+                    width: 30mm !important;
+                    height: 30mm !important;
                     border: none !important;
-                    border-radius: 2px !important;
+                    border-radius: 5px !important;
                     background: #ffffff !important;
                     overflow: hidden !important;
                 }
 
                 .invoice-logo {
-                    width: 13mm !important;
-                    height: 13mm !important;
+                    width: 29mm !important;
+                    height: 29mm !important;
                     object-fit: contain !important;
                     display: block !important;
                 }
@@ -570,159 +542,145 @@
                 }
 
                 .company-name {
-                    font-size: 12.5px !important;
-                    line-height: 1.05 !important;
+                    font-size: 19px !important;
+                    line-height: 1.08 !important;
+                    letter-spacing: 0.7px !important;
                     color: #000000 !important;
-                    letter-spacing: 0.4px !important;
                 }
 
                 .company-info {
-                    font-size: 7.8px !important;
+                    font-size: 11px !important;
                     color: #000000 !important;
-                    line-height: 1.18 !important;
+                    line-height: 1.25 !important;
+                    margin-top: 4px !important;
                 }
 
                 .copy-label {
                     right: 0 !important;
-                    font-size: 7.5px !important;
-                    padding: 2px 6px !important;
+                    font-size: 10px !important;
+                    padding: 3px 8px !important;
+                    border-width: 1px !important;
                     border-color: var(--invoice-primary) !important;
                     color: var(--invoice-primary) !important;
                     background: var(--invoice-primary-soft) !important;
                 }
 
                 .invoice-title-row {
-                    margin-bottom: 3px !important;
+                    margin-bottom: 6px !important;
                 }
 
                 .invoice-title {
-                    font-size: 10px !important;
+                    font-size: 14px !important;
+                    line-height: 1.2 !important;
                 }
 
                 .invoice-number {
-                    font-size: 8.5px !important;
+                    font-size: 10.8px !important;
+                    line-height: 1.2 !important;
                 }
 
                 .invoice-quick-info {
-                    font-size: 8px !important;
-                    line-height: 1.2 !important;
+                    font-size: 10.5px !important;
+                    line-height: 1.25 !important;
                 }
 
                 .info-grid {
                     display: grid !important;
                     grid-template-columns: 1fr 1fr !important;
-                    gap: 10px !important;
-                    margin-bottom: 4px !important;
+                    gap: 12px !important;
+                    margin-bottom: 7px !important;
                 }
 
                 .invoice-section-title {
-                    font-size: 8.5px !important;
-                    margin-bottom: 2px !important;
-                    padding-bottom: 1px !important;
+                    font-size: 11px !important;
+                    margin-bottom: 3px !important;
+                    padding-bottom: 2px !important;
                     color: var(--invoice-primary) !important;
                     border-bottom: 1px solid #000000 !important;
                 }
 
                 .info-table {
-                    font-size: 7.8px !important;
-                    line-height: 1.15 !important;
+                    font-size: 10.5px !important;
+                    line-height: 1.25 !important;
                 }
 
                 .info-table td {
-                    padding: 0 !important;
-                }
-
-                .items-title-row {
-                    margin-top: 1px !important;
-                    margin-bottom: 1px !important;
-                }
-
-                .items-table {
-                    font-size: 7.5px !important;
-                    line-height: 1.15 !important;
-                    border-collapse: collapse !important;
-                }
-
-                .items-table thead th {
-                    padding: 1.5px 2px !important;
-                    border-top: 1.2px solid var(--invoice-primary) !important;
-                    border-bottom: 1px solid var(--invoice-primary) !important;
-                    border-left: 1px solid #000000 !important;
-                    border-right: 1px solid #000000 !important;
-                    background: var(--invoice-primary-soft) !important;
-                    color: #000000 !important;
-                }
-
-                .items-table thead th:first-child {
-                    border-left: none !important;
-                }
-
-                .items-table thead th:last-child {
-                    border-right: none !important;
-                }
-
-                .items-table tbody td {
-                    padding: 1.5px 2px !important;
-                    border-bottom: 1px solid #000000 !important;
-                    border-left: 1px solid #000000 !important;
-                    border-right: 1px solid #000000 !important;
-                }
-
-                .items-table tbody td:first-child {
-                    border-left: none !important;
-                }
-
-                .items-table tbody td:last-child {
-                    border-right: none !important;
-                }
-
-                .items-table tbody tr:last-child td {
-                    border-bottom: 1.2px solid var(--invoice-primary) !important;
-                }
-
-                .item-formula {
-                    font-size: 7px !important;
-                    line-height: 1.1 !important;
-                }
-
-                .total-inline-wrapper {
-                    margin-top: 2px !important;
-                    margin-bottom: 3px !important;
-                }
-
-                .total-inline {
-                    width: 185px !important;
-                    font-size: 7.8px !important;
-                    line-height: 1.15 !important;
-                }
-
-                .total-inline-row {
                     padding: 0.5px 0 !important;
                 }
 
+                .items-title-row {
+                    margin-top: 2px !important;
+                    margin-bottom: 2px !important;
+                }
+
+                .items-table {
+                    font-size: 10.3px !important;
+                    line-height: 1.22 !important;
+                    border-collapse: collapse !important;
+                }
+
+                .items-table th,
+                .items-table td {
+                    border: 1px solid #000000 !important;
+                    padding: 3px 4px !important;
+                    vertical-align: top !important;
+                }
+
+                .items-table th {
+                    background: var(--invoice-primary-soft) !important;
+                    color: #000000 !important;
+                    font-weight: 800 !important;
+                    text-align: center !important;
+                }
+
+                .item-name {
+                    font-size: 10.2px !important;
+                }
+
+                .item-formula {
+                    font-size: 8.7px !important;
+                    line-height: 1.15 !important;
+                }
+
+                .total-inline-wrapper {
+                    margin-top: 5px !important;
+                    margin-bottom: 5px !important;
+                }
+
+                .total-inline {
+                    width: 270px !important;
+                    font-size: 10.2px !important;
+                    line-height: 1.25 !important;
+                }
+
+                .total-inline-row {
+                    padding: 1.5px 0 !important;
+                }
+
                 .total-inline-total {
-                    font-size: 8.8px !important;
-                    padding-top: 2px !important;
-                    margin-top: 1px !important;
+                    font-size: 11.3px !important;
+                    padding-top: 3px !important;
+                    margin-top: 2px !important;
                     border-top: 1.2px solid var(--invoice-primary) !important;
                     color: var(--invoice-primary) !important;
                 }
 
                 .pajak-note {
-                    font-size: 7px !important;
-                    margin-top: 0 !important;
+                    font-size: 9px !important;
+                    line-height: 1.18 !important;
+                    margin-top: 1px !important;
                     color: #000000 !important;
                 }
 
                 .bottom-info-area {
                     grid-template-columns: 1.35fr 0.65fr !important;
-                    margin-top: 3px !important;
-                    gap: 12px !important;
+                    margin-top: 5px !important;
+                    gap: 14px !important;
                 }
 
                 .terbilang-box {
-                    font-size: 7.8px !important;
-                    line-height: 1.15 !important;
+                    font-size: 10.5px !important;
+                    line-height: 1.25 !important;
                 }
 
                 .terbilang-stamp-area {
@@ -733,6 +691,7 @@
                     overflow: visible !important;
                 }
 
+                /* BAGIAN STEMPEL TETAP, TIDAK DIGESER */
                 .terbilang-stamp-area .stempel-manual {
                     left: 0mm !important;
                     top: 2mm !important;
@@ -740,41 +699,40 @@
                 }
 
                 .signature-area {
-                    margin-top: 3px !important;
-                    font-size: 7.8px !important;
-                    gap: 14px !important;
+                    margin-top: 6px !important;
+                    font-size: 10.5px !important;
+                    line-height: 1.25 !important;
+                    gap: 16px !important;
                 }
 
                 .signature-box {
-                    min-height: 52px !important;
+                    min-height: 58px !important;
                 }
 
                 .signature-name {
-                    margin-top: 29px !important;
+                    margin-top: 34px !important;
                     padding-top: 2px !important;
                 }
 
                 .stempel-manual {
-                    top: -1px !important;
                     width: 120px !important;
                     padding: 5px 8px !important;
                     border: none !important;
                     color: var(--stamp-red) !important;
                     background: transparent !important;
-                    transform: translateX(-50%) !important;
                     opacity: 0.95 !important;
                     z-index: 8 !important;
                 }
 
                 .stempel-manual::before {
-                    inset: 3px !important;
+                    display: none !important;
+                    content: none !important;
                     border: none !important;
                 }
 
                 .stempel-manual::after {
-                    font-size: 16px !important;
-                    letter-spacing: 1px !important;
-                    color: rgba(185, 28, 28, 0.10) !important;
+                    display: none !important;
+                    content: none !important;
                 }
 
                 .stempel-company {
@@ -1096,11 +1054,6 @@
                         </div>
                     </div>
 
-                    @if ($copyIndex === 0)
-                    <div class="copy-divider">
-                        <span>potong / arsip</span>
-                    </div>
-                    @endif
                     @endforeach
 
                     <div class="flex justify-end mt-6 no-print">

@@ -417,66 +417,70 @@
                             }
 
                             .invoice-copy {
-                                min-height: 134mm !important;
+                                min-height: 285mm !important;
                                 overflow: visible !important;
                                 border: none !important;
-                                padding: 4mm !important;
+                                padding: 6mm !important;
                                 margin: 0 !important;
                                 box-sizing: border-box !important;
                                 page-break-inside: avoid !important;
                                 break-inside: avoid !important;
                             }
 
-                            .copy-divider {
-                                margin: 2.5mm 0 !important;
-                                border-top: 1px dashed #000000 !important;
+                            .invoice-copy+.invoice-copy {
+                                page-break-before: always !important;
+                                break-before: page !important;
                             }
 
-                            .copy-divider span {
-                                top: -6px !important;
-                                font-size: 7px !important;
+                            .copy-divider {
+                                display: none !important;
                             }
 
                             .invoice-copy-header {
-                                padding: 1mm 21mm 2mm !important;
-                                margin-bottom: 4px !important;
-                                min-height: 16mm !important;
-                                border-bottom: 1.2px solid var(--invoice-primary) !important;
+                                padding: 2mm 34mm 3mm !important;
+                                margin-bottom: 7px !important;
+                                min-height: 32mm !important;
+                                border-bottom: 1.5px solid var(--invoice-primary) !important;
                             }
 
                             .logo-placeholder {
                                 left: 0 !important;
-                                width: 14mm !important;
-                                height: 14mm !important;
+                                width: 30mm !important;
+                                height: 30mm !important;
+                                border-radius: 5px !important;
                             }
 
                             .invoice-logo {
-                                width: 13mm !important;
-                                height: 13mm !important;
+                                width: 29mm !important;
+                                height: 29mm !important;
                             }
 
                             .company-name {
-                                font-size: 12.5px !important;
-                                line-height: 1.05 !important;
+                                font-size: 19px !important;
+                                letter-spacing: 0.7px !important;
+                                line-height: 1.08 !important;
                             }
 
                             .company-info {
-                                font-size: 7.8px !important;
-                                line-height: 1.18 !important;
+                                font-size: 11px !important;
+                                line-height: 1.25 !important;
+                                margin-top: 4px !important;
                             }
 
                             .copy-label {
                                 right: 0 !important;
-                                font-size: 7.5px !important;
-                                padding: 2px 6px !important;
+                                font-size: 10px !important;
+                                padding: 3px 8px !important;
+                                border-width: 1px !important;
                             }
 
                             .invoice-title-row {
-                                margin-bottom: 3px !important;
+                                margin-bottom: 6px !important;
                             }
 
                             .invoice-title {
-                                font-size: 10px !important;
+                                font-size: 14px !important;
+                                line-height: 1.2 !important;
                             }
 
                             .invoice-number,
@@ -486,70 +490,75 @@
                             .total-inline,
                             .terbilang-box,
                             .signature-area {
-                                font-size: 7.8px !important;
-                                line-height: 1.15 !important;
+                                font-size: 10.5px !important;
+                                line-height: 1.25 !important;
                             }
 
                             .info-grid {
-                                gap: 10px !important;
-                                margin-bottom: 4px !important;
+                                gap: 12px !important;
+                                margin-bottom: 7px !important;
                             }
 
                             .invoice-section-title {
-                                font-size: 8.5px !important;
-                                margin-bottom: 2px !important;
-                                padding-bottom: 1px !important;
+                                font-size: 11px !important;
+                                margin-bottom: 3px !important;
+                                padding-bottom: 2px !important;
                             }
 
                             .items-table th,
                             .items-table td {
-                                padding: 1.5px 2px !important;
+                                padding: 3px 4px !important;
+                            }
+
+                            .item-name {
+                                font-size: 10.8px !important;
                             }
 
                             .item-formula,
                             .pajak-note {
-                                font-size: 7px !important;
-                                line-height: 1.1 !important;
+                                font-size: 9px !important;
+                                line-height: 1.18 !important;
                             }
 
                             .total-inline-wrapper {
-                                margin-top: 2px !important;
-                                margin-bottom: 3px !important;
+                                margin-top: 5px !important;
+                                margin-bottom: 5px !important;
                             }
 
                             .total-inline {
-                                width: 205px !important;
+                                width: 270px !important;
                             }
 
                             .total-inline-row {
-                                padding: 0.5px 0 !important;
+                                padding: 1.5px 0 !important;
                             }
 
                             .total-inline-total {
-                                font-size: 8.8px !important;
-                                padding-top: 2px !important;
-                                margin-top: 1px !important;
+                                font-size: 11.5px !important;
+                                padding-top: 3px !important;
+                                margin-top: 2px !important;
                             }
 
                             .bottom-info-area {
-                                margin-top: 3px !important;
-                                gap: 12px !important;
-                            }
-
-                            .signature-area {
-                                margin-top: 3px !important;
+                                margin-top: 5px !important;
                                 gap: 14px !important;
                             }
 
+                            .signature-area {
+                                margin-top: 6px !important;
+                                gap: 16px !important;
+                            }
+
                             .signature-box {
-                                min-height: 52px !important;
+                                min-height: 58px !important;
                             }
 
                             .signature-name {
-                                margin-top: 29px !important;
+                                margin-top: 34px !important;
                                 padding-top: 2px !important;
                             }
 
+                            /* BAGIAN STEMPEL TETAP, TIDAK DIGESER */
                             .stempel-manual {
                                 left: 0mm !important;
                                 top: 2mm !important;
@@ -857,12 +866,6 @@
                                         </div>
                                     </div>
                                 </div>
-
-                                @if ($copyIndex === 0)
-                                <div class="copy-divider">
-                                    <span>potong / arsip</span>
-                                </div>
-                                @endif
                                 @endforeach
 
                                 <div class="flex justify-end mt-6 no-print">
