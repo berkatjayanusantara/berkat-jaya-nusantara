@@ -239,6 +239,9 @@ $persentaseTertagih = ($totalPiutang ?? 0) > 0
             @forelse ($piutang as $item)
             @php
             $isHistoris = (bool) ($item->penjualan->is_historical ?? false);
+            $nomorInvoiceTampil = $isHistoris && !empty($item->penjualan?->nomor_dokumen_asli)
+            ? $item->penjualan->nomor_dokumen_asli
+            : $item->nomor_invoice;
 
             $lewatJatuhTempo = $item->status_piutang !== 'lunas'
             && $item->tanggal_jatuh_tempo
@@ -277,9 +280,9 @@ $persentaseTertagih = ($totalPiutang ?? 0) > 0
                 <td class="text-center">{{ $loop->iteration }}</td>
 
                 <td>
-                    <strong>{{ $item->nomor_invoice }}</strong>
+                    <strong>{{ $nomorInvoiceTampil }}</strong>
 
-                    @if ($item->penjualan?->nomor_dokumen_asli)
+                    @if (!$isHistoris && $item->penjualan?->nomor_dokumen_asli)
                     <br>
                     <span class="small-text">
                         Asli: {{ $item->penjualan->nomor_dokumen_asli }}

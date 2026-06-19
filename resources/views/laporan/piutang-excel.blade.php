@@ -188,6 +188,7 @@ $persentaseTertagih = ($totalPiutang ?? 0) > 0
 
         <tr class="header">
             <td>No</td>
+            <td>No Invoice Tampil</td>
             <td>No Invoice Sistem</td>
             <td>No Dokumen Asli</td>
             <td>Tanggal Invoice</td>
@@ -204,13 +205,15 @@ $persentaseTertagih = ($totalPiutang ?? 0) > 0
             <td>Sisa Piutang</td>
             <td>Keterangan</td>
             <td>Catatan Piutang</td>
-            <td>Catatan Penjualan</td>
             <td>Alamat Customer</td>
         </tr>
 
         @foreach ($piutang as $item)
         @php
         $isHistoris = (bool) ($item->penjualan->is_historical ?? false);
+        $nomorInvoiceTampil = $isHistoris && !empty($item->penjualan?->nomor_dokumen_asli)
+        ? $item->penjualan->nomor_dokumen_asli
+        : $item->nomor_invoice;
 
         $lewatJatuhTempo = $item->status_piutang !== 'lunas'
         && $item->tanggal_jatuh_tempo
@@ -249,6 +252,8 @@ $persentaseTertagih = ($totalPiutang ?? 0) > 0
 
         <tr class="{{ $isHistoris ? 'historis' : 'sistem' }}">
             <td class="text-center">{{ $loop->iteration }}</td>
+
+            <td class="text-format">{{ $nomorInvoiceTampil }}</td>
 
             <td class="text-format">{{ $item->nomor_invoice }}</td>
 
@@ -300,8 +305,6 @@ $persentaseTertagih = ($totalPiutang ?? 0) > 0
 
             <td>{{ $item->catatan ?? '-' }}</td>
 
-            <td>{{ $item->penjualan->catatan ?? '-' }}</td>
-
             <td>{{ $alamatCustomer }}</td>
         </tr>
         @endforeach
@@ -311,18 +314,18 @@ $persentaseTertagih = ($totalPiutang ?? 0) > 0
         </tr>
 
         <tr class="total-row">
-            <td colspan="12" class="bold">TOTAL PIUTANG</td>
-            <td colspan="7" class="text-right currency">{{ $totalPiutang ?? 0 }}</td>
+            <td colspan="13" class="bold">TOTAL PIUTANG</td>
+            <td colspan="6" class="text-right currency">{{ $totalPiutang ?? 0 }}</td>
         </tr>
 
         <tr class="total-row">
-            <td colspan="12" class="bold">TOTAL DIBAYAR</td>
-            <td colspan="7" class="text-right currency">{{ $totalDibayar ?? 0 }}</td>
+            <td colspan="13" class="bold">TOTAL DIBAYAR</td>
+            <td colspan="6" class="text-right currency">{{ $totalDibayar ?? 0 }}</td>
         </tr>
 
         <tr class="total-row">
-            <td colspan="12" class="bold">TOTAL SISA PIUTANG</td>
-            <td colspan="7" class="text-right currency">{{ $totalSisa ?? 0 }}</td>
+            <td colspan="13" class="bold">TOTAL SISA PIUTANG</td>
+            <td colspan="6" class="text-right currency">{{ $totalSisa ?? 0 }}</td>
         </tr>
     </table>
 </body>

@@ -17,7 +17,7 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
     <style>
         body {
             font-family: DejaVu Sans, sans-serif;
-            font-size: 7.5px;
+            font-size: 7.2px;
             color: #111827;
         }
 
@@ -189,7 +189,7 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
             </td>
 
             <td>
-                <div class="summary-label">Total Pajak</div>
+                <div class="summary-label">Total Pajak Supplier</div>
                 <div class="summary-value">
                     Rp {{ number_format($totalPajak ?? 0, 0, ',', '.') }}
                 </div>
@@ -205,6 +205,20 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
 
         <tr>
             <td>
+                <div class="summary-label">Biaya Lain</div>
+                <div class="summary-value">
+                    Rp {{ number_format($totalBiayaLain ?? 0, 0, ',', '.') }}
+                </div>
+            </td>
+
+            <td>
+                <div class="summary-label">Potongan / Diskon</div>
+                <div class="summary-value">
+                    Rp {{ number_format($totalPotonganDiskon ?? 0, 0, ',', '.') }}
+                </div>
+            </td>
+
+            <td>
                 <div class="summary-label">Total Dipesan</div>
                 <div class="summary-value">
                     {{ number_format($totalDipesan ?? 0, 0, ',', '.') }}
@@ -217,7 +231,9 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
                     {{ number_format($totalDiterima ?? 0, 0, ',', '.') }}
                 </div>
             </td>
+        </tr>
 
+        <tr>
             <td>
                 <div class="summary-label">Sisa Belum Dikirim</div>
                 <div class="summary-value">
@@ -231,22 +247,15 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
                     {{ $totalMemengaruhiStok ?? 0 }} Ya / {{ $totalTidakMemengaruhiStok ?? 0 }} Tidak
                 </div>
             </td>
-        </tr>
 
-        <tr>
             <td>
                 <div class="summary-label">Status Lengkap</div>
                 <div class="summary-value">{{ $totalLengkap ?? 0 }}</div>
             </td>
 
             <td>
-                <div class="summary-label">Status Sebagian</div>
-                <div class="summary-value">{{ $totalSebagian ?? 0 }}</div>
-            </td>
-
-            <td colspan="2">
-                <div class="summary-label">Belum Dikirim</div>
-                <div class="summary-value">{{ $totalBelumDikirim ?? 0 }}</div>
+                <div class="summary-label">Status Sebagian / Belum</div>
+                <div class="summary-value">{{ $totalSebagian ?? 0 }} / {{ $totalBelumDikirim ?? 0 }}</div>
             </td>
         </tr>
     </table>
@@ -256,16 +265,17 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
             <tr>
                 <th style="width: 3%;">No</th>
                 <th style="width: 7%;">Tanggal</th>
-                <th style="width: 14%;">Dokumen</th>
+                <th style="width: 13%;">Dokumen</th>
                 <th style="width: 14%;">Supplier</th>
                 <th style="width: 8%;">Status</th>
                 <th style="width: 7%;">Tipe</th>
-                <th style="width: 6%;">Stok</th>
+                <th style="width: 5%;">Stok</th>
                 <th style="width: 6%;">Pesan</th>
                 <th style="width: 6%;">Terima</th>
-                <th style="width: 6%;">Sisa</th>
+                <th style="width: 5%;">Sisa</th>
                 <th style="width: 8%;">Subtotal</th>
-                <th style="width: 6%;">Pajak</th>
+                <th style="width: 7%;">Pajak</th>
+                <th style="width: 8%;">Penyes.</th>
                 <th style="width: 9%;">Total</th>
             </tr>
         </thead>
@@ -285,6 +295,13 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
             $statusPenerimaan = $item->status_penerimaan ?? 'lengkap';
             $isHistoris = (bool) ($item->is_historical ?? false);
             $affectStock = (bool) ($item->affect_stock ?? true);
+            $biayaLain = (float) ($item->biaya_lain ?? 0);
+            $potonganDiskon = (float) ($item->potongan_diskon ?? 0);
+            $adaPenyesuaian = $biayaLain > 0 || $potonganDiskon > 0;
+
+            $nomorDokumenTampil = $isHistoris && !empty($item->nomor_dokumen_asli)
+            ? $item->nomor_dokumen_asli
+            : $item->nomor_pembelian;
 
             if ($statusPenerimaan === 'lengkap') {
             $statusText = 'Lengkap';
@@ -314,9 +331,9 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
                 </td>
 
                 <td>
-                    <strong>{{ $item->nomor_pembelian }}</strong>
+                    <strong>{{ $nomorDokumenTampil }}</strong>
 
-                    @if ($item->nomor_dokumen_asli)
+                    @if (!$isHistoris && $item->nomor_dokumen_asli)
                     <br>
                     <span class="small-text">
                         Asli: {{ $item->nomor_dokumen_asli }}
@@ -381,20 +398,33 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
                 </td>
 
                 <td class="text-right">
-                    Rp {{ number_format($item->subtotal, 0, ',', '.') }}
+                    Rp {{ number_format($item->subtotal ?? 0, 0, ',', '.') }}
                 </td>
 
                 <td class="text-right">
-                    Rp {{ number_format($item->nilai_pajak, 0, ',', '.') }}
+                    Rp {{ number_format($item->nilai_pajak ?? 0, 0, ',', '.') }}
                 </td>
 
                 <td class="text-right">
-                    Rp {{ number_format($item->total_akhir, 0, ',', '.') }}
+                    @if ($adaPenyesuaian)
+                    @if ($biayaLain > 0)
+                    + Rp {{ number_format($biayaLain, 0, ',', '.') }}<br>
+                    @endif
+                    @if ($potonganDiskon > 0)
+                    - Rp {{ number_format($potonganDiskon, 0, ',', '.') }}
+                    @endif
+                    @else
+                    -
+                    @endif
+                </td>
+
+                <td class="text-right">
+                    Rp {{ number_format($item->total_akhir ?? 0, 0, ',', '.') }}
                 </td>
             </tr>
             @empty
             <tr>
-                <td colspan="13" class="text-center">
+                <td colspan="14" class="text-center">
                     Data laporan pembelian belum tersedia.
                 </td>
             </tr>

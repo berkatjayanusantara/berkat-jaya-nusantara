@@ -6,7 +6,7 @@
                     Laporan Pembelian
                 </h2>
                 <p class="text-sm text-gray-500 mt-1">
-                    Laporan invoice pembelian sistem berjalan dan invoice pembelian historis.
+                    Laporan pembelian sistem berjalan dan invoice pembelian historis.
                 </p>
             </div>
 
@@ -127,11 +127,45 @@
                         </div>
 
                         <div>
+                            <label class="block mb-1 font-medium">Pajak</label>
+                            <select name="pajak_pembelian"
+                                class="w-full border-gray-300 rounded-md shadow-sm">
+                                <option value="">Semua</option>
+                                <option value="dengan_pajak" {{ request('pajak_pembelian') === 'dengan_pajak' ? 'selected' : '' }}>
+                                    Dengan Pajak
+                                </option>
+                                <option value="tanpa_pajak" {{ request('pajak_pembelian') === 'tanpa_pajak' ? 'selected' : '' }}>
+                                    Tanpa Pajak
+                                </option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block mb-1 font-medium">Penyesuaian</label>
+                            <select name="penyesuaian_total"
+                                class="w-full border-gray-300 rounded-md shadow-sm">
+                                <option value="">Semua</option>
+                                <option value="ada_penyesuaian" {{ request('penyesuaian_total') === 'ada_penyesuaian' ? 'selected' : '' }}>
+                                    Ada Penyesuaian
+                                </option>
+                                <option value="biaya_lain" {{ request('penyesuaian_total') === 'biaya_lain' ? 'selected' : '' }}>
+                                    Biaya Lain
+                                </option>
+                                <option value="diskon" {{ request('penyesuaian_total') === 'diskon' ? 'selected' : '' }}>
+                                    Diskon
+                                </option>
+                                <option value="tanpa_penyesuaian" {{ request('penyesuaian_total') === 'tanpa_penyesuaian' ? 'selected' : '' }}>
+                                    Tanpa Penyesuaian
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="md:col-span-2 lg:col-span-6">
                             <label class="block mb-1 font-medium">Cari</label>
                             <input type="text"
                                 name="search"
                                 value="{{ request('search') }}"
-                                placeholder="Nota/DO/SJ/supplier..."
+                                placeholder="Nota/DO/SJ/dokumen asli/supplier/barang..."
                                 class="w-full border-gray-300 rounded-md shadow-sm">
                         </div>
                     </div>
@@ -167,9 +201,12 @@
                 </div>
 
                 <div class="bg-white shadow-sm rounded-lg p-4">
-                    <p class="text-sm text-gray-500">Total Pajak</p>
+                    <p class="text-sm text-gray-500">Total Pajak Supplier</p>
                     <p class="text-2xl font-bold">
                         Rp {{ number_format($totalPajak ?? 0, 0, ',', '.') }}
+                    </p>
+                    <p class="text-xs text-gray-500 mt-1">
+                        Dengan pajak: {{ $totalDenganPajak ?? 0 }} | Tanpa: {{ $totalTanpaPajak ?? 0 }}
                     </p>
                 </div>
 
@@ -177,6 +214,36 @@
                     <p class="text-sm text-gray-500">Total Akhir</p>
                     <p class="text-2xl font-bold text-green-700">
                         Rp {{ number_format($totalAkhir ?? 0, 0, ',', '.') }}
+                    </p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white shadow-sm rounded-lg p-4">
+                    <p class="text-sm text-gray-500">Biaya Lain</p>
+                    <p class="text-xl font-bold">
+                        Rp {{ number_format($totalBiayaLain ?? 0, 0, ',', '.') }}
+                    </p>
+                </div>
+
+                <div class="bg-white shadow-sm rounded-lg p-4">
+                    <p class="text-sm text-gray-500">Potongan / Diskon</p>
+                    <p class="text-xl font-bold text-red-700">
+                        Rp {{ number_format($totalPotonganDiskon ?? 0, 0, ',', '.') }}
+                    </p>
+                </div>
+
+                <div class="bg-white shadow-sm rounded-lg p-4">
+                    <p class="text-sm text-gray-500">Total Sebelum Diskon</p>
+                    <p class="text-xl font-bold">
+                        Rp {{ number_format($totalSebelumDiskon ?? 0, 0, ',', '.') }}
+                    </p>
+                </div>
+
+                <div class="bg-white shadow-sm rounded-lg p-4">
+                    <p class="text-sm text-gray-500">Transaksi Ada Penyesuaian</p>
+                    <p class="text-xl font-bold">
+                        {{ $totalDenganPenyesuaian ?? 0 }} transaksi
                     </p>
                 </div>
             </div>
@@ -246,7 +313,6 @@
                                 <th class="border px-3 py-2 text-left">Tanggal</th>
                                 <th class="border px-3 py-2 text-left">Dokumen</th>
                                 <th class="border px-3 py-2 text-left">Supplier</th>
-                                <th class="border px-3 py-2 text-left">Alamat</th>
                                 <th class="border px-3 py-2 text-left">Status</th>
                                 <th class="border px-3 py-2 text-center">Tipe</th>
                                 <th class="border px-3 py-2 text-center">Stok</th>
@@ -255,6 +321,7 @@
                                 <th class="border px-3 py-2 text-right">Sisa</th>
                                 <th class="border px-3 py-2 text-right">Subtotal</th>
                                 <th class="border px-3 py-2 text-right">Pajak</th>
+                                <th class="border px-3 py-2 text-right">Penyesuaian</th>
                                 <th class="border px-3 py-2 text-right">Total</th>
                                 <th class="border px-3 py-2 text-center">Detail</th>
                             </tr>
@@ -276,6 +343,13 @@
                             $isHistoris = (bool) ($item->is_historical ?? false);
                             $affectStock = (bool) ($item->affect_stock ?? true);
                             $pajakDitambahkan = $item->pajak_ditambahkan ?? true;
+                            $biayaLain = (float) ($item->biaya_lain ?? 0);
+                            $potonganDiskon = (float) ($item->potongan_diskon ?? 0);
+                            $adaPenyesuaian = $biayaLain > 0 || $potonganDiskon > 0;
+
+                            $nomorDokumenTampil = $isHistoris && !empty($item->nomor_dokumen_asli)
+                            ? $item->nomor_dokumen_asli
+                            : $item->nomor_pembelian;
 
                             if ($statusPenerimaan === 'lengkap') {
                             $statusLabel = 'Lengkap';
@@ -308,19 +382,19 @@
                                     {{ $item->tanggal_pembelian ? $item->tanggal_pembelian->format('d-m-Y') : '-' }}
                                 </td>
 
-                                <td class="border px-3 py-2">
+                                <td class="border px-3 py-2 align-top">
                                     <div class="font-semibold">
-                                        {{ $item->nomor_pembelian }}
+                                        {{ $nomorDokumenTampil }}
                                     </div>
 
-                                    @if ($item->nomor_dokumen_asli)
-                                    <div class="text-xs text-gray-500">
+                                    @if (!$isHistoris && $item->nomor_dokumen_asli)
+                                    <div class="text-xs text-gray-500 mt-1">
                                         Dok. Asli: {{ $item->nomor_dokumen_asli }}
                                     </div>
                                     @endif
 
                                     @if ($item->nomor_delivery_order)
-                                    <div class="text-xs text-gray-500">
+                                    <div class="text-xs text-gray-500 mt-1">
                                         DO: {{ $item->nomor_delivery_order }}
                                     </div>
                                     @endif
@@ -332,7 +406,7 @@
                                     @endif
                                 </td>
 
-                                <td class="border px-3 py-2">
+                                <td class="border px-3 py-2 min-w-[180px]">
                                     <div class="font-medium">
                                         {{ $item->supplier->nama_supplier ?? '-' }}
                                     </div>
@@ -342,10 +416,6 @@
                                     <div class="text-xs text-gray-500">
                                         NPWP: {{ $item->supplier->npwp ?? '-' }}
                                     </div>
-                                </td>
-
-                                <td class="border px-3 py-2 min-w-[180px]">
-                                    {{ $item->supplier->alamat ?? '-' }}
                                 </td>
 
                                 <td class="border px-3 py-2">
@@ -403,15 +473,33 @@
                                 </td>
 
                                 <td class="border px-3 py-2 text-right">
-                                    Rp {{ number_format($item->subtotal, 0, ',', '.') }}
+                                    Rp {{ number_format($item->subtotal ?? 0, 0, ',', '.') }}
                                 </td>
 
                                 <td class="border px-3 py-2 text-right">
-                                    Rp {{ number_format($item->nilai_pajak, 0, ',', '.') }}
+                                    Rp {{ number_format($item->nilai_pajak ?? 0, 0, ',', '.') }}
+                                </td>
+
+                                <td class="border px-3 py-2 text-right">
+                                    @if ($adaPenyesuaian)
+                                    @if ($biayaLain > 0)
+                                    <div class="text-xs text-gray-700">
+                                        + Rp {{ number_format($biayaLain, 0, ',', '.') }}
+                                    </div>
+                                    @endif
+
+                                    @if ($potonganDiskon > 0)
+                                    <div class="text-xs text-red-700">
+                                        - Rp {{ number_format($potonganDiskon, 0, ',', '.') }}
+                                    </div>
+                                    @endif
+                                    @else
+                                    -
+                                    @endif
                                 </td>
 
                                 <td class="border px-3 py-2 text-right font-semibold">
-                                    Rp {{ number_format($item->total_akhir, 0, ',', '.') }}
+                                    Rp {{ number_format($item->total_akhir ?? 0, 0, ',', '.') }}
                                 </td>
 
                                 <td class="border px-3 py-2 text-center">

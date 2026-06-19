@@ -254,7 +254,9 @@
 
                         .total-inline-wrapper {
                             display: flex;
-                            justify-content: flex-end;
+                            justify-content: space-between;
+                            align-items: flex-start;
+                            gap: 20px;
                             margin-top: 5px;
                             margin-bottom: 6px;
                         }
@@ -309,14 +311,19 @@
 
                         .terbilang-stamp-area {
                             position: relative;
-                            height: 0;
+                            width: 230px;
+                            max-width: 100%;
+                            min-height: 64px;
+                            margin-top: 18px;
+                            margin-left: 28px;
                             overflow: visible;
+                            flex-shrink: 0;
                         }
 
                         .stempel-manual {
-                            position: absolute;
-                            left: 32px;
-                            top: 10px;
+                            position: relative;
+                            left: 0;
+                            top: 0;
                             width: 230px;
                             max-width: 100%;
                             color: var(--stamp-red);
@@ -456,21 +463,21 @@
                             }
 
                             .company-name {
-                                font-size: 19px !important;
+                                font-size: 22px !important;
                                 letter-spacing: 0.7px !important;
                                 line-height: 1.08 !important;
                             }
 
                             .company-info {
-                                font-size: 11px !important;
+                                font-size: 12.5px !important;
                                 line-height: 1.25 !important;
                                 margin-top: 4px !important;
                             }
 
                             .copy-label {
                                 right: 0 !important;
-                                font-size: 10px !important;
-                                padding: 3px 8px !important;
+                                font-size: 11px !important;
+                                padding: 3px 9px !important;
                                 border-width: 1px !important;
                             }
 
@@ -479,7 +486,7 @@
                             }
 
                             .invoice-title {
-                                font-size: 14px !important;
+                                font-size: 16px !important;
                                 line-height: 1.2 !important;
                             }
 
@@ -490,8 +497,8 @@
                             .total-inline,
                             .terbilang-box,
                             .signature-area {
-                                font-size: 10.5px !important;
-                                line-height: 1.25 !important;
+                                font-size: 11.8px !important;
+                                line-height: 1.28 !important;
                             }
 
                             .info-grid {
@@ -500,7 +507,7 @@
                             }
 
                             .invoice-section-title {
-                                font-size: 11px !important;
+                                font-size: 12.5px !important;
                                 margin-bottom: 3px !important;
                                 padding-bottom: 2px !important;
                             }
@@ -511,16 +518,19 @@
                             }
 
                             .item-name {
-                                font-size: 10.8px !important;
+                                font-size: 12.2px !important;
                             }
 
                             .item-formula,
                             .pajak-note {
-                                font-size: 9px !important;
-                                line-height: 1.18 !important;
+                                font-size: 10px !important;
+                                line-height: 1.2 !important;
                             }
 
                             .total-inline-wrapper {
+                                justify-content: space-between !important;
+                                align-items: flex-start !important;
+                                gap: 14px !important;
                                 margin-top: 5px !important;
                                 margin-bottom: 5px !important;
                             }
@@ -534,7 +544,7 @@
                             }
 
                             .total-inline-total {
-                                font-size: 11.5px !important;
+                                font-size: 13px !important;
                                 padding-top: 3px !important;
                                 margin-top: 2px !important;
                             }
@@ -558,27 +568,39 @@
                                 padding-top: 2px !important;
                             }
 
-                            /* BAGIAN STEMPEL TETAP, TIDAK DIGESER */
+                            /* BAGIAN STEMPEL: TETAP TAMPILAN LAMA, DIPINDAH KE AREA KOSONG KIRI SEJAJAR TOTAL */
+                            .terbilang-stamp-area {
+                                position: relative !important;
+                                width: 205px !important;
+                                max-width: 205px !important;
+                                min-height: 76px !important;
+                                margin-top: 16px !important;
+                                margin-left: 8mm !important;
+                                overflow: visible !important;
+                                flex-shrink: 0 !important;
+                            }
+
                             .stempel-manual {
-                                left: 0mm !important;
-                                top: 2mm !important;
-                                width: 120px !important;
+                                position: relative !important;
+                                left: 0 !important;
+                                top: 0 !important;
+                                width: 205px !important;
                                 opacity: 0.95 !important;
                             }
 
                             .stempel-company {
-                                font-size: 9px !important;
+                                font-size: 15px !important;
                                 line-height: 1.05 !important;
                             }
 
                             .stempel-bank {
-                                font-size: 7.8px !important;
+                                font-size: 12.3px !important;
                                 line-height: 1.08 !important;
-                                margin-bottom: 2px !important;
+                                margin-bottom: 3px !important;
                             }
 
                             .stempel-separator {
-                                margin: 2px auto !important;
+                                margin: 3px auto !important;
                             }
                         }
                     </style>
@@ -778,6 +800,18 @@
                                     </table>
 
                                     <div class="total-inline-wrapper">
+                                        <div class="terbilang-stamp-area">
+                                            <div class="stempel-manual">
+                                                <div class="stempel-content">
+                                                    <div class="stempel-company">Berkat</div>
+                                                    <div class="stempel-bank">BCA : 5280902227</div>
+                                                    <div class="stempel-separator"></div>
+                                                    <div class="stempel-company">Berkat</div>
+                                                    <div class="stempel-bank">OCBC NISP : 565 8000 15150</div>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         <div class="total-inline">
                                             <div class="total-inline-row">
                                                 <span>Subtotal</span>
@@ -840,18 +874,6 @@
                                             <span class="terbilang-text">{{ $terbilangTotal }}</span>
                                         </div>
                                         <div></div>
-                                    </div>
-
-                                    <div class="terbilang-stamp-area">
-                                        <div class="stempel-manual">
-                                            <div class="stempel-content">
-                                                <div class="stempel-company">Berkat</div>
-                                                <div class="stempel-bank">BCA : 5280902227</div>
-                                                <div class="stempel-separator"></div>
-                                                <div class="stempel-company">Berkat</div>
-                                                <div class="stempel-bank">OCBC NISP : 565 8000 15150</div>
-                                            </div>
-                                        </div>
                                     </div>
 
                                     <div class="signature-area">

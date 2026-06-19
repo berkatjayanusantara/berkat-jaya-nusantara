@@ -6,7 +6,7 @@
                     Dashboard
                 </h2>
                 <p class="text-sm text-gray-500 mt-1">
-                    Ringkasan stok, pembelian, penjualan, invoice historis, piutang, stock opname, dan laporan.
+                    Ringkasan operasional Berkat Jaya Nusantara: stok, pembelian, penjualan, piutang, stock opname, dan laporan.
                 </p>
             </div>
 
@@ -20,8 +20,47 @@
     $namaPerusahaan = 'CV. BERKAT JAYA NUSANTARA';
     $alamatPerusahaan = 'Jl. Jelambar Utama 1 No. 6A RT. 007 RW. 004, Jakarta Barat 11460';
     $teleponPerusahaan = '(021) 5664892, 5676277';
-    $totalPotensiMargin = ($totalEstimasiNilaiJual ?? 0) - ($totalNilaiStok ?? 0);
     $maxGrafik = max($grafikPenjualan7Hari->max('total') ?? 0, 1);
+
+    $formatRupiah = function ($nilai) {
+    return 'Rp ' . number_format((float) ($nilai ?? 0), 0, ',', '.');
+    };
+
+    $formatAngka = function ($nilai) {
+    return number_format((float) ($nilai ?? 0), 0, ',', '.');
+    };
+
+    $formatDesimal = function ($nilai, $desimal = 3) {
+    return rtrim(rtrim(number_format((float) ($nilai ?? 0), $desimal, ',', '.'), '0'), ',');
+    };
+
+    $nomorPenjualanTampil = function ($penjualan) {
+    if (!$penjualan) {
+    return '-';
+    }
+
+    return (bool) ($penjualan->is_historical ?? false) && !empty($penjualan->nomor_dokumen_asli)
+    ? $penjualan->nomor_dokumen_asli
+    : $penjualan->nomor_invoice;
+    };
+
+    $nomorPembelianTampil = function ($pembelian) {
+    if (!$pembelian) {
+    return '-';
+    }
+
+    return (bool) ($pembelian->is_historical ?? false) && !empty($pembelian->nomor_dokumen_asli)
+    ? $pembelian->nomor_dokumen_asli
+    : $pembelian->nomor_pembelian;
+    };
+
+    $statusPenerimaanText = function ($status) {
+    return [
+    'lengkap' => 'Lengkap',
+    'sebagian' => 'Sebagian',
+    'belum_dikirim' => 'Belum Dikirim',
+    ][$status ?? 'lengkap'] ?? 'Lengkap';
+    };
     @endphp
 
     <div class="py-6 bg-gray-50 min-h-screen">
@@ -43,7 +82,7 @@
                         </p>
 
                         <p class="text-sm text-gray-500 mt-1 max-w-3xl">
-                            Pantau aktivitas utama perusahaan tanpa menghilangkan konteks sistem: transaksi berjalan mempengaruhi stok, invoice historis masuk laporan tetapi tidak mengubah stok saat ini.
+                            Dashboard ini disesuaikan dengan update terbaru: invoice historis memakai nomor dokumen asli, pembelian memakai status penerimaan, piutang mengikuti invoice penjualan, stok barang mendukung isi kemasan dan PPN, serta stock opname massal tercatat di riwayat stok.
                         </p>
                     </div>
 
@@ -76,19 +115,89 @@
                 </div>
             </div>
 
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white border rounded-2xl p-5 shadow-sm">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <p class="text-sm text-gray-500">Prioritas Stok</p>
+                            <h3 class="text-2xl font-bold text-red-700 mt-2">
+                                {{ $formatAngka(($totalBarangKosong ?? 0) + ($totalBarangStokRendah ?? 0)) }} barang
+                            </h3>
+                        </div>
+                        <a href="{{ route('laporan.stokBarang', ['kondisi_stok' => 'rendah']) }}" class="text-sm text-blue-600 hover:underline">
+                            Detail
+                        </a>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-3">
+                        Kosong: {{ $formatAngka($totalBarangKosong ?? 0) }} · Rendah: {{ $formatAngka($totalBarangStokRendah ?? 0) }} · Aman: {{ $formatAngka($totalBarangStokAman ?? 0) }}
+                    </p>
+                </div>
+
+                <div class="bg-white border rounded-2xl p-5 shadow-sm">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <p class="text-sm text-gray-500">Piutang Belum Lunas</p>
+                            <h3 class="text-2xl font-bold text-red-700 mt-2">
+                                {{ $formatRupiah($totalPiutangBelumLunas ?? 0) }}
+                            </h3>
+                        </div>
+                        <a href="{{ route('laporan.piutang') }}" class="text-sm text-blue-600 hover:underline">
+                            Detail
+                        </a>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-3">
+                        Data: {{ $formatAngka($jumlahPiutangBelumLunas ?? 0) }} · Lewat tempo: {{ $formatAngka($jumlahPiutangLewatTempo ?? 0) }} · Tertagih: {{ number_format($persentasePiutangTertagih ?? 0, 2, ',', '.') }}%
+                    </p>
+                </div>
+
+                <div class="bg-white border rounded-2xl p-5 shadow-sm">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <p class="text-sm text-gray-500">Pembelian Belum Selesai</p>
+                            <h3 class="text-2xl font-bold text-yellow-700 mt-2">
+                                {{ $formatAngka(($pembelianSebagian ?? 0) + ($pembelianBelumDikirim ?? 0)) }} transaksi
+                            </h3>
+                        </div>
+                        <a href="{{ route('laporan.pembelian') }}" class="text-sm text-blue-600 hover:underline">
+                            Detail
+                        </a>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-3">
+                        Sebagian: {{ $formatAngka($pembelianSebagian ?? 0) }} · Belum dikirim: {{ $formatAngka($pembelianBelumDikirim ?? 0) }}
+                    </p>
+                </div>
+
+                <div class="bg-white border rounded-2xl p-5 shadow-sm">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <p class="text-sm text-gray-500">Stock Opname Hari Ini</p>
+                            <h3 class="text-2xl font-bold text-blue-700 mt-2">
+                                {{ $formatAngka($totalNomorStockOpnameHariIni ?? 0) }} sesi
+                            </h3>
+                        </div>
+                        <a href="{{ route('riwayat-stok.index', ['tipe_riwayat' => 'opname']) }}" class="text-sm text-blue-600 hover:underline">
+                            Detail
+                        </a>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-3">
+                        Baris barang: {{ $formatAngka($totalBarisStockOpnameHariIni ?? 0) }} · Penyesuaian: {{ $formatAngka($penyesuaianStokHariIni ?? 0) }}
+                    </p>
+                </div>
+            </div>
+
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 <div class="bg-white border rounded-2xl p-5 shadow-sm">
                     <p class="text-sm text-gray-500">Total Barang</p>
                     <div class="flex items-end justify-between mt-2">
                         <h3 class="text-2xl font-bold text-gray-900">
-                            {{ number_format($totalBarang ?? 0, 0, ',', '.') }}
+                            {{ $formatAngka($totalBarang ?? 0) }}
                         </h3>
                         <a href="{{ route('barang.index') }}" class="text-sm text-blue-600 hover:underline">
                             Lihat
                         </a>
                     </div>
                     <p class="text-xs text-gray-500 mt-2">
-                        Aktif: {{ number_format($totalBarangAktif ?? 0, 0, ',', '.') }} · Nonaktif: {{ number_format($totalBarangNonaktif ?? 0, 0, ',', '.') }}
+                        Aktif: {{ $formatAngka($totalBarangAktif ?? 0) }} · Nonaktif: {{ $formatAngka($totalBarangNonaktif ?? 0) }}
                     </p>
                 </div>
 
@@ -96,14 +205,14 @@
                     <p class="text-sm text-gray-500">Total Stok</p>
                     <div class="flex items-end justify-between mt-2">
                         <h3 class="text-2xl font-bold text-gray-900">
-                            {{ number_format($totalStok ?? 0, 0, ',', '.') }}
+                            {{ $formatAngka($totalStok ?? 0) }}
                         </h3>
                         <a href="{{ route('laporan.stokBarang') }}" class="text-sm text-blue-600 hover:underline">
                             Laporan
                         </a>
                     </div>
                     <p class="text-xs text-gray-500 mt-2">
-                        Kosong: {{ $totalBarangKosong ?? 0 }} · Rendah: {{ $totalBarangStokRendah ?? 0 }} · Batas: {{ $batasStokRendah ?? 5 }}
+                        Batas stok rendah: {{ $formatAngka($batasStokRendah ?? 5) }}
                     </p>
                 </div>
 
@@ -111,14 +220,14 @@
                     <p class="text-sm text-gray-500">Customer</p>
                     <div class="flex items-end justify-between mt-2">
                         <h3 class="text-2xl font-bold text-gray-900">
-                            {{ number_format($totalCustomer ?? 0, 0, ',', '.') }}
+                            {{ $formatAngka($totalCustomer ?? 0) }}
                         </h3>
                         <a href="{{ route('customers.index') }}" class="text-sm text-blue-600 hover:underline">
                             Lihat
                         </a>
                     </div>
                     <p class="text-xs text-gray-500 mt-2">
-                        Aktif: {{ number_format($totalCustomerAktif ?? 0, 0, ',', '.') }}
+                        Aktif: {{ $formatAngka($totalCustomerAktif ?? 0) }} · Nonaktif: {{ $formatAngka($totalCustomerNonaktif ?? 0) }}
                     </p>
                 </div>
 
@@ -126,14 +235,14 @@
                     <p class="text-sm text-gray-500">Supplier</p>
                     <div class="flex items-end justify-between mt-2">
                         <h3 class="text-2xl font-bold text-gray-900">
-                            {{ number_format($totalSupplier ?? 0, 0, ',', '.') }}
+                            {{ $formatAngka($totalSupplier ?? 0) }}
                         </h3>
                         <a href="{{ route('suppliers.index') }}" class="text-sm text-blue-600 hover:underline">
                             Lihat
                         </a>
                     </div>
                     <p class="text-xs text-gray-500 mt-2">
-                        Aktif: {{ number_format($totalSupplierAktif ?? 0, 0, ',', '.') }}
+                        Aktif: {{ $formatAngka($totalSupplierAktif ?? 0) }} · Nonaktif: {{ $formatAngka($totalSupplierNonaktif ?? 0) }}
                     </p>
                 </div>
             </div>
@@ -143,7 +252,7 @@
                     <div class="flex items-start justify-between gap-3 mb-4">
                         <div>
                             <h3 class="font-bold text-gray-900">Pembelian Hari Ini</h3>
-                            <p class="text-sm text-gray-500">Mengikuti fitur DO, surat jalan, status penerimaan, dan pengaruh stok.</p>
+                            <p class="text-sm text-gray-500">Mengikuti DO, surat jalan, status penerimaan, dan pengaruh stok.</p>
                         </div>
                         <a href="{{ route('laporan.pembelian') }}" class="text-sm text-blue-600 hover:underline">
                             Laporan
@@ -154,27 +263,27 @@
                         <div>
                             <p class="text-xs text-gray-500">Total Nilai</p>
                             <p class="text-xl font-bold text-gray-900 mt-1">
-                                Rp {{ number_format($pembelianHariIni ?? 0, 0, ',', '.') }}
+                                {{ $formatRupiah($pembelianHariIni ?? 0) }}
                             </p>
                             <p class="text-xs text-gray-500 mt-1">
-                                {{ number_format($jumlahPembelianHariIni ?? 0, 0, ',', '.') }} transaksi
+                                {{ $formatAngka($jumlahPembelianHariIni ?? 0) }} transaksi
                             </p>
                         </div>
 
                         <div>
                             <p class="text-xs text-gray-500">Barang Dipesan</p>
                             <p class="text-xl font-bold text-blue-700 mt-1">
-                                {{ number_format($barangDipesanHariIni ?? 0, 0, ',', '.') }}
+                                {{ $formatAngka($barangDipesanHariIni ?? 0) }}
                             </p>
-                            <p class="text-xs text-gray-500 mt-1">Berdasarkan detail pembelian.</p>
+                            <p class="text-xs text-gray-500 mt-1">Dari detail pembelian.</p>
                         </div>
 
                         <div>
                             <p class="text-xs text-gray-500">Barang Diterima</p>
                             <p class="text-xl font-bold text-green-700 mt-1">
-                                {{ number_format($barangDiterimaHariIni ?? 0, 0, ',', '.') }}
+                                {{ $formatAngka($barangDiterimaHariIni ?? 0) }}
                             </p>
-                            <p class="text-xs text-gray-500 mt-1">Yang benar-benar menambah stok.</p>
+                            <p class="text-xs text-gray-500 mt-1">Yang benar-benar diterima.</p>
                         </div>
                     </div>
                 </div>
@@ -183,42 +292,49 @@
                     <div class="flex items-start justify-between gap-3 mb-4">
                         <div>
                             <h3 class="font-bold text-gray-900">Penjualan Hari Ini</h3>
-                            <p class="text-sm text-gray-500">Memisahkan tunai, kredit, dan jumlah barang terjual.</p>
+                            <p class="text-sm text-gray-500">Memisahkan tunai, kredit, PPN, dan barang terjual.</p>
                         </div>
                         <a href="{{ route('laporan.penjualan') }}" class="text-sm text-blue-600 hover:underline">
                             Laporan
                         </a>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-5 gap-4">
                         <div>
                             <p class="text-xs text-gray-500">Total Nilai</p>
-                            <p class="text-xl font-bold text-gray-900 mt-1">
-                                Rp {{ number_format($penjualanHariIni ?? 0, 0, ',', '.') }}
+                            <p class="text-lg font-bold text-gray-900 mt-1">
+                                {{ $formatRupiah($penjualanHariIni ?? 0) }}
                             </p>
                             <p class="text-xs text-gray-500 mt-1">
-                                {{ number_format($jumlahPenjualanHariIni ?? 0, 0, ',', '.') }} invoice
+                                {{ $formatAngka($jumlahPenjualanHariIni ?? 0) }} invoice
                             </p>
                         </div>
 
                         <div>
                             <p class="text-xs text-gray-500">Tunai</p>
                             <p class="text-lg font-bold text-green-700 mt-1">
-                                Rp {{ number_format($penjualanTunaiHariIni ?? 0, 0, ',', '.') }}
+                                {{ $formatRupiah($penjualanTunaiHariIni ?? 0) }}
                             </p>
                         </div>
 
                         <div>
                             <p class="text-xs text-gray-500">Kredit</p>
                             <p class="text-lg font-bold text-yellow-700 mt-1">
-                                Rp {{ number_format($penjualanKreditHariIni ?? 0, 0, ',', '.') }}
+                                {{ $formatRupiah($penjualanKreditHariIni ?? 0) }}
                             </p>
                         </div>
 
                         <div>
-                            <p class="text-xs text-gray-500">Barang Terjual</p>
+                            <p class="text-xs text-gray-500">PPN</p>
                             <p class="text-lg font-bold text-blue-700 mt-1">
-                                {{ number_format($barangTerjualHariIni ?? 0, 0, ',', '.') }}
+                                {{ $formatRupiah($ppnPenjualanHariIni ?? 0) }}
+                            </p>
+                        </div>
+
+                        <div>
+                            <p class="text-xs text-gray-500">Terjual</p>
+                            <p class="text-lg font-bold text-purple-700 mt-1">
+                                {{ $formatAngka($barangTerjualHariIni ?? 0) }}
                             </p>
                         </div>
                     </div>
@@ -227,38 +343,12 @@
 
             <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
                 <div class="bg-white border rounded-2xl p-5 shadow-sm">
-                    <p class="text-sm text-gray-500">Piutang Belum Lunas</p>
-                    <h3 class="text-xl font-bold text-red-600 mt-2">
-                        Rp {{ number_format($totalPiutangBelumLunas ?? 0, 0, ',', '.') }}
-                    </h3>
-                    <p class="text-xs text-gray-500 mt-2">
-                        {{ number_format($jumlahPiutangBelumLunas ?? 0, 0, ',', '.') }} data belum lunas.
-                    </p>
-                    <a href="{{ route('laporan.piutang') }}" class="text-sm text-red-600 hover:underline mt-3 inline-block">
-                        Laporan piutang
-                    </a>
-                </div>
-
-                <div class="bg-white border rounded-2xl p-5 shadow-sm">
-                    <p class="text-sm text-gray-500">Lewat Jatuh Tempo</p>
-                    <h3 class="text-xl font-bold text-red-700 mt-2">
-                        {{ number_format($jumlahPiutangLewatTempo ?? 0, 0, ',', '.') }} invoice
-                    </h3>
-                    <p class="text-xs text-gray-500 mt-2">
-                        Sisa: Rp {{ number_format($sisaPiutangLewatTempo ?? 0, 0, ',', '.') }}
-                    </p>
-                    <a href="{{ route('piutang.index') }}" class="text-sm text-red-600 hover:underline mt-3 inline-block">
-                        Kelola piutang
-                    </a>
-                </div>
-
-                <div class="bg-white border rounded-2xl p-5 shadow-sm">
                     <p class="text-sm text-gray-500">Invoice Penjualan</p>
                     <h3 class="text-xl font-bold text-gray-900 mt-2">
-                        {{ number_format(($invoiceSistemBerjalan ?? 0) + ($invoiceHistoris ?? 0), 0, ',', '.') }}
+                        {{ $formatAngka(($invoiceSistemBerjalan ?? 0) + ($invoiceHistoris ?? 0)) }}
                     </h3>
                     <p class="text-xs text-gray-500 mt-2">
-                        Sistem: {{ $invoiceSistemBerjalan ?? 0 }} · Historis: {{ $invoiceHistoris ?? 0 }} · Hari ini: {{ $invoiceHariIni ?? 0 }}
+                        Sistem: {{ $formatAngka($invoiceSistemBerjalan ?? 0) }} · Historis: {{ $formatAngka($invoiceHistoris ?? 0) }} · Hari ini: {{ $formatAngka($invoiceHariIni ?? 0) }}
                     </p>
                     <a href="{{ route('invoice-historis.index') }}" class="text-sm text-purple-600 hover:underline mt-3 inline-block">
                         Invoice history
@@ -266,14 +356,40 @@
                 </div>
 
                 <div class="bg-white border rounded-2xl p-5 shadow-sm">
-                    <p class="text-sm text-gray-500">Riwayat Stok Hari Ini</p>
+                    <p class="text-sm text-gray-500">Pembelian Sistem & Historis</p>
                     <h3 class="text-xl font-bold text-gray-900 mt-2">
-                        +{{ number_format($stokMasukHariIni ?? 0, 0, ',', '.') }} / -{{ number_format($stokKeluarHariIni ?? 0, 0, ',', '.') }}
+                        {{ $formatAngka(($pembelianSistemBerjalan ?? 0) + ($pembelianHistoris ?? 0)) }}
                     </h3>
                     <p class="text-xs text-gray-500 mt-2">
-                        Penyesuaian: {{ $penyesuaianStokHariIni ?? 0 }} · Opname: {{ $stockOpnameHariIni ?? 0 }}
+                        Sistem: {{ $formatAngka($pembelianSistemBerjalan ?? 0) }} · Historis: {{ $formatAngka($pembelianHistoris ?? 0) }}
+                    </p>
+                    <a href="{{ route('laporan.pembelian') }}" class="text-sm text-blue-600 hover:underline mt-3 inline-block">
+                        Laporan pembelian
+                    </a>
+                </div>
+
+                <div class="bg-white border rounded-2xl p-5 shadow-sm">
+                    <p class="text-sm text-gray-500">Riwayat Stok Hari Ini</p>
+                    <h3 class="text-xl font-bold text-gray-900 mt-2">
+                        +{{ $formatAngka($stokMasukHariIni ?? 0) }} / -{{ $formatAngka($stokKeluarHariIni ?? 0) }}
+                    </h3>
+                    <p class="text-xs text-gray-500 mt-2">
+                        Netto: {{ ($nettoPerubahanStokHariIni ?? 0) > 0 ? '+' : '' }}{{ $formatAngka($nettoPerubahanStokHariIni ?? 0) }} · Penyesuaian: {{ $formatAngka($penyesuaianStokHariIni ?? 0) }}
                     </p>
                     <a href="{{ route('laporan.riwayatStok') }}" class="text-sm text-blue-600 hover:underline mt-3 inline-block">
+                        Laporan riwayat stok
+                    </a>
+                </div>
+
+                <div class="bg-white border rounded-2xl p-5 shadow-sm">
+                    <p class="text-sm text-gray-500">Status PPN Barang</p>
+                    <h3 class="text-xl font-bold text-gray-900 mt-2">
+                        {{ $formatAngka($totalBarangKenaPpn ?? 0) }} kena PPN
+                    </h3>
+                    <p class="text-xs text-gray-500 mt-2">
+                        Non PPN: {{ $formatAngka($totalBarangNonPpn ?? 0) }} barang
+                    </p>
+                    <a href="{{ route('laporan.stokBarang') }}" class="text-sm text-blue-600 hover:underline mt-3 inline-block">
                         Laporan stok
                     </a>
                 </div>
@@ -286,29 +402,29 @@
                             Konsistensi Fitur Sistem
                         </h3>
                         <p class="text-sm text-gray-500 mt-1 max-w-3xl">
-                            Dashboard ini menampilkan konteks fitur terbaru: invoice historis, stok opname, pembelian sebagian/belum dikirim, pajak tampil saja, piutang kredit, serta perhitungan harga normal dan isi kemasan.
+                            Bagian ini membantu admin melihat fitur penting yang sudah disesuaikan: invoice historis tetap masuk laporan, transaksi historis tidak mengubah stok, pembelian bisa lengkap/sebagian/belum dikirim, dan stock opname tercatat sebagai audit trail.
                         </p>
                     </div>
 
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                         <div class="rounded-xl bg-purple-50 px-4 py-3">
-                            <p class="text-gray-500">Pembelian Historis</p>
-                            <p class="font-bold text-purple-700">{{ $pembelianHistoris ?? 0 }}</p>
+                            <p class="text-gray-500">Invoice Historis</p>
+                            <p class="font-bold text-purple-700">{{ $formatAngka($invoiceHistoris ?? 0) }}</p>
                         </div>
 
                         <div class="rounded-xl bg-blue-50 px-4 py-3">
-                            <p class="text-gray-500">Pembelian Sistem</p>
-                            <p class="font-bold text-blue-700">{{ $pembelianSistemBerjalan ?? 0 }}</p>
+                            <p class="text-gray-500">Pembelian Historis</p>
+                            <p class="font-bold text-blue-700">{{ $formatAngka($pembelianHistoris ?? 0) }}</p>
                         </div>
 
                         <div class="rounded-xl bg-orange-50 px-4 py-3">
                             <p class="text-gray-500">Tidak Ubah Stok</p>
-                            <p class="font-bold text-orange-700">{{ $pembelianTidakMempengaruhiStok ?? 0 }}</p>
+                            <p class="font-bold text-orange-700">{{ $formatAngka($pembelianTidakMempengaruhiStok ?? 0) }}</p>
                         </div>
 
                         <div class="rounded-xl bg-green-50 px-4 py-3">
                             <p class="text-gray-500">Ubah Stok</p>
-                            <p class="font-bold text-green-700">{{ $pembelianMempengaruhiStok ?? 0 }}</p>
+                            <p class="font-bold text-green-700">{{ $formatAngka($pembelianMempengaruhiStok ?? 0) }}</p>
                         </div>
                     </div>
                 </div>
@@ -344,11 +460,9 @@
                                 <strong class="text-gray-900">Rp {{ $totalGrafik }}</strong>
                             </div>
 
-                            <progress
-                                value="{{ $item->total }}"
-                                max="{{ $maxGrafik }}"
-                                class="w-full h-3">
-                            </progress>
+                            <div class="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+                                <progress value="{{ $item->total }}" max="{{ $maxGrafik }}" class="w-full h-3 block"></progress>
+                            </div>
                         </div>
                         @empty
                         <div class="text-sm text-gray-500 py-6 text-center border rounded-xl">
@@ -379,19 +493,19 @@
                         @php
                         $tipePerhitungan = $item->tipe_perhitungan_harga ?? 'normal';
                         @endphp
-                        <div class="flex items-center justify-between py-2 border-b last:border-b-0">
+                        <div class="flex items-center justify-between py-2 border-b last:border-b-0 gap-3">
                             <div>
                                 <p class="font-semibold text-sm text-gray-900">
                                     {{ $item->nama_barang }}
                                 </p>
                                 <p class="text-xs text-gray-500">
-                                    {{ $item->kode_barang }} · {{ strtoupper($item->satuan ?? '-') }} · {{ $tipePerhitungan === 'isi_kemasan' ? 'Isi Kemasan' : 'Normal' }}
+                                    {{ $item->kode_barang }} · {{ strtoupper($item->satuan ?? '-') }} · {{ $tipePerhitungan === 'isi_kemasan' ? 'Isi Kemasan' : 'Normal' }} · {{ ($item->kena_ppn ?? true) ? 'PPN' : 'Non PPN' }}
                                 </p>
                             </div>
 
                             <div class="text-right">
-                                <p class="font-bold {{ $item->stok_saat_ini <= $batasStokRendah ? 'text-red-600' : 'text-gray-900' }}">
-                                    {{ number_format($item->stok_saat_ini, 0, ',', '.') }}
+                                <p class="font-bold {{ $item->stok_saat_ini <= 0 ? 'text-red-700' : ($item->stok_saat_ini <= $batasStokRendah ? 'text-yellow-700' : 'text-gray-900') }}">
+                                    {{ $formatAngka($item->stok_saat_ini) }}
                                 </p>
                                 <p class="text-xs text-gray-500">stok</p>
                             </div>
@@ -425,15 +539,15 @@
                     <div class="space-y-3">
                         <div class="flex justify-between border-b pb-2">
                             <span class="text-sm text-gray-600">Lengkap</span>
-                            <strong class="text-green-700">{{ number_format($pembelianLengkap ?? 0, 0, ',', '.') }}</strong>
+                            <strong class="text-green-700">{{ $formatAngka($pembelianLengkap ?? 0) }}</strong>
                         </div>
                         <div class="flex justify-between border-b pb-2">
                             <span class="text-sm text-gray-600">Sebagian</span>
-                            <strong class="text-yellow-700">{{ number_format($pembelianSebagian ?? 0, 0, ',', '.') }}</strong>
+                            <strong class="text-yellow-700">{{ $formatAngka($pembelianSebagian ?? 0) }}</strong>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-sm text-gray-600">Belum Dikirim</span>
-                            <strong class="text-red-700">{{ number_format($pembelianBelumDikirim ?? 0, 0, ',', '.') }}</strong>
+                            <strong class="text-red-700">{{ $formatAngka($pembelianBelumDikirim ?? 0) }}</strong>
                         </div>
                     </div>
                 </div>
@@ -457,16 +571,16 @@
                     <div class="grid grid-cols-2 gap-3 mb-4">
                         <div class="rounded-xl bg-gray-50 p-3">
                             <p class="text-xs text-gray-500">Barang Normal</p>
-                            <p class="text-xl font-bold text-gray-900">{{ number_format($totalBarangNormal ?? 0, 0, ',', '.') }}</p>
+                            <p class="text-xl font-bold text-gray-900">{{ $formatAngka($totalBarangNormal ?? 0) }}</p>
                         </div>
                         <div class="rounded-xl bg-purple-50 p-3">
                             <p class="text-xs text-gray-500">Isi Kemasan</p>
-                            <p class="text-xl font-bold text-purple-700">{{ number_format($totalBarangIsiKemasan ?? 0, 0, ',', '.') }}</p>
+                            <p class="text-xl font-bold text-purple-700">{{ $formatAngka($totalBarangIsiKemasan ?? 0) }}</p>
                         </div>
                     </div>
 
                     <p class="text-xs text-gray-500">
-                        Detail penjualan: normal {{ number_format($detailPenjualanNormal ?? 0, 0, ',', '.') }} baris, isi kemasan {{ number_format($detailPenjualanIsiKemasan ?? 0, 0, ',', '.') }} baris.
+                        Detail penjualan: normal {{ $formatAngka($detailPenjualanNormal ?? 0) }} baris, isi kemasan {{ $formatAngka($detailPenjualanIsiKemasan ?? 0) }} baris.
                     </p>
                 </div>
 
@@ -489,23 +603,419 @@
                     <div class="space-y-3">
                         <div>
                             <p class="text-xs text-gray-500">Estimasi Nilai Stok</p>
-                            <p class="font-bold text-gray-900">Rp {{ number_format($totalNilaiStok ?? 0, 0, ',', '.') }}</p>
+                            <p class="font-bold text-gray-900">{{ $formatRupiah($totalNilaiStok ?? 0) }}</p>
                         </div>
                         <div>
                             <p class="text-xs text-gray-500">Estimasi Nilai Jual</p>
-                            <p class="font-bold text-green-700">Rp {{ number_format($totalEstimasiNilaiJual ?? 0, 0, ',', '.') }}</p>
+                            <p class="font-bold text-green-700">{{ $formatRupiah($totalEstimasiNilaiJual ?? 0) }}</p>
                         </div>
                         <div>
                             <p class="text-xs text-gray-500">Estimasi Margin Kotor</p>
-                            <p class="font-bold {{ $totalPotensiMargin >= 0 ? 'text-blue-700' : 'text-red-700' }}">
-                                Rp {{ number_format($totalPotensiMargin, 0, ',', '.') }}
+                            <p class="font-bold {{ ($totalPotensiMargin ?? 0) >= 0 ? 'text-blue-700' : 'text-red-700' }}">
+                                {{ $formatRupiah($totalPotensiMargin ?? 0) }}
                             </p>
                         </div>
                     </div>
                 </div>
             </div>
 
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                <div class="bg-white border rounded-2xl shadow-sm p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="font-bold text-gray-900">
+                                Piutang Mendekati Tempo
+                            </h3>
+                            <p class="text-sm text-gray-500">
+                                Piutang belum lunas sampai 7 hari ke depan.
+                            </p>
+                        </div>
+
+                        <a href="{{ route('piutang.index') }}" class="text-sm text-blue-600 hover:underline">
+                            Lihat
+                        </a>
+                    </div>
+
+                    <div class="space-y-3">
+                        @forelse ($piutangJatuhTempo as $item)
+                        @php
+                        $isHistoris = (bool) ($item->penjualan->is_historical ?? false);
+                        $lewatTempo = $item->tanggal_jatuh_tempo && $item->tanggal_jatuh_tempo->isPast();
+                        $invoiceTampil = $isHistoris && !empty($item->penjualan->nomor_dokumen_asli)
+                        ? $item->penjualan->nomor_dokumen_asli
+                        : $item->nomor_invoice;
+                        @endphp
+                        <div class="py-2 border-b last:border-b-0">
+                            <div class="flex justify-between gap-3">
+                                <div>
+                                    <a href="{{ route('piutang.show', $item->id_piutang) }}" class="font-semibold text-sm text-gray-900 hover:underline">
+                                        {{ $invoiceTampil }}
+                                    </a>
+                                    <p class="text-xs text-gray-500">
+                                        {{ $item->customer->nama_customer ?? '-' }} · {{ $isHistoris ? 'Historis' : 'Sistem' }}
+                                    </p>
+                                </div>
+
+                                <div class="text-right">
+                                    <p class="font-bold text-red-600 text-sm">
+                                        {{ $formatRupiah($item->sisa_piutang) }}
+                                    </p>
+                                    <p class="text-xs {{ $lewatTempo ? 'text-red-600 font-semibold' : 'text-gray-500' }}">
+                                        {{ $item->tanggal_jatuh_tempo ? $item->tanggal_jatuh_tempo->format('d-m-Y') : '-' }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        @empty
+                        <div class="text-sm text-gray-500 py-6 text-center border rounded-xl">
+                            Tidak ada piutang mendekati jatuh tempo.
+                        </div>
+                        @endforelse
+                    </div>
+                </div>
+
+                <div class="bg-white border rounded-2xl shadow-sm p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="font-bold text-gray-900">
+                                Pembelian Belum Selesai
+                            </h3>
+                            <p class="text-sm text-gray-500">
+                                Pembelian dengan status sebagian atau belum dikirim.
+                            </p>
+                        </div>
+
+                        <a href="{{ route('laporan.pembelian') }}" class="text-sm text-blue-600 hover:underline">
+                            Detail
+                        </a>
+                    </div>
+
+                    <div class="space-y-3">
+                        @forelse ($pembelianBelumSelesai as $item)
+                        @php
+                        $isHistoris = (bool) ($item->is_historical ?? false);
+                        $dokumenTampil = $nomorPembelianTampil($item);
+                        $statusText = $statusPenerimaanText($item->status_penerimaan ?? 'lengkap');
+                        @endphp
+                        <div class="flex justify-between gap-3 py-2 border-b last:border-b-0">
+                            <div>
+                                <p class="text-sm font-semibold text-gray-900">
+                                    {{ $dokumenTampil }}
+                                </p>
+                                <p class="text-xs text-gray-500">
+                                    {{ $item->supplier->nama_supplier ?? '-' }} · {{ $isHistoris ? 'Historis' : 'Sistem' }}
+                                </p>
+                            </div>
+
+                            <div class="text-right">
+                                <p class="text-sm font-bold {{ ($item->status_penerimaan ?? '') === 'belum_dikirim' ? 'text-red-700' : 'text-yellow-700' }}">
+                                    {{ $statusText }}
+                                </p>
+                                <p class="text-xs text-gray-500">
+                                    {{ $item->tanggal_pembelian ? $item->tanggal_pembelian->format('d-m-Y') : '-' }}
+                                </p>
+                            </div>
+                        </div>
+                        @empty
+                        <div class="text-sm text-gray-500 py-6 text-center border rounded-xl">
+                            Tidak ada pembelian yang belum selesai.
+                        </div>
+                        @endforelse
+                    </div>
+                </div>
+
+                <div class="bg-white border rounded-2xl shadow-sm p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="font-bold text-gray-900">
+                                Stock Opname Terbaru
+                            </h3>
+                            <p class="text-sm text-gray-500">
+                                Hasil opname terbaru dari halaman stock opname.
+                            </p>
+                        </div>
+
+                        <a href="{{ route('riwayat-stok.index', ['tipe_riwayat' => 'opname']) }}" class="text-sm text-blue-600 hover:underline">
+                            Lihat
+                        </a>
+                    </div>
+
+                    <div class="space-y-3">
+                        @forelse ($stockOpnameTerbaru as $item)
+                        @php
+                        $selisih = (int) ($item->stok_sesudah ?? 0) - (int) ($item->stok_sebelum ?? 0);
+                        @endphp
+                        <div class="flex justify-between gap-3 py-2 border-b last:border-b-0">
+                            <div>
+                                <p class="text-sm font-semibold text-gray-900">
+                                    {{ $item->barang->nama_barang ?? '-' }}
+                                </p>
+                                <p class="text-xs text-gray-500">
+                                    {{ $item->sumber_transaksi ?? '-' }}
+                                </p>
+                            </div>
+
+                            <div class="text-right">
+                                <p class="text-sm font-bold {{ $selisih > 0 ? 'text-green-700' : ($selisih < 0 ? 'text-red-700' : 'text-gray-700') }}">
+                                    {{ $selisih > 0 ? '+' : '' }}{{ $formatAngka($selisih) }}
+                                </p>
+                                <p class="text-xs text-gray-500">
+                                    {{ $item->tanggal ? $item->tanggal->format('d-m-Y') : '-' }}
+                                </p>
+                            </div>
+                        </div>
+                        @empty
+                        <div class="text-sm text-gray-500 py-6 text-center border rounded-xl">
+                            Belum ada stock opname.
+                        </div>
+                        @endforelse
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                <div class="bg-white border rounded-2xl shadow-sm p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="font-bold text-gray-900">
+                                Transaksi Penjualan Terbaru
+                            </h3>
+                            <p class="text-sm text-gray-500">
+                                Nomor historis tampil memakai dokumen asli.
+                            </p>
+                        </div>
+
+                        <a href="{{ route('penjualan.index') }}" class="text-sm text-blue-600 hover:underline">
+                            Lihat
+                        </a>
+                    </div>
+
+                    <div class="space-y-3">
+                        @forelse ($penjualanTerbaru as $item)
+                        @php
+                        $isHistoris = (bool) ($item->is_historical ?? false);
+                        $invoiceTampil = $nomorPenjualanTampil($item);
+                        @endphp
+                        <div class="flex justify-between gap-3 py-2 border-b last:border-b-0">
+                            <div>
+                                <p class="text-sm font-semibold text-gray-900">
+                                    {{ $invoiceTampil }}
+                                </p>
+                                <p class="text-xs text-gray-500">
+                                    {{ $item->customer->nama_customer ?? '-' }} · {{ $isHistoris ? 'Historis' : ucfirst($item->metode_pembayaran ?? '-') }}
+                                </p>
+                            </div>
+
+                            <div class="text-right">
+                                <p class="text-sm font-bold text-gray-900">
+                                    {{ $formatRupiah($item->total_akhir) }}
+                                </p>
+                                <p class="text-xs text-gray-500">
+                                    {{ $item->tanggal_penjualan ? $item->tanggal_penjualan->format('d-m-Y') : '-' }}
+                                </p>
+                            </div>
+                        </div>
+                        @empty
+                        <div class="text-sm text-gray-500 py-6 text-center border rounded-xl">
+                            Belum ada penjualan.
+                        </div>
+                        @endforelse
+                    </div>
+                </div>
+
+                <div class="bg-white border rounded-2xl shadow-sm p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="font-bold text-gray-900">
+                                Transaksi Pembelian Terbaru
+                            </h3>
+                            <p class="text-sm text-gray-500">
+                                Nomor historis tampil memakai dokumen asli.
+                            </p>
+                        </div>
+
+                        <a href="{{ route('pembelian.index') }}" class="text-sm text-blue-600 hover:underline">
+                            Lihat
+                        </a>
+                    </div>
+
+                    <div class="space-y-3">
+                        @forelse ($pembelianTerbaru as $item)
+                        @php
+                        $isHistoris = (bool) ($item->is_historical ?? false);
+                        $dokumenTampil = $nomorPembelianTampil($item);
+                        $statusText = $statusPenerimaanText($item->status_penerimaan ?? 'lengkap');
+                        @endphp
+                        <div class="flex justify-between gap-3 py-2 border-b last:border-b-0">
+                            <div>
+                                <p class="text-sm font-semibold text-gray-900">
+                                    {{ $dokumenTampil }}
+                                </p>
+                                <p class="text-xs text-gray-500">
+                                    {{ $item->supplier->nama_supplier ?? '-' }} · {{ $isHistoris ? 'Historis' : $statusText }}
+                                </p>
+                            </div>
+
+                            <div class="text-right">
+                                <p class="text-sm font-bold text-gray-900">
+                                    {{ $formatRupiah($item->total_akhir) }}
+                                </p>
+                                <p class="text-xs text-gray-500">
+                                    {{ $item->tanggal_pembelian ? $item->tanggal_pembelian->format('d-m-Y') : '-' }}
+                                </p>
+                            </div>
+                        </div>
+                        @empty
+                        <div class="text-sm text-gray-500 py-6 text-center border rounded-xl">
+                            Belum ada pembelian.
+                        </div>
+                        @endforelse
+                    </div>
+                </div>
+
+                <div class="bg-white border rounded-2xl shadow-sm p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="font-bold text-gray-900">
+                                Riwayat Stok Terbaru
+                            </h3>
+                            <p class="text-sm text-gray-500">
+                                Aktivitas stok dari pembelian, penjualan, dan stock opname.
+                            </p>
+                        </div>
+
+                        <a href="{{ route('riwayat-stok.index') }}" class="text-sm text-blue-600 hover:underline">
+                            Lihat
+                        </a>
+                    </div>
+
+                    <div class="space-y-3">
+                        @forelse ($riwayatStokTerbaru as $item)
+                        @php
+                        $jenis = $item->jenis_pergerakan ?? '-';
+                        $jenisClass = match ($jenis) {
+                        'masuk' => 'text-green-700',
+                        'keluar' => 'text-red-700',
+                        default => 'text-yellow-700',
+                        };
+                        $isOpname = str_starts_with((string) $item->sumber_transaksi, 'STOCK-OPNAME');
+                        $selisih = (int) ($item->stok_sesudah ?? 0) - (int) ($item->stok_sebelum ?? 0);
+                        @endphp
+                        <div class="flex justify-between gap-3 py-2 border-b last:border-b-0">
+                            <div>
+                                <p class="text-sm font-semibold text-gray-900">
+                                    {{ $item->barang->nama_barang ?? '-' }}
+                                </p>
+                                <p class="text-xs text-gray-500">
+                                    {{ $item->sumber_transaksi ?? '-' }} · {{ $isOpname ? 'Opname' : 'Transaksi' }}
+                                </p>
+                            </div>
+
+                            <div class="text-right">
+                                <p class="text-sm font-bold {{ $jenisClass }}">
+                                    {{ ucfirst($jenis) }} {{ $formatAngka($item->jumlah ?? 0) }}
+                                </p>
+                                <p class="text-xs text-gray-500">
+                                    Selisih: {{ $selisih > 0 ? '+' : '' }}{{ $formatAngka($selisih) }}
+                                </p>
+                            </div>
+                        </div>
+                        @empty
+                        <div class="text-sm text-gray-500 py-6 text-center border rounded-xl">
+                            Belum ada riwayat stok.
+                        </div>
+                        @endforelse
+                    </div>
+                </div>
+            </div>
+
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="bg-white border rounded-2xl shadow-sm p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="font-bold text-gray-900">
+                                Barang Isi Kemasan
+                            </h3>
+                            <p class="text-sm text-gray-500">
+                                Barang yang harga jualnya dihitung per isi kemasan.
+                            </p>
+                        </div>
+
+                        <a href="{{ route('barang.index') }}" class="text-sm text-blue-600 hover:underline">
+                            Lihat
+                        </a>
+                    </div>
+
+                    <div class="space-y-3">
+                        @forelse ($barangIsiKemasan as $item)
+                        <div class="flex justify-between gap-3 py-2 border-b last:border-b-0">
+                            <div>
+                                <p class="text-sm font-semibold text-gray-900">
+                                    {{ $item->nama_barang }}
+                                </p>
+                                <p class="text-xs text-gray-500">
+                                    1 {{ strtoupper($item->satuan ?? '-') }} = {{ $formatDesimal($item->isi_per_satuan ?? 1) }} {{ strtoupper($item->satuan_hitung_harga ?? $item->satuan ?? '-') }}
+                                </p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm font-bold text-gray-900">
+                                    {{ $formatRupiah($item->harga_jual_default ?? 0) }}
+                                </p>
+                                <p class="text-xs text-gray-500">
+                                    / {{ strtoupper($item->satuan_hitung_harga ?? $item->satuan ?? '-') }}
+                                </p>
+                            </div>
+                        </div>
+                        @empty
+                        <div class="text-sm text-gray-500 py-6 text-center border rounded-xl">
+                            Belum ada barang isi kemasan.
+                        </div>
+                        @endforelse
+                    </div>
+                </div>
+
+                <div class="bg-white border rounded-2xl shadow-sm p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="font-bold text-gray-900">
+                                Barang Non PPN
+                            </h3>
+                            <p class="text-sm text-gray-500">
+                                Contoh barang yang tidak dikenakan PPN.
+                            </p>
+                        </div>
+
+                        <a href="{{ route('laporan.stokBarang', ['status_ppn' => 'non_ppn']) }}" class="text-sm text-blue-600 hover:underline">
+                            Detail
+                        </a>
+                    </div>
+
+                    <div class="space-y-3">
+                        @forelse ($barangNonPpn as $item)
+                        <div class="flex justify-between gap-3 py-2 border-b last:border-b-0">
+                            <div>
+                                <p class="text-sm font-semibold text-gray-900">
+                                    {{ $item->nama_barang }}
+                                </p>
+                                <p class="text-xs text-gray-500">
+                                    {{ $item->kode_barang }} · {{ strtoupper($item->satuan ?? '-') }}
+                                </p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm font-bold text-gray-900">
+                                    {{ $formatAngka($item->stok_saat_ini ?? 0) }}
+                                </p>
+                                <p class="text-xs text-gray-500">stok</p>
+                            </div>
+                        </div>
+                        @empty
+                        <div class="text-sm text-gray-500 py-6 text-center border rounded-xl">
+                            Belum ada barang non PPN.
+                        </div>
+                        @endforelse
+                    </div>
+                </div>
+
                 <div class="bg-white border rounded-2xl shadow-sm p-5">
                     <div class="flex items-center justify-between mb-4">
                         <div>
@@ -549,256 +1059,6 @@
                         @empty
                         <div class="text-sm text-gray-500 py-6 text-center border rounded-xl">
                             Belum ada data customer.
-                        </div>
-                        @endforelse
-                    </div>
-                </div>
-
-                <div class="bg-white border rounded-2xl shadow-sm p-5">
-                    <div class="flex items-center justify-between mb-4">
-                        <div>
-                            <h3 class="font-bold text-gray-900">
-                                Piutang Mendekati Tempo
-                            </h3>
-                            <p class="text-sm text-gray-500">
-                                Piutang belum lunas sampai 7 hari ke depan.
-                            </p>
-                        </div>
-
-                        <a href="{{ route('piutang.index') }}" class="text-sm text-blue-600 hover:underline">
-                            Lihat
-                        </a>
-                    </div>
-
-                    <div class="space-y-3">
-                        @forelse ($piutangJatuhTempo as $item)
-                        @php
-                        $isHistoris = (bool) ($item->penjualan->is_historical ?? false);
-                        $lewatTempo = $item->tanggal_jatuh_tempo && $item->tanggal_jatuh_tempo->isPast();
-                        @endphp
-                        <div class="py-2 border-b last:border-b-0">
-                            <div class="flex justify-between gap-3">
-                                <div>
-                                    <a href="{{ route('piutang.show', $item->id_piutang) }}" class="font-semibold text-sm text-gray-900 hover:underline">
-                                        {{ $item->nomor_invoice }}
-                                    </a>
-                                    <p class="text-xs text-gray-500">
-                                        {{ $item->customer->nama_customer ?? '-' }} · {{ $isHistoris ? 'Historis' : 'Sistem' }}
-                                    </p>
-                                </div>
-
-                                <div class="text-right">
-                                    <p class="font-bold text-red-600 text-sm">
-                                        Rp {{ number_format($item->sisa_piutang, 0, ',', '.') }}
-                                    </p>
-                                    <p class="text-xs {{ $lewatTempo ? 'text-red-600 font-semibold' : 'text-gray-500' }}">
-                                        {{ $item->tanggal_jatuh_tempo ? $item->tanggal_jatuh_tempo->format('d-m-Y') : '-' }}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                        @empty
-                        <div class="text-sm text-gray-500 py-6 text-center border rounded-xl">
-                            Tidak ada piutang mendekati jatuh tempo.
-                        </div>
-                        @endforelse
-                    </div>
-                </div>
-
-                <div class="bg-white border rounded-2xl shadow-sm p-5">
-                    <div class="mb-4">
-                        <h3 class="font-bold text-gray-900">
-                            Transaksi Terbaru
-                        </h3>
-                        <p class="text-sm text-gray-500">
-                            Ringkasan aktivitas penjualan dan pembelian terakhir.
-                        </p>
-                    </div>
-
-                    <div class="space-y-4">
-                        <div>
-                            <div class="flex justify-between items-center mb-2">
-                                <p class="font-semibold text-sm text-gray-700">
-                                    Penjualan
-                                </p>
-                                <a href="{{ route('penjualan.index') }}" class="text-xs text-blue-600 hover:underline">
-                                    Lihat
-                                </a>
-                            </div>
-
-                            @forelse ($penjualanTerbaru->take(3) as $item)
-                            @php
-                            $isHistoris = (bool) ($item->is_historical ?? false);
-                            @endphp
-                            <div class="flex justify-between gap-3 py-2 border-b last:border-b-0">
-                                <div>
-                                    <p class="text-sm font-semibold text-gray-900">
-                                        {{ $item->nomor_invoice }}
-                                    </p>
-                                    <p class="text-xs text-gray-500">
-                                        {{ $item->customer->nama_customer ?? '-' }} · {{ $isHistoris ? 'Historis' : ucfirst($item->metode_pembayaran ?? '-') }}
-                                    </p>
-                                </div>
-
-                                <div class="text-right">
-                                    <p class="text-sm font-bold text-gray-900">
-                                        Rp {{ number_format($item->total_akhir, 0, ',', '.') }}
-                                    </p>
-                                    <p class="text-xs text-gray-500">
-                                        {{ $item->tanggal_penjualan ? $item->tanggal_penjualan->format('d-m-Y') : '-' }}
-                                    </p>
-                                </div>
-                            </div>
-                            @empty
-                            <p class="text-sm text-gray-500">
-                                Belum ada penjualan.
-                            </p>
-                            @endforelse
-                        </div>
-
-                        <div>
-                            <div class="flex justify-between items-center mb-2">
-                                <p class="font-semibold text-sm text-gray-700">
-                                    Pembelian
-                                </p>
-                                <a href="{{ route('pembelian.index') }}" class="text-xs text-blue-600 hover:underline">
-                                    Lihat
-                                </a>
-                            </div>
-
-                            @forelse ($pembelianTerbaru->take(3) as $item)
-                            @php
-                            $isHistoris = (bool) ($item->is_historical ?? false);
-                            $statusPenerimaan = $item->status_penerimaan ?? 'lengkap';
-                            $statusText = match ($statusPenerimaan) {
-                            'sebagian' => 'Sebagian',
-                            'belum_dikirim' => 'Belum Dikirim',
-                            default => 'Lengkap',
-                            };
-                            @endphp
-                            <div class="flex justify-between gap-3 py-2 border-b last:border-b-0">
-                                <div>
-                                    <p class="text-sm font-semibold text-gray-900">
-                                        {{ $item->nomor_pembelian }}
-                                    </p>
-                                    <p class="text-xs text-gray-500">
-                                        {{ $item->supplier->nama_supplier ?? '-' }} · {{ $isHistoris ? 'Historis' : $statusText }}
-                                    </p>
-                                </div>
-
-                                <div class="text-right">
-                                    <p class="text-sm font-bold text-gray-900">
-                                        Rp {{ number_format($item->total_akhir, 0, ',', '.') }}
-                                    </p>
-                                    <p class="text-xs text-gray-500">
-                                        {{ $item->tanggal_pembelian ? $item->tanggal_pembelian->format('d-m-Y') : '-' }}
-                                    </p>
-                                </div>
-                            </div>
-                            @empty
-                            <p class="text-sm text-gray-500">
-                                Belum ada pembelian.
-                            </p>
-                            @endforelse
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-                <div class="bg-white border rounded-2xl shadow-sm p-5">
-                    <div class="flex items-center justify-between mb-4">
-                        <div>
-                            <h3 class="font-bold text-gray-900">
-                                Barang Isi Kemasan
-                            </h3>
-                            <p class="text-sm text-gray-500">
-                                Contoh barang yang harga jualnya dihitung per isi kemasan.
-                            </p>
-                        </div>
-
-                        <a href="{{ route('barang.index') }}" class="text-sm text-blue-600 hover:underline">
-                            Lihat
-                        </a>
-                    </div>
-
-                    <div class="space-y-3">
-                        @forelse ($barangIsiKemasan as $item)
-                        <div class="flex justify-between gap-3 py-2 border-b last:border-b-0">
-                            <div>
-                                <p class="text-sm font-semibold text-gray-900">
-                                    {{ $item->nama_barang }}
-                                </p>
-                                <p class="text-xs text-gray-500">
-                                    1 {{ strtoupper($item->satuan ?? '-') }} = {{ rtrim(rtrim(number_format((float) ($item->isi_per_satuan ?? 1), 3, ',', '.'), '0'), ',') }} {{ strtoupper($item->satuan_hitung_harga ?? $item->satuan ?? '-') }}
-                                </p>
-                            </div>
-                            <div class="text-right">
-                                <p class="text-sm font-bold text-gray-900">
-                                    Rp {{ number_format($item->harga_jual_default ?? 0, 0, ',', '.') }}
-                                </p>
-                                <p class="text-xs text-gray-500">
-                                    / {{ strtoupper($item->satuan_hitung_harga ?? $item->satuan ?? '-') }}
-                                </p>
-                            </div>
-                        </div>
-                        @empty
-                        <div class="text-sm text-gray-500 py-6 text-center border rounded-xl">
-                            Belum ada barang isi kemasan.
-                        </div>
-                        @endforelse
-                    </div>
-                </div>
-
-                <div class="bg-white border rounded-2xl shadow-sm p-5">
-                    <div class="flex items-center justify-between mb-4">
-                        <div>
-                            <h3 class="font-bold text-gray-900">
-                                Riwayat Stok Terbaru
-                            </h3>
-                            <p class="text-sm text-gray-500">
-                                Aktivitas stok dari pembelian, penjualan, dan stock opname.
-                            </p>
-                        </div>
-
-                        <a href="{{ route('riwayat-stok.index') }}" class="text-sm text-blue-600 hover:underline">
-                            Lihat
-                        </a>
-                    </div>
-
-                    <div class="space-y-3">
-                        @forelse ($riwayatStokTerbaru as $item)
-                        @php
-                        $jenis = $item->jenis_pergerakan ?? '-';
-                        $jenisClass = match ($jenis) {
-                        'masuk' => 'text-green-700',
-                        'keluar' => 'text-red-700',
-                        default => 'text-yellow-700',
-                        };
-                        $isOpname = str_starts_with((string) $item->sumber_transaksi, 'STOCK-OPNAME');
-                        @endphp
-                        <div class="flex justify-between gap-3 py-2 border-b last:border-b-0">
-                            <div>
-                                <p class="text-sm font-semibold text-gray-900">
-                                    {{ $item->barang->nama_barang ?? '-' }}
-                                </p>
-                                <p class="text-xs text-gray-500">
-                                    {{ $item->sumber_transaksi ?? '-' }} · {{ $isOpname ? 'Opname' : 'Transaksi' }}
-                                </p>
-                            </div>
-
-                            <div class="text-right">
-                                <p class="text-sm font-bold {{ $jenisClass }}">
-                                    {{ ucfirst($jenis) }} {{ number_format($item->jumlah ?? 0, 0, ',', '.') }}
-                                </p>
-                                <p class="text-xs text-gray-500">
-                                    {{ $item->tanggal ? $item->tanggal->format('d-m-Y') : '-' }}
-                                </p>
-                            </div>
-                        </div>
-                        @empty
-                        <div class="text-sm text-gray-500 py-6 text-center border rounded-xl">
-                            Belum ada riwayat stok.
                         </div>
                         @endforelse
                     </div>

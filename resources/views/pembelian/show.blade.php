@@ -268,9 +268,19 @@
                 margin-top: 1px;
             }
 
+            .text-center {
+                text-align: center;
+            }
+
+            .text-right {
+                text-align: right;
+            }
+
             .total-inline-wrapper {
                 display: flex;
-                justify-content: flex-end;
+                justify-content: space-between;
+                align-items: flex-start;
+                gap: 20px;
                 margin-top: 5px;
                 margin-bottom: 6px;
             }
@@ -335,16 +345,56 @@
 
             .terbilang-stamp-area {
                 position: relative;
-                height: 0;
-                margin: 0;
-                padding: 0;
+                width: 230px;
+                max-width: 100%;
+                min-height: 64px;
+                margin-top: 18px;
+                margin-left: 28px;
                 overflow: visible;
+                flex-shrink: 0;
             }
 
-            .terbilang-stamp-area .stempel-manual {
-                left: 32px;
-                top: 10px;
-                transform: none;
+            .stempel-manual {
+                position: relative;
+                left: 0;
+                top: 0;
+                width: 230px;
+                max-width: 100%;
+                color: var(--stamp-red);
+                background: transparent;
+                text-align: center;
+                font-family: "Times New Roman", serif;
+                opacity: 0.90;
+                z-index: 8;
+                pointer-events: none;
+            }
+
+            .stempel-content {
+                position: relative;
+                z-index: 2;
+            }
+
+            .stempel-company {
+                font-size: 14px;
+                font-weight: 800;
+                line-height: 1.1;
+            }
+
+            .stempel-bank {
+                font-size: 12px;
+                font-weight: 700;
+                line-height: 1.2;
+                margin-bottom: 5px;
+            }
+
+            .stempel-bank:last-child {
+                margin-bottom: 0;
+            }
+
+            .stempel-separator {
+                width: 70%;
+                border-top: 1px dashed var(--stamp-red);
+                margin: 5px auto;
             }
 
             .signature-area {
@@ -397,63 +447,6 @@
                 padding: 0 8px;
                 font-size: 10px;
                 color: var(--invoice-muted);
-            }
-
-            .stempel-manual {
-                position: absolute;
-                left: 50%;
-                top: 2px;
-                width: 230px;
-                max-width: 100%;
-                padding: 9px 14px;
-                border: none;
-                color: var(--stamp-red);
-                background: transparent;
-                text-align: center;
-                font-family: "Times New Roman", serif;
-                transform: translateX(-50%) rotate(-7deg);
-                box-sizing: border-box;
-                opacity: 0.90;
-                z-index: 8;
-                pointer-events: none;
-            }
-
-            .stempel-manual::before {
-                display: none;
-                content: none;
-            }
-
-            .stempel-manual::after {
-                display: none;
-                content: none;
-            }
-
-            .stempel-content {
-                position: relative;
-                z-index: 2;
-            }
-
-            .stempel-company {
-                font-size: 14px;
-                font-weight: 800;
-                line-height: 1.1;
-            }
-
-            .stempel-bank {
-                font-size: 12px;
-                font-weight: 700;
-                line-height: 1.2;
-                margin-bottom: 5px;
-            }
-
-            .stempel-bank:last-child {
-                margin-bottom: 0;
-            }
-
-            .stempel-separator {
-                width: 70%;
-                border-top: 1px dashed var(--stamp-red);
-                margin: 5px auto;
             }
 
             @media print {
@@ -542,14 +535,14 @@
                 }
 
                 .company-name {
-                    font-size: 19px !important;
+                    font-size: 22px !important;
                     line-height: 1.08 !important;
                     letter-spacing: 0.7px !important;
                     color: #000000 !important;
                 }
 
                 .company-info {
-                    font-size: 11px !important;
+                    font-size: 12.5px !important;
                     color: #000000 !important;
                     line-height: 1.25 !important;
                     margin-top: 4px !important;
@@ -557,8 +550,8 @@
 
                 .copy-label {
                     right: 0 !important;
-                    font-size: 10px !important;
-                    padding: 3px 8px !important;
+                    font-size: 11px !important;
+                    padding: 3px 9px !important;
                     border-width: 1px !important;
                     border-color: var(--invoice-primary) !important;
                     color: var(--invoice-primary) !important;
@@ -570,18 +563,19 @@
                 }
 
                 .invoice-title {
-                    font-size: 14px !important;
+                    font-size: 16px !important;
                     line-height: 1.2 !important;
                 }
 
-                .invoice-number {
-                    font-size: 10.8px !important;
-                    line-height: 1.2 !important;
-                }
-
-                .invoice-quick-info {
-                    font-size: 10.5px !important;
-                    line-height: 1.25 !important;
+                .invoice-number,
+                .invoice-quick-info,
+                .info-table,
+                .items-table,
+                .total-inline,
+                .terbilang-box,
+                .signature-area {
+                    font-size: 11.8px !important;
+                    line-height: 1.28 !important;
                 }
 
                 .info-grid {
@@ -592,16 +586,11 @@
                 }
 
                 .invoice-section-title {
-                    font-size: 11px !important;
+                    font-size: 12.5px !important;
                     margin-bottom: 3px !important;
                     padding-bottom: 2px !important;
                     color: var(--invoice-primary) !important;
                     border-bottom: 1px solid #000000 !important;
-                }
-
-                .info-table {
-                    font-size: 10.5px !important;
-                    line-height: 1.25 !important;
                 }
 
                 .info-table td {
@@ -614,8 +603,6 @@
                 }
 
                 .items-table {
-                    font-size: 10.3px !important;
-                    line-height: 1.22 !important;
                     border-collapse: collapse !important;
                 }
 
@@ -634,23 +621,25 @@
                 }
 
                 .item-name {
-                    font-size: 10.2px !important;
+                    font-size: 12.2px !important;
                 }
 
-                .item-formula {
-                    font-size: 8.7px !important;
-                    line-height: 1.15 !important;
+                .item-formula,
+                .pajak-note {
+                    font-size: 10px !important;
+                    line-height: 1.2 !important;
                 }
 
                 .total-inline-wrapper {
+                    justify-content: space-between !important;
+                    align-items: flex-start !important;
+                    gap: 14px !important;
                     margin-top: 5px !important;
                     margin-bottom: 5px !important;
                 }
 
                 .total-inline {
                     width: 270px !important;
-                    font-size: 10.2px !important;
-                    line-height: 1.25 !important;
                 }
 
                 .total-inline-row {
@@ -658,7 +647,7 @@
                 }
 
                 .total-inline-total {
-                    font-size: 11.3px !important;
+                    font-size: 13px !important;
                     padding-top: 3px !important;
                     margin-top: 2px !important;
                     border-top: 1.2px solid var(--invoice-primary) !important;
@@ -666,9 +655,6 @@
                 }
 
                 .pajak-note {
-                    font-size: 9px !important;
-                    line-height: 1.18 !important;
-                    margin-top: 1px !important;
                     color: #000000 !important;
                 }
 
@@ -678,30 +664,46 @@
                     gap: 14px !important;
                 }
 
-                .terbilang-box {
-                    font-size: 10.5px !important;
-                    line-height: 1.25 !important;
-                }
-
                 .terbilang-stamp-area {
                     position: relative !important;
-                    height: 0 !important;
-                    margin: 0 !important;
-                    padding: 0 !important;
+                    width: 205px !important;
+                    max-width: 205px !important;
+                    min-height: 76px !important;
+                    margin-top: 16px !important;
+                    margin-left: 8mm !important;
                     overflow: visible !important;
+                    flex-shrink: 0 !important;
                 }
 
-                /* BAGIAN STEMPEL TETAP, TIDAK DIGESER */
-                .terbilang-stamp-area .stempel-manual {
-                    left: 0mm !important;
-                    top: 2mm !important;
-                    transform: none !important;
+                .stempel-manual {
+                    position: relative !important;
+                    left: 0 !important;
+                    top: 0 !important;
+                    width: 205px !important;
+                    color: var(--stamp-red) !important;
+                    background: transparent !important;
+                    opacity: 0.95 !important;
+                    z-index: 8 !important;
+                }
+
+                .stempel-company {
+                    font-size: 14.5px !important;
+                    line-height: 1.08 !important;
+                }
+
+                .stempel-bank {
+                    font-size: 12px !important;
+                    line-height: 1.1 !important;
+                    margin-bottom: 2px !important;
+                }
+
+                .stempel-separator {
+                    margin: 2px auto !important;
+                    border-top: 1px dashed var(--stamp-red) !important;
                 }
 
                 .signature-area {
                     margin-top: 6px !important;
-                    font-size: 10.5px !important;
-                    line-height: 1.25 !important;
                     gap: 16px !important;
                 }
 
@@ -712,43 +714,6 @@
                 .signature-name {
                     margin-top: 34px !important;
                     padding-top: 2px !important;
-                }
-
-                .stempel-manual {
-                    width: 120px !important;
-                    padding: 5px 8px !important;
-                    border: none !important;
-                    color: var(--stamp-red) !important;
-                    background: transparent !important;
-                    opacity: 0.95 !important;
-                    z-index: 8 !important;
-                }
-
-                .stempel-manual::before {
-                    display: none !important;
-                    content: none !important;
-                    border: none !important;
-                }
-
-                .stempel-manual::after {
-                    display: none !important;
-                    content: none !important;
-                }
-
-                .stempel-company {
-                    font-size: 9px !important;
-                    line-height: 1.05 !important;
-                }
-
-                .stempel-bank {
-                    font-size: 7.8px !important;
-                    line-height: 1.08 !important;
-                    margin-bottom: 2px !important;
-                }
-
-                .stempel-separator {
-                    margin: 2px auto !important;
-                    border-top: 1px dashed var(--stamp-red) !important;
                 }
             }
         </style>
@@ -968,6 +933,20 @@
                         </table>
 
                         <div class="total-inline-wrapper">
+                            <div class="terbilang-stamp-area">
+                                <div class="stempel-manual">
+                                    <div class="stempel-content">
+                                        <div class="stempel-company">Berkat</div>
+                                        <div class="stempel-bank">BCA : 5280902227</div>
+
+                                        <div class="stempel-separator"></div>
+
+                                        <div class="stempel-company">Berkat</div>
+                                        <div class="stempel-bank">OCBC NISP : 565 8000 15150</div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="total-inline">
                                 @php
                                 $biayaLainPembelian = (float) ($pembelian->biaya_lain ?? 0);
@@ -1019,20 +998,6 @@
                             </div>
 
                             <div></div>
-                        </div>
-
-                        <div class="terbilang-stamp-area">
-                            <div class="stempel-manual">
-                                <div class="stempel-content">
-                                    <div class="stempel-company">Berkat</div>
-                                    <div class="stempel-bank">BCA : 5280902227</div>
-
-                                    <div class="stempel-separator"></div>
-
-                                    <div class="stempel-company">Berkat</div>
-                                    <div class="stempel-bank">OCBC NISP : 565 8000 15150</div>
-                                </div>
-                            </div>
                         </div>
 
                         <div class="signature-area">

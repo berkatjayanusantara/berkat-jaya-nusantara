@@ -6,7 +6,7 @@
                     Laporan Riwayat Stok
                 </h2>
                 <p class="text-sm text-gray-500 mt-1">
-                    Laporan seluruh pergerakan stok barang dari transaksi masuk, keluar, dan penyesuaian stok.
+                    Laporan seluruh pergerakan stok barang dari pembelian, penjualan, stock opname, dan penyesuaian stok.
                 </p>
             </div>
 
@@ -28,6 +28,7 @@
     $namaPerusahaan = 'CV. BERKAT JAYA NUSANTARA';
     $alamatPerusahaan = 'Jl. Jelambar Utama 1 No. 6A RT. 007 RW. 004, Jakarta Barat 11460';
     $teleponPerusahaan = '(021) 5664892, 5676277';
+    $nettoPerubahan = $totalNettoPerubahan ?? (($totalSelisihPlus ?? 0) - ($totalSelisihMinus ?? 0));
     @endphp
 
     <div class="py-6">
@@ -49,7 +50,7 @@
 
             <div class="bg-white shadow-sm sm:rounded-lg p-6 mb-6">
                 <form method="GET" action="{{ route('laporan.riwayatStok') }}">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-8 gap-4">
                         <div>
                             <label class="block mb-1 font-medium">Tanggal Awal</label>
                             <input type="date"
@@ -72,10 +73,10 @@
                                 class="w-full border-gray-300 rounded-md shadow-sm">
                                 <option value="">Semua Barang</option>
 
-                                @foreach ($barang as $item)
-                                <option value="{{ $item->id_barang }}"
-                                    {{ (string) request('id_barang') === (string) $item->id_barang ? 'selected' : '' }}>
-                                    {{ $item->kode_barang }} - {{ $item->nama_barang }}
+                                @foreach ($barang as $itemBarang)
+                                <option value="{{ $itemBarang->id_barang }}"
+                                    {{ (string) request('id_barang') === (string) $itemBarang->id_barang ? 'selected' : '' }}>
+                                    {{ $itemBarang->kode_barang }} - {{ $itemBarang->nama_barang }}
                                 </option>
                                 @endforeach
                             </select>
@@ -113,11 +114,55 @@
                         </div>
 
                         <div>
+                            <label class="block mb-1 font-medium">Tipe Harga</label>
+                            <select name="tipe_harga"
+                                class="w-full border-gray-300 rounded-md shadow-sm">
+                                <option value="">Semua</option>
+                                <option value="normal" {{ request('tipe_harga') === 'normal' ? 'selected' : '' }}>
+                                    Normal
+                                </option>
+                                <option value="isi_kemasan" {{ request('tipe_harga') === 'isi_kemasan' ? 'selected' : '' }}>
+                                    Isi Kemasan
+                                </option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block mb-1 font-medium">PPN Barang</label>
+                            <select name="status_ppn_barang"
+                                class="w-full border-gray-300 rounded-md shadow-sm">
+                                <option value="">Semua</option>
+                                <option value="kena_ppn" {{ request('status_ppn_barang') === 'kena_ppn' ? 'selected' : '' }}>
+                                    Kena PPN
+                                </option>
+                                <option value="non_ppn" {{ request('status_ppn_barang') === 'non_ppn' ? 'selected' : '' }}>
+                                    Non PPN
+                                </option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block mb-1 font-medium">Status Barang</label>
+                            <select name="status_barang"
+                                class="w-full border-gray-300 rounded-md shadow-sm">
+                                <option value="">Semua</option>
+                                <option value="1" {{ request('status_barang') === '1' ? 'selected' : '' }}>
+                                    Aktif
+                                </option>
+                                <option value="0" {{ request('status_barang') === '0' ? 'selected' : '' }}>
+                                    Nonaktif
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <div>
                             <label class="block mb-1 font-medium">Cari</label>
                             <input type="text"
                                 name="search"
                                 value="{{ request('search') }}"
-                                placeholder="Barang / sumber / keterangan..."
+                                placeholder="Barang / sumber transaksi / keterangan / admin..."
                                 class="w-full border-gray-300 rounded-md shadow-sm">
                         </div>
                     </div>
@@ -136,15 +181,14 @@
                 </form>
             </div>
 
-            @php
-            $nettoPerubahan = ($totalMasuk ?? 0) - ($totalKeluar ?? 0) + ($totalSelisihPlus ?? 0) - ($totalSelisihMinus ?? 0);
-            @endphp
-
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Total Data</p>
                     <p class="text-2xl font-bold">
                         {{ number_format($totalData ?? 0, 0, ',', '.') }}
+                    </p>
+                    <p class="text-xs text-gray-500 mt-1">
+                        Barang unik: {{ number_format($totalBarangUnik ?? 0, 0, ',', '.') }}
                     </p>
                 </div>
 
@@ -153,6 +197,9 @@
                     <p class="text-2xl font-bold text-green-700">
                         +{{ number_format($totalMasuk ?? 0, 0, ',', '.') }}
                     </p>
+                    <p class="text-xs text-gray-500 mt-1">
+                        {{ number_format($totalTransaksiMasuk ?? 0, 0, ',', '.') }} transaksi masuk
+                    </p>
                 </div>
 
                 <div class="bg-white shadow-sm rounded-lg p-4">
@@ -160,19 +207,35 @@
                     <p class="text-2xl font-bold text-red-700">
                         -{{ number_format($totalKeluar ?? 0, 0, ',', '.') }}
                     </p>
+                    <p class="text-xs text-gray-500 mt-1">
+                        {{ number_format($totalTransaksiKeluar ?? 0, 0, ',', '.') }} transaksi keluar
+                    </p>
                 </div>
 
                 <div class="bg-white shadow-sm rounded-lg p-4">
-                    <p class="text-sm text-gray-500">Jumlah Penyesuaian</p>
-                    <p class="text-2xl font-bold text-yellow-700">
-                        {{ number_format($totalPenyesuaian ?? 0, 0, ',', '.') }}
+                    <p class="text-sm text-gray-500">Netto Perubahan Stok</p>
+                    <p class="text-2xl font-bold {{ $nettoPerubahan >= 0 ? 'text-blue-700' : 'text-red-700' }}">
+                        {{ $nettoPerubahan > 0 ? '+' : '' }}{{ number_format($nettoPerubahan, 0, ',', '.') }}
+                    </p>
+                    <p class="text-xs text-gray-500 mt-1">
+                        Selisih stok sesudah - stok sebelum.
                     </p>
                 </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 <div class="bg-white shadow-sm rounded-lg p-4">
-                    <p class="text-sm text-gray-500">Jumlah Stock Opname</p>
+                    <p class="text-sm text-gray-500">Jumlah Penyesuaian</p>
+                    <p class="text-2xl font-bold text-yellow-700">
+                        {{ number_format($totalPenyesuaian ?? 0, 0, ',', '.') }}
+                    </p>
+                    <p class="text-xs text-gray-500 mt-1">
+                        Qty penyesuaian: {{ number_format($totalJumlahPenyesuaian ?? 0, 0, ',', '.') }}
+                    </p>
+                </div>
+
+                <div class="bg-white shadow-sm rounded-lg p-4">
+                    <p class="text-sm text-gray-500">Stock Opname</p>
                     <p class="text-2xl font-bold text-blue-700">
                         {{ number_format($totalOpname ?? 0, 0, ',', '.') }}
                     </p>
@@ -182,26 +245,52 @@
                 </div>
 
                 <div class="bg-white shadow-sm rounded-lg p-4">
-                    <p class="text-sm text-gray-500">Total Selisih Bertambah</p>
+                    <p class="text-sm text-gray-500">Selisih Bertambah</p>
                     <p class="text-2xl font-bold text-green-700">
                         +{{ number_format($totalSelisihPlus ?? 0, 0, ',', '.') }}
                     </p>
                 </div>
 
                 <div class="bg-white shadow-sm rounded-lg p-4">
-                    <p class="text-sm text-gray-500">Total Selisih Berkurang</p>
+                    <p class="text-sm text-gray-500">Selisih Berkurang</p>
                     <p class="text-2xl font-bold text-red-700">
                         -{{ number_format($totalSelisihMinus ?? 0, 0, ',', '.') }}
                     </p>
                 </div>
+            </div>
 
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 <div class="bg-white shadow-sm rounded-lg p-4">
-                    <p class="text-sm text-gray-500">Estimasi Netto Perubahan</p>
-                    <p class="text-2xl font-bold {{ $nettoPerubahan >= 0 ? 'text-blue-700' : 'text-red-700' }}">
-                        {{ $nettoPerubahan > 0 ? '+' : '' }}{{ number_format($nettoPerubahan, 0, ',', '.') }}
+                    <p class="text-sm text-gray-500">Tipe Harga Normal</p>
+                    <p class="text-2xl font-bold">
+                        {{ number_format($totalBarangNormal ?? 0, 0, ',', '.') }}
                     </p>
                     <p class="text-xs text-gray-500 mt-1">
-                        Masuk - keluar + selisih penyesuaian.
+                        Berdasarkan baris riwayat.
+                    </p>
+                </div>
+
+                <div class="bg-white shadow-sm rounded-lg p-4">
+                    <p class="text-sm text-gray-500">Tipe Isi Kemasan</p>
+                    <p class="text-2xl font-bold text-purple-700">
+                        {{ number_format($totalBarangIsiKemasan ?? 0, 0, ',', '.') }}
+                    </p>
+                    <p class="text-xs text-gray-500 mt-1">
+                        Berdasarkan baris riwayat.
+                    </p>
+                </div>
+
+                <div class="bg-white shadow-sm rounded-lg p-4">
+                    <p class="text-sm text-gray-500">Barang Kena PPN</p>
+                    <p class="text-2xl font-bold text-green-700">
+                        {{ number_format($totalBarangKenaPpn ?? 0, 0, ',', '.') }}
+                    </p>
+                </div>
+
+                <div class="bg-white shadow-sm rounded-lg p-4">
+                    <p class="text-sm text-gray-500">Barang Non PPN</p>
+                    <p class="text-2xl font-bold text-gray-700">
+                        {{ number_format($totalBarangNonPpn ?? 0, 0, ',', '.') }}
                     </p>
                 </div>
             </div>
@@ -214,25 +303,31 @@
                                 <th class="border px-3 py-2 text-left">No</th>
                                 <th class="border px-3 py-2 text-left">Tanggal</th>
                                 <th class="border px-3 py-2 text-left">Barang</th>
-                                <th class="border px-3 py-2 text-center">Jenis</th>
-                                <th class="border px-3 py-2 text-center">Tipe</th>
+                                <th class="border px-3 py-2 text-center">Jenis / Tipe</th>
                                 <th class="border px-3 py-2 text-right">Jumlah</th>
                                 <th class="border px-3 py-2 text-right">Stok Sebelum</th>
                                 <th class="border px-3 py-2 text-right">Stok Sesudah</th>
                                 <th class="border px-3 py-2 text-right">Selisih</th>
+                                <th class="border px-3 py-2 text-left">Perhitungan</th>
                                 <th class="border px-3 py-2 text-left">Sumber</th>
                                 <th class="border px-3 py-2 text-left">Keterangan</th>
-                                <th class="border px-3 py-2 text-left">Dibuat Oleh</th>
+                                <th class="border px-3 py-2 text-left">Admin</th>
                             </tr>
                         </thead>
 
                         <tbody>
                             @forelse ($riwayatStok as $item)
                             @php
+                            $barangItem = $item->barang;
                             $stokSebelum = (int) ($item->stok_sebelum ?? 0);
                             $stokSesudah = (int) ($item->stok_sesudah ?? 0);
                             $selisih = $stokSesudah - $stokSebelum;
                             $isOpname = str_starts_with((string) $item->sumber_transaksi, 'STOCK-OPNAME');
+                            $tipePerhitungan = $barangItem->tipe_perhitungan_harga ?? 'normal';
+                            $satuan = $barangItem->satuan ?? '-';
+                            $satuanHitung = $barangItem->satuan_hitung_harga ?? $satuan;
+                            $isiPerSatuan = (float) ($barangItem->isi_per_satuan ?? 1);
+                            $kenaPpn = (bool) ($barangItem->kena_ppn ?? true);
 
                             if ($item->jenis_pergerakan === 'masuk') {
                             $jenisLabel = 'Masuk';
@@ -266,18 +361,28 @@
                                 </td>
 
                                 <td class="border px-3 py-2 whitespace-nowrap">
-                                    {{ $item->tanggal ? $item->tanggal->format('d-m-Y') : '-' }}
+                                    <div>{{ $item->tanggal ? $item->tanggal->format('d-m-Y') : '-' }}</div>
+                                    <div class="text-xs text-gray-500">
+                                        {{ $item->created_at ? $item->created_at->format('H:i') : '-' }}
+                                    </div>
                                 </td>
 
-                                <td class="border px-3 py-2">
+                                <td class="border px-3 py-2 min-w-[190px]">
                                     <div class="font-semibold">
-                                        {{ $item->barang->kode_barang ?? '-' }}
+                                        {{ $barangItem->kode_barang ?? '-' }}
                                     </div>
                                     <div>
-                                        {{ $item->barang->nama_barang ?? '-' }}
+                                        {{ $barangItem->nama_barang ?? '-' }}
                                     </div>
                                     <div class="text-xs text-gray-500">
-                                        Satuan: {{ strtoupper($item->barang->satuan ?? '-') }}
+                                        Satuan: {{ strtoupper($satuan) }}
+                                    </div>
+                                    <div class="text-xs mt-1">
+                                        @if ($kenaPpn)
+                                        <span class="text-green-700">Kena PPN</span>
+                                        @else
+                                        <span class="text-gray-600">Non PPN</span>
+                                        @endif
                                     </div>
                                 </td>
 
@@ -285,18 +390,18 @@
                                     <span class="px-2 py-1 text-xs rounded {{ $jenisClass }}">
                                         {{ $jenisLabel }}
                                     </span>
-                                </td>
 
-                                <td class="border px-3 py-2 text-center">
-                                    @if ($isOpname)
-                                    <span class="px-2 py-1 text-xs rounded bg-blue-100 text-blue-700">
-                                        Opname
-                                    </span>
-                                    @else
-                                    <span class="px-2 py-1 text-xs rounded bg-gray-100 text-gray-700">
-                                        Transaksi
-                                    </span>
-                                    @endif
+                                    <div class="mt-2">
+                                        @if ($isOpname)
+                                        <span class="px-2 py-1 text-xs rounded bg-blue-100 text-blue-700">
+                                            Opname
+                                        </span>
+                                        @else
+                                        <span class="px-2 py-1 text-xs rounded bg-gray-100 text-gray-700">
+                                            Transaksi
+                                        </span>
+                                        @endif
+                                    </div>
                                 </td>
 
                                 <td class="border px-3 py-2 text-right font-semibold">
@@ -315,11 +420,27 @@
                                     {{ $selisihText }}
                                 </td>
 
-                                <td class="border px-3 py-2">
+                                <td class="border px-3 py-2 min-w-[170px]">
+                                    @if ($tipePerhitungan === 'isi_kemasan')
+                                    <div class="font-medium text-purple-700">Isi Kemasan</div>
+                                    <div class="text-xs text-gray-500">
+                                        1 {{ strtoupper($satuan) }} =
+                                        {{ rtrim(rtrim(number_format($isiPerSatuan, 3, ',', '.'), '0'), ',') }}
+                                        {{ strtoupper($satuanHitung) }}
+                                    </div>
+                                    @else
+                                    <div class="font-medium">Normal</div>
+                                    <div class="text-xs text-gray-500">
+                                        Per {{ strtoupper($satuan) }}
+                                    </div>
+                                    @endif
+                                </td>
+
+                                <td class="border px-3 py-2 min-w-[160px]">
                                     {{ $item->sumber_transaksi ?? '-' }}
                                 </td>
 
-                                <td class="border px-3 py-2">
+                                <td class="border px-3 py-2 min-w-[220px]">
                                     {{ $item->keterangan ?? '-' }}
                                 </td>
 

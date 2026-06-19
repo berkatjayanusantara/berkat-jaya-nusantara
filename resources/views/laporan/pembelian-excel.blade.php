@@ -108,47 +108,47 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
 <body>
     <table border="1">
         <tr>
-            <td colspan="22" class="company-title">
+            <td colspan="25" class="company-title">
                 {{ $namaPerusahaan }}
             </td>
         </tr>
 
         <tr>
-            <td colspan="22" class="company-info">
+            <td colspan="25" class="company-info">
                 {{ $alamatPerusahaan }}
             </td>
         </tr>
 
         <tr>
-            <td colspan="22" class="company-info">
+            <td colspan="25" class="company-info">
                 Telp: {{ $teleponPerusahaan }}
             </td>
         </tr>
 
         <tr>
-            <td colspan="22" class="title">
+            <td colspan="25" class="title">
                 LAPORAN PEMBELIAN
             </td>
         </tr>
 
         <tr>
-            <td colspan="22" class="subtitle">
+            <td colspan="25" class="subtitle">
                 Periode: {{ $periodeAwal }} s/d {{ $periodeAkhir }}
             </td>
         </tr>
 
         <tr>
-            <td colspan="22" class="subtitle">
+            <td colspan="25" class="subtitle">
                 Dicetak: {{ now()->format('d-m-Y H:i') }}
             </td>
         </tr>
 
         <tr>
-            <td colspan="22"></td>
+            <td colspan="25"></td>
         </tr>
 
         <tr class="section-header">
-            <td colspan="22">Ringkasan Laporan</td>
+            <td colspan="25">Ringkasan Laporan</td>
         </tr>
 
         <tr>
@@ -174,7 +174,7 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
             <td class="text-center">{{ $totalSebagian ?? 0 }}</td>
 
             <td class="bold">Belum Dikirim</td>
-            <td colspan="7" class="text-center">{{ $totalBelumDikirim ?? 0 }}</td>
+            <td colspan="10" class="text-center">{{ $totalBelumDikirim ?? 0 }}</td>
         </tr>
 
         <tr>
@@ -191,20 +191,38 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
             <td colspan="3" class="text-right currency">{{ $totalSubtotal ?? 0 }}</td>
 
             <td class="bold">Total Pajak</td>
-            <td class="text-right currency">{{ $totalPajak ?? 0 }}</td>
+            <td colspan="2" class="text-right currency">{{ $totalPajak ?? 0 }}</td>
 
             <td class="bold">Total Akhir</td>
-            <td colspan="3" class="text-right currency">{{ $totalAkhir ?? 0 }}</td>
+            <td colspan="6" class="text-right currency">{{ $totalAkhir ?? 0 }}</td>
         </tr>
 
         <tr>
-            <td colspan="22"></td>
+            <td class="bold">Biaya Lain</td>
+            <td colspan="4" class="text-right currency">{{ $totalBiayaLain ?? 0 }}</td>
+
+            <td class="bold">Potongan / Diskon</td>
+            <td colspan="4" class="text-right currency">{{ $totalPotonganDiskon ?? 0 }}</td>
+
+            <td class="bold">Total Sebelum Diskon</td>
+            <td colspan="5" class="text-right currency">{{ $totalSebelumDiskon ?? 0 }}</td>
+
+            <td class="bold">Dengan Pajak</td>
+            <td colspan="2" class="text-center">{{ $totalDenganPajak ?? 0 }}</td>
+
+            <td class="bold">Tanpa Pajak</td>
+            <td colspan="5" class="text-center">{{ $totalTanpaPajak ?? 0 }}</td>
+        </tr>
+
+        <tr>
+            <td colspan="25"></td>
         </tr>
 
         <tr class="header">
             <td>No</td>
             <td>Tanggal</td>
-            <td>No Pembelian Sistem</td>
+            <td>No Dokumen</td>
+            <td>No Sistem</td>
             <td>No Dokumen Asli</td>
             <td>No DO Supplier</td>
             <td>No Surat Jalan</td>
@@ -220,7 +238,9 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
             <td>Jumlah Diterima</td>
             <td>Sisa Belum Dikirim</td>
             <td>Subtotal</td>
-            <td>Pajak</td>
+            <td>Pajak Supplier</td>
+            <td>Biaya Lain</td>
+            <td>Potongan / Diskon</td>
             <td>Total Akhir</td>
             <td>Admin</td>
             <td>Catatan</td>
@@ -241,6 +261,10 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
         $isHistoris = (bool) ($item->is_historical ?? false);
         $affectStock = (bool) ($item->affect_stock ?? true);
         $pajakDitambahkan = $item->pajak_ditambahkan ?? true;
+
+        $nomorDokumenTampil = $isHistoris && !empty($item->nomor_dokumen_asli)
+        ? $item->nomor_dokumen_asli
+        : $item->nomor_pembelian;
 
         $statusText = match ($statusPenerimaan) {
         'lengkap' => 'Lengkap',
@@ -270,7 +294,11 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
             </td>
 
             <td class="text-format">
-                {{ $item->nomor_pembelian }}
+                {{ $nomorDokumenTampil }}
+            </td>
+
+            <td class="text-format">
+                {{ $item->nomor_pembelian ?? '-' }}
             </td>
 
             <td class="text-format">
@@ -338,15 +366,23 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
             </td>
 
             <td class="text-right currency">
-                {{ $item->subtotal }}
+                {{ $item->subtotal ?? 0 }}
             </td>
 
             <td class="text-right currency">
-                {{ $item->nilai_pajak }}
+                {{ $item->nilai_pajak ?? 0 }}
             </td>
 
             <td class="text-right currency">
-                {{ $item->total_akhir }}
+                {{ $item->biaya_lain ?? 0 }}
+            </td>
+
+            <td class="text-right currency">
+                {{ $item->potongan_diskon ?? 0 }}
+            </td>
+
+            <td class="text-right currency">
+                {{ $item->total_akhir ?? 0 }}
             </td>
 
             <td>
@@ -355,37 +391,50 @@ $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
 
             <td>
                 {{ $item->catatan ?? '-' }}
+                @if ($item->keterangan_penyesuaian_total)
+                | Penyesuaian: {{ $item->keterangan_penyesuaian_total }}
+                @endif
             </td>
         </tr>
         @endforeach
 
         <tr>
-            <td colspan="22"></td>
+            <td colspan="25"></td>
         </tr>
 
         <tr class="total-row">
-            <td colspan="17" class="bold">TOTAL SUBTOTAL</td>
-            <td colspan="5" class="text-right currency">{{ $totalSubtotal ?? 0 }}</td>
+            <td colspan="18" class="bold">TOTAL SUBTOTAL</td>
+            <td colspan="7" class="text-right currency">{{ $totalSubtotal ?? 0 }}</td>
         </tr>
 
         <tr class="total-row">
-            <td colspan="17" class="bold">TOTAL PAJAK</td>
-            <td colspan="5" class="text-right currency">{{ $totalPajak ?? 0 }}</td>
+            <td colspan="18" class="bold">TOTAL PAJAK SUPPLIER</td>
+            <td colspan="7" class="text-right currency">{{ $totalPajak ?? 0 }}</td>
         </tr>
 
         <tr class="total-row">
-            <td colspan="17" class="bold">TOTAL AKHIR</td>
-            <td colspan="5" class="text-right currency">{{ $totalAkhir ?? 0 }}</td>
+            <td colspan="18" class="bold">TOTAL BIAYA LAIN</td>
+            <td colspan="7" class="text-right currency">{{ $totalBiayaLain ?? 0 }}</td>
         </tr>
 
         <tr class="total-row">
-            <td colspan="17" class="bold">TOTAL BARANG DITERIMA</td>
-            <td colspan="5" class="text-center number-format">{{ $totalDiterima ?? 0 }}</td>
+            <td colspan="18" class="bold">TOTAL POTONGAN / DISKON</td>
+            <td colspan="7" class="text-right currency">{{ $totalPotonganDiskon ?? 0 }}</td>
         </tr>
 
         <tr class="total-row">
-            <td colspan="17" class="bold">TOTAL SISA BELUM DIKIRIM</td>
-            <td colspan="5" class="text-center number-format">{{ $totalSisa ?? 0 }}</td>
+            <td colspan="18" class="bold">TOTAL AKHIR</td>
+            <td colspan="7" class="text-right currency">{{ $totalAkhir ?? 0 }}</td>
+        </tr>
+
+        <tr class="total-row">
+            <td colspan="18" class="bold">TOTAL BARANG DITERIMA</td>
+            <td colspan="7" class="text-center number-format">{{ $totalDiterima ?? 0 }}</td>
+        </tr>
+
+        <tr class="total-row">
+            <td colspan="18" class="bold">TOTAL SISA BELUM DIKIRIM</td>
+            <td colspan="7" class="text-center number-format">{{ $totalSisa ?? 0 }}</td>
         </tr>
     </table>
 </body>

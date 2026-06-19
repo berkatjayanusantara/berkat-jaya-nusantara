@@ -239,6 +239,9 @@
                             @forelse ($piutang as $item)
                             @php
                             $isHistoris = (bool) ($item->penjualan->is_historical ?? false);
+                            $nomorInvoiceTampil = $isHistoris && !empty($item->penjualan?->nomor_dokumen_asli)
+                            ? $item->penjualan->nomor_dokumen_asli
+                            : $item->nomor_invoice;
 
                             $lewatJatuhTempo = $item->status_piutang !== 'lunas'
                             && $item->tanggal_jatuh_tempo
@@ -277,10 +280,10 @@
 
                                 <td class="border px-3 py-2">
                                     <div class="font-semibold">
-                                        {{ $item->nomor_invoice }}
+                                        {{ $nomorInvoiceTampil }}
                                     </div>
 
-                                    @if ($item->penjualan?->nomor_dokumen_asli)
+                                    @if (!$isHistoris && $item->penjualan?->nomor_dokumen_asli)
                                     <div class="text-xs text-gray-500">
                                         Dok. Asli: {{ $item->penjualan->nomor_dokumen_asli }}
                                     </div>

@@ -24,7 +24,7 @@ class LaporanController extends Controller
         $penjualan = $query
             ->orderBy('tanggal_penjualan', 'desc')
             ->orderBy('created_at', 'desc')
-            ->paginate(15)
+            ->paginate(5)
             ->withQueryString();
 
         $customers = Customer::where('status_aktif', true)
@@ -95,7 +95,7 @@ class LaporanController extends Controller
         $pembelian = $query
             ->orderBy('tanggal_pembelian', 'desc')
             ->orderBy('created_at', 'desc')
-            ->paginate(15)
+            ->paginate(5)
             ->withQueryString();
 
         $suppliers = Supplier::where('status_aktif', true)
@@ -166,7 +166,7 @@ class LaporanController extends Controller
         $piutang = $query
             ->orderBy('tanggal_jatuh_tempo', 'asc')
             ->orderBy('created_at', 'desc')
-            ->paginate(15)
+            ->paginate(5)
             ->withQueryString();
 
         $customers = Customer::where('status_aktif', true)
@@ -230,6 +230,7 @@ class LaporanController extends Controller
     public function stokBarang(Request $request)
     {
         $batasStokRendah = (int) ($request->batas_stok_rendah ?? 5);
+        $batasStokRendah = $batasStokRendah > 0 ? $batasStokRendah : 5;
 
         $query = $this->queryLaporanStokBarang($request, $batasStokRendah);
 
@@ -238,7 +239,7 @@ class LaporanController extends Controller
 
         $barang = $query
             ->orderBy('nama_barang', 'asc')
-            ->paginate(15)
+            ->paginate(5)
             ->withQueryString();
 
         return view('laporan.stok-barang', array_merge([
@@ -250,6 +251,7 @@ class LaporanController extends Controller
     public function stokBarangExportExcel(Request $request)
     {
         $batasStokRendah = (int) ($request->batas_stok_rendah ?? 5);
+        $batasStokRendah = $batasStokRendah > 0 ? $batasStokRendah : 5;
 
         $barang = $this->queryLaporanStokBarang($request, $batasStokRendah)
             ->orderBy('nama_barang', 'asc')
@@ -271,6 +273,7 @@ class LaporanController extends Controller
     public function stokBarangExportPdf(Request $request)
     {
         $batasStokRendah = (int) ($request->batas_stok_rendah ?? 5);
+        $batasStokRendah = $batasStokRendah > 0 ? $batasStokRendah : 5;
 
         $barang = $this->queryLaporanStokBarang($request, $batasStokRendah)
             ->orderBy('nama_barang', 'asc')
@@ -297,7 +300,7 @@ class LaporanController extends Controller
         $riwayatStok = $query
             ->orderBy('tanggal', 'desc')
             ->orderBy('created_at', 'desc')
-            ->paginate(15)
+            ->paginate(5)
             ->withQueryString();
 
         $barang = Barang::orderBy('nama_barang')->get();
@@ -388,20 +391,118 @@ class LaporanController extends Controller
                         ->orWhereNull('is_historical');
                 });
             })
+            ->when($request->pengaruh_stok === 'mempengaruhi', function ($query) {
+                $query->where(function ($subQuery) {
+                    $subQuery->where('affect_stock', true)
+                        ->orWhereNull('affect_stock');
+                });
+            })
+            ->when($request->pengaruh_stok === 'tidak_mempengaruhi', function ($query) {
+                $query->where('affect_stock', false);
+            })
+            ->when($request->mode_ppn === 'tanpa_ppn', function ($query) {
+                $query->where(function ($subQuery) {
+                    $subQuery->where('mode_ppn', 'tanpa_ppn')
+                        ->orWhere(function ($fallbackQuery) {
+                            $fallbackQuery->whereNull('mode_ppn')
+                                ->where(function ($pajakQuery) {
+                                    $pajakQuery->whereNull('persentase_pajak')
+                                        ->orWhere('persentase_pajak', '<=', 0);
+                                });
+                        });
+                });
+            })
+            ->when($request->mode_ppn === 'include', function ($query) {
+                $query->where(function ($subQuery) {
+                    $subQuery->where('mode_ppn', 'include')
+                        ->orWhere(function ($fallbackQuery) {
+                            $fallbackQuery->whereNull('mode_ppn')
+                                ->where('persentase_pajak', '>', 0)
+                                ->where(function ($modeQuery) {
+                                    $modeQuery->where('pajak_ditambahkan', false)
+                                        ->orWhereNull('pajak_ditambahkan');
+                                });
+                        });
+                });
+            })
+            ->when($request->mode_ppn === 'exclude', function ($query) {
+                $query->where(function ($subQuery) {
+                    $subQuery->where('mode_ppn', 'exclude')
+                        ->orWhere(function ($fallbackQuery) {
+                            $fallbackQuery->whereNull('mode_ppn')
+                                ->where('persentase_pajak', '>', 0)
+                                ->where('pajak_ditambahkan', true);
+                        });
+                });
+            })
+            ->when($request->butuh_faktur_pajak === 'ya', function ($query) {
+                $query->where('butuh_faktur_pajak', true);
+            })
+            ->when($request->butuh_faktur_pajak === 'tidak', function ($query) {
+                $query->where(function ($subQuery) {
+                    $subQuery->where('butuh_faktur_pajak', false)
+                        ->orWhereNull('butuh_faktur_pajak');
+                });
+            })
+            ->when($request->jenis_penyesuaian_total === 'tidak_ada', function ($query) {
+                $query->where(function ($subQuery) {
+                    $subQuery->where('jenis_penyesuaian_total', 'tidak_ada')
+                        ->orWhereNull('jenis_penyesuaian_total')
+                        ->orWhere('nominal_penyesuaian_total', '<=', 0);
+                });
+            })
+            ->when(in_array($request->jenis_penyesuaian_total, ['tambah', 'kurang'], true), function ($query) use ($request) {
+                $query->where('jenis_penyesuaian_total', $request->jenis_penyesuaian_total)
+                    ->where('nominal_penyesuaian_total', '>', 0);
+            })
+            ->when($request->tipe_harga === 'normal', function ($query) {
+                $query->whereHas('detailPenjualan', function ($detailQuery) {
+                    $detailQuery->where(function ($subQuery) {
+                        $subQuery->where('tipe_perhitungan_harga', 'normal')
+                            ->orWhereNull('tipe_perhitungan_harga');
+                    });
+                });
+            })
+            ->when($request->tipe_harga === 'isi_kemasan', function ($query) {
+                $query->whereHas('detailPenjualan', function ($detailQuery) {
+                    $detailQuery->where('tipe_perhitungan_harga', 'isi_kemasan');
+                });
+            })
+            ->when($request->status_ppn_detail === 'kena_ppn', function ($query) {
+                $query->whereHas('detailPenjualan', function ($detailQuery) {
+                    $detailQuery->where('kena_ppn', true);
+                });
+            })
+            ->when($request->status_ppn_detail === 'non_ppn', function ($query) {
+                $query->whereHas('detailPenjualan', function ($detailQuery) {
+                    $detailQuery->where(function ($subQuery) {
+                        $subQuery->where('kena_ppn', false)
+                            ->orWhereNull('kena_ppn');
+                    });
+                });
+            })
             ->when($request->search, function ($query) use ($request) {
                 $search = $request->search;
 
                 $query->where(function ($subQuery) use ($search) {
                     $subQuery->where('nomor_invoice', 'like', "%{$search}%")
                         ->orWhere('nomor_dokumen_asli', 'like', "%{$search}%")
+                        ->orWhere('nomor_faktur_pajak', 'like', "%{$search}%")
+                        ->orWhere('nama_faktur_pajak', 'like', "%{$search}%")
+                        ->orWhere('npwp_faktur_pajak', 'like', "%{$search}%")
+                        ->orWhere('alamat_faktur_pajak', 'like', "%{$search}%")
+                        ->orWhere('catatan', 'like', "%{$search}%")
                         ->orWhereHas('customer', function ($customerQuery) use ($search) {
                             $customerQuery->where('nama_customer', 'like', "%{$search}%")
                                 ->orWhere('nomor_telepon', 'like', "%{$search}%")
-                                ->orWhere('npwp', 'like', "%{$search}%");
+                                ->orWhere('npwp', 'like', "%{$search}%")
+                                ->orWhere('alamat', 'like', "%{$search}%");
                         })
                         ->orWhereHas('detailPenjualan.barang', function ($barangQuery) use ($search) {
                             $barangQuery->where('nama_barang', 'like', "%{$search}%")
-                                ->orWhere('kode_barang', 'like', "%{$search}%");
+                                ->orWhere('kode_barang', 'like', "%{$search}%")
+                                ->orWhere('satuan', 'like', "%{$search}%")
+                                ->orWhere('satuan_hitung_harga', 'like', "%{$search}%");
                         });
                 });
             });
@@ -440,6 +541,38 @@ class LaporanController extends Controller
             ->when($request->pengaruh_stok === 'tidak_mempengaruhi', function ($query) {
                 $query->where('affect_stock', false);
             })
+            ->when($request->pajak_pembelian === 'dengan_pajak', function ($query) {
+                $query->where('nilai_pajak', '>', 0);
+            })
+            ->when($request->pajak_pembelian === 'tanpa_pajak', function ($query) {
+                $query->where(function ($subQuery) {
+                    $subQuery->whereNull('nilai_pajak')
+                        ->orWhere('nilai_pajak', '<=', 0);
+                });
+            })
+            ->when($request->penyesuaian_total === 'ada_penyesuaian', function ($query) {
+                $query->where(function ($subQuery) {
+                    $subQuery->where('biaya_lain', '>', 0)
+                        ->orWhere('potongan_diskon', '>', 0);
+                });
+            })
+            ->when($request->penyesuaian_total === 'biaya_lain', function ($query) {
+                $query->where('biaya_lain', '>', 0);
+            })
+            ->when($request->penyesuaian_total === 'diskon', function ($query) {
+                $query->where('potongan_diskon', '>', 0);
+            })
+            ->when($request->penyesuaian_total === 'tanpa_penyesuaian', function ($query) {
+                $query->where(function ($subQuery) {
+                    $subQuery->where(function ($biayaQuery) {
+                        $biayaQuery->whereNull('biaya_lain')
+                            ->orWhere('biaya_lain', '<=', 0);
+                    })->where(function ($diskonQuery) {
+                        $diskonQuery->whereNull('potongan_diskon')
+                            ->orWhere('potongan_diskon', '<=', 0);
+                    });
+                });
+            })
             ->when($request->search, function ($query) use ($request) {
                 $search = $request->search;
 
@@ -448,10 +581,13 @@ class LaporanController extends Controller
                         ->orWhere('nomor_dokumen_asli', 'like', "%{$search}%")
                         ->orWhere('nomor_delivery_order', 'like', "%{$search}%")
                         ->orWhere('nomor_surat_jalan', 'like', "%{$search}%")
+                        ->orWhere('catatan', 'like', "%{$search}%")
+                        ->orWhere('keterangan_penyesuaian_total', 'like', "%{$search}%")
                         ->orWhereHas('supplier', function ($supplierQuery) use ($search) {
                             $supplierQuery->where('nama_supplier', 'like', "%{$search}%")
                                 ->orWhere('nomor_telepon', 'like', "%{$search}%")
-                                ->orWhere('npwp', 'like', "%{$search}%");
+                                ->orWhere('npwp', 'like', "%{$search}%")
+                                ->orWhere('alamat', 'like', "%{$search}%");
                         })
                         ->orWhereHas('detailPembelian.barang', function ($barangQuery) use ($search) {
                             $barangQuery->where('kode_barang', 'like', "%{$search}%")
@@ -509,7 +645,8 @@ class LaporanController extends Controller
                         ->orWhereHas('customer', function ($customerQuery) use ($search) {
                             $customerQuery->where('nama_customer', 'like', "%{$search}%")
                                 ->orWhere('nomor_telepon', 'like', "%{$search}%")
-                                ->orWhere('npwp', 'like', "%{$search}%");
+                                ->orWhere('npwp', 'like', "%{$search}%")
+                                ->orWhere('alamat', 'like', "%{$search}%");
                         });
                 });
             });
@@ -540,6 +677,15 @@ class LaporanController extends Controller
             ->when($request->tipe_harga === 'isi_kemasan', function ($query) {
                 $query->where('tipe_perhitungan_harga', 'isi_kemasan');
             })
+            ->when($request->status_ppn === 'kena_ppn', function ($query) {
+                $query->where(function ($subQuery) {
+                    $subQuery->where('kena_ppn', true)
+                        ->orWhereNull('kena_ppn');
+                });
+            })
+            ->when($request->status_ppn === 'non_ppn', function ($query) {
+                $query->where('kena_ppn', false);
+            })
             ->when($request->search, function ($query) use ($request) {
                 $search = $request->search;
 
@@ -548,7 +694,8 @@ class LaporanController extends Controller
                         ->orWhere('nama_barang', 'like', "%{$search}%")
                         ->orWhere('satuan', 'like', "%{$search}%")
                         ->orWhere('satuan_hitung_harga', 'like', "%{$search}%")
-                        ->orWhere('tipe_perhitungan_harga', 'like', "%{$search}%");
+                        ->orWhere('tipe_perhitungan_harga', 'like', "%{$search}%")
+                        ->orWhere('keterangan', 'like', "%{$search}%");
                 });
             });
     }
@@ -577,6 +724,37 @@ class LaporanController extends Controller
                         ->orWhere('sumber_transaksi', 'not like', 'STOCK-OPNAME%');
                 });
             })
+            ->when($request->status_barang !== null && $request->status_barang !== '', function ($query) use ($request) {
+                $query->whereHas('barang', function ($barangQuery) use ($request) {
+                    $barangQuery->where('status_aktif', $request->status_barang);
+                });
+            })
+            ->when($request->tipe_harga === 'normal', function ($query) {
+                $query->whereHas('barang', function ($barangQuery) {
+                    $barangQuery->where(function ($subQuery) {
+                        $subQuery->where('tipe_perhitungan_harga', 'normal')
+                            ->orWhereNull('tipe_perhitungan_harga');
+                    });
+                });
+            })
+            ->when($request->tipe_harga === 'isi_kemasan', function ($query) {
+                $query->whereHas('barang', function ($barangQuery) {
+                    $barangQuery->where('tipe_perhitungan_harga', 'isi_kemasan');
+                });
+            })
+            ->when($request->status_ppn_barang === 'kena_ppn', function ($query) {
+                $query->whereHas('barang', function ($barangQuery) {
+                    $barangQuery->where(function ($subQuery) {
+                        $subQuery->where('kena_ppn', true)
+                            ->orWhereNull('kena_ppn');
+                    });
+                });
+            })
+            ->when($request->status_ppn_barang === 'non_ppn', function ($query) {
+                $query->whereHas('barang', function ($barangQuery) {
+                    $barangQuery->where('kena_ppn', false);
+                });
+            })
             ->when($request->search, function ($query) use ($request) {
                 $search = $request->search;
 
@@ -585,7 +763,15 @@ class LaporanController extends Controller
                         ->orWhere('keterangan', 'like', "%{$search}%")
                         ->orWhereHas('barang', function ($barangQuery) use ($search) {
                             $barangQuery->where('kode_barang', 'like', "%{$search}%")
-                                ->orWhere('nama_barang', 'like', "%{$search}%");
+                                ->orWhere('nama_barang', 'like', "%{$search}%")
+                                ->orWhere('satuan', 'like', "%{$search}%")
+                                ->orWhere('satuan_hitung_harga', 'like', "%{$search}%")
+                                ->orWhere('tipe_perhitungan_harga', 'like', "%{$search}%")
+                                ->orWhere('keterangan', 'like', "%{$search}%");
+                        })
+                        ->orWhereHas('user', function ($userQuery) use ($search) {
+                            $userQuery->where('nama_user', 'like', "%{$search}%")
+                                ->orWhere('username', 'like', "%{$search}%");
                         });
                 });
             });
@@ -595,7 +781,13 @@ class LaporanController extends Controller
     {
         $totalTransaksi = $penjualan->count();
         $totalSubtotal = $penjualan->sum('subtotal');
+        $totalSubtotalKenaPpn = $penjualan->sum('subtotal_kena_ppn');
+        $totalSubtotalNonPpn = $penjualan->sum('subtotal_non_ppn');
+        $totalDppPpn = $penjualan->sum('dpp_ppn');
         $totalPajak = $penjualan->sum('nilai_pajak');
+        $totalSebelumPenyesuaian = $penjualan->sum(function ($item) {
+            return (float) ($item->total_sebelum_penyesuaian ?? $item->total_akhir ?? 0);
+        });
         $totalAkhir = $penjualan->sum('total_akhir');
 
         $totalTunai = $penjualan
@@ -618,6 +810,18 @@ class LaporanController extends Controller
             })
             ->count();
 
+        $totalMempengaruhiStok = $penjualan
+            ->filter(function ($item) {
+                return (bool) ($item->affect_stock ?? true);
+            })
+            ->count();
+
+        $totalTidakMempengaruhiStok = $penjualan
+            ->filter(function ($item) {
+                return !(bool) ($item->affect_stock ?? true);
+            })
+            ->count();
+
         $totalPiutang = $penjualan->sum(function ($item) {
             return $item->piutang->total_piutang ?? 0;
         });
@@ -630,14 +834,55 @@ class LaporanController extends Controller
             return $item->piutang->sisa_piutang ?? 0;
         });
 
+        $totalPpnTanpaPpn = 0;
+        $totalPpnInclude = 0;
+        $totalPpnExclude = 0;
+        $totalNilaiPajakInclude = 0;
+        $totalNilaiPajakExclude = 0;
+        $totalButuhFakturPajak = 0;
+        $totalTidakButuhFakturPajak = 0;
+        $totalPenyesuaianTambah = 0;
+        $totalPenyesuaianKurang = 0;
+
         $totalItemBarang = 0;
         $totalJumlahTerjual = 0;
         $totalBarangNormal = 0;
         $totalBarangIsiKemasan = 0;
         $totalNilaiBarangNormal = 0;
         $totalNilaiBarangIsiKemasan = 0;
+        $totalItemKenaPpn = 0;
+        $totalItemNonPpn = 0;
+        $totalDppPpnDetail = 0;
+        $totalNilaiPpnDetail = 0;
 
         foreach ($penjualan as $item) {
+            $modePpn = $this->normalisasiModePpnLaporan($item->mode_ppn ?? null, $item);
+
+            if ($modePpn === 'tanpa_ppn') {
+                $totalPpnTanpaPpn++;
+            } elseif ($modePpn === 'exclude') {
+                $totalPpnExclude++;
+                $totalNilaiPajakExclude += (float) ($item->nilai_pajak ?? 0);
+            } else {
+                $totalPpnInclude++;
+                $totalNilaiPajakInclude += (float) ($item->nilai_pajak ?? 0);
+            }
+
+            if ((bool) ($item->butuh_faktur_pajak ?? false)) {
+                $totalButuhFakturPajak++;
+            } else {
+                $totalTidakButuhFakturPajak++;
+            }
+
+            $jenisPenyesuaian = $item->jenis_penyesuaian_total ?? 'tidak_ada';
+            $nominalPenyesuaian = (float) ($item->nominal_penyesuaian_total ?? 0);
+
+            if ($jenisPenyesuaian === 'tambah' && $nominalPenyesuaian > 0) {
+                $totalPenyesuaianTambah += $nominalPenyesuaian;
+            } elseif ($jenisPenyesuaian === 'kurang' && $nominalPenyesuaian > 0) {
+                $totalPenyesuaianKurang += $nominalPenyesuaian;
+            }
+
             foreach ($item->detailPenjualan as $detail) {
                 $totalItemBarang++;
                 $totalJumlahTerjual += (float) $detail->jumlah;
@@ -649,28 +894,76 @@ class LaporanController extends Controller
                     $totalBarangNormal++;
                     $totalNilaiBarangNormal += (float) $detail->subtotal;
                 }
+
+                if ((bool) ($detail->kena_ppn ?? false)) {
+                    $totalItemKenaPpn++;
+                } else {
+                    $totalItemNonPpn++;
+                }
+
+                $totalDppPpnDetail += (float) ($detail->dpp_ppn ?? 0);
+                $totalNilaiPpnDetail += (float) ($detail->nilai_ppn ?? 0);
             }
         }
+
+        $totalPenyesuaianBersih = $totalPenyesuaianTambah - $totalPenyesuaianKurang;
 
         return compact(
             'totalTransaksi',
             'totalSubtotal',
+            'totalSubtotalKenaPpn',
+            'totalSubtotalNonPpn',
+            'totalDppPpn',
             'totalPajak',
+            'totalSebelumPenyesuaian',
             'totalAkhir',
             'totalTunai',
             'totalKredit',
             'totalHistoris',
             'totalSistemBerjalan',
+            'totalMempengaruhiStok',
+            'totalTidakMempengaruhiStok',
             'totalPiutang',
             'totalDibayar',
             'totalSisaPiutang',
+            'totalPpnTanpaPpn',
+            'totalPpnInclude',
+            'totalPpnExclude',
+            'totalNilaiPajakInclude',
+            'totalNilaiPajakExclude',
+            'totalButuhFakturPajak',
+            'totalTidakButuhFakturPajak',
+            'totalPenyesuaianTambah',
+            'totalPenyesuaianKurang',
+            'totalPenyesuaianBersih',
             'totalItemBarang',
             'totalJumlahTerjual',
             'totalBarangNormal',
             'totalBarangIsiKemasan',
             'totalNilaiBarangNormal',
-            'totalNilaiBarangIsiKemasan'
+            'totalNilaiBarangIsiKemasan',
+            'totalItemKenaPpn',
+            'totalItemNonPpn',
+            'totalDppPpnDetail',
+            'totalNilaiPpnDetail'
         );
+    }
+
+    private function normalisasiModePpnLaporan(?string $modePpn, $penjualan = null): string
+    {
+        if (in_array($modePpn, ['tanpa_ppn', 'include', 'exclude'], true)) {
+            return $modePpn;
+        }
+
+        if (!$penjualan) {
+            return 'tanpa_ppn';
+        }
+
+        if ((float) ($penjualan->persentase_pajak ?? 0) <= 0) {
+            return 'tanpa_ppn';
+        }
+
+        return (bool) ($penjualan->pajak_ditambahkan ?? false) ? 'exclude' : 'include';
     }
 
     private function hitungRingkasanPembelian($pembelian): array
@@ -678,7 +971,14 @@ class LaporanController extends Controller
         $totalTransaksi = $pembelian->count();
         $totalSubtotal = $pembelian->sum('subtotal');
         $totalPajak = $pembelian->sum('nilai_pajak');
+        $totalBiayaLain = $pembelian->sum(function ($item) {
+            return (float) ($item->biaya_lain ?? 0);
+        });
+        $totalPotonganDiskon = $pembelian->sum(function ($item) {
+            return (float) ($item->potongan_diskon ?? 0);
+        });
         $totalAkhir = $pembelian->sum('total_akhir');
+        $totalSebelumDiskon = $totalSubtotal + $totalPajak + $totalBiayaLain;
 
         $totalDipesan = 0;
         $totalDiterima = 0;
@@ -702,9 +1002,9 @@ class LaporanController extends Controller
             }
 
             if ((bool) ($item->pajak_ditambahkan ?? true)) {
-                $totalNilaiPajakDitambahkan += (float) $item->nilai_pajak;
+                $totalNilaiPajakDitambahkan += (float) ($item->nilai_pajak ?? 0);
             } else {
-                $totalNilaiPajakTampilSaja += (float) $item->nilai_pajak;
+                $totalNilaiPajakTampilSaja += (float) ($item->nilai_pajak ?? 0);
             }
         }
 
@@ -758,10 +1058,27 @@ class LaporanController extends Controller
             })
             ->count();
 
+        $totalDenganPajak = $pembelian
+            ->filter(function ($item) {
+                return (float) ($item->nilai_pajak ?? 0) > 0;
+            })
+            ->count();
+
+        $totalTanpaPajak = max($totalTransaksi - $totalDenganPajak, 0);
+
+        $totalDenganPenyesuaian = $pembelian
+            ->filter(function ($item) {
+                return (float) ($item->biaya_lain ?? 0) > 0 || (float) ($item->potongan_diskon ?? 0) > 0;
+            })
+            ->count();
+
         return compact(
             'totalTransaksi',
             'totalSubtotal',
             'totalPajak',
+            'totalBiayaLain',
+            'totalPotonganDiskon',
+            'totalSebelumDiskon',
             'totalAkhir',
             'totalDipesan',
             'totalDiterima',
@@ -778,7 +1095,10 @@ class LaporanController extends Controller
             'totalPajakDitambahkan',
             'totalPajakTampilSaja',
             'totalNilaiPajakDitambahkan',
-            'totalNilaiPajakTampilSaja'
+            'totalNilaiPajakTampilSaja',
+            'totalDenganPajak',
+            'totalTanpaPajak',
+            'totalDenganPenyesuaian'
         );
     }
 
@@ -801,6 +1121,10 @@ class LaporanController extends Controller
             ->where('status_piutang', 'lunas')
             ->count();
 
+        $totalJatuhTempo = $piutang
+            ->where('status_piutang', 'jatuh_tempo')
+            ->count();
+
         $totalLewatJatuhTempo = $piutang
             ->filter(function ($item) {
                 return $item->status_piutang !== 'lunas'
@@ -809,18 +1133,11 @@ class LaporanController extends Controller
             })
             ->count();
 
-        $totalBelumJatuhTempo = $piutang
+        $totalBelumLewatJatuhTempo = $piutang
             ->filter(function ($item) {
                 return $item->status_piutang !== 'lunas'
                     && $item->tanggal_jatuh_tempo
                     && $item->tanggal_jatuh_tempo->gte(today());
-            })
-            ->count();
-
-        $totalTanpaJatuhTempo = $piutang
-            ->filter(function ($item) {
-                return $item->status_piutang !== 'lunas'
-                    && !$item->tanggal_jatuh_tempo;
             })
             ->count();
 
@@ -840,10 +1157,6 @@ class LaporanController extends Controller
             ? round(($totalDibayar / $totalPiutang) * 100, 2)
             : 0;
 
-        $persentaseSisa = $totalPiutang > 0
-            ? round(($totalSisa / $totalPiutang) * 100, 2)
-            : 0;
-
         return compact(
             'totalData',
             'totalPiutang',
@@ -852,13 +1165,12 @@ class LaporanController extends Controller
             'totalBelumLunas',
             'totalSebagian',
             'totalLunas',
+            'totalJatuhTempo',
             'totalLewatJatuhTempo',
-            'totalBelumJatuhTempo',
-            'totalTanpaJatuhTempo',
+            'totalBelumLewatJatuhTempo',
             'totalHistoris',
             'totalSistemBerjalan',
-            'persentaseTertagih',
-            'persentaseSisa'
+            'persentaseTertagih'
         );
     }
 
@@ -904,13 +1216,37 @@ class LaporanController extends Controller
             })
             ->count();
 
-        $totalNilaiStok = $barang->sum(function ($item) {
-            return (float) $item->stok_saat_ini * (float) ($item->harga_beli_terakhir ?? 0);
-        });
+        $totalBarangKenaPpn = $barang
+            ->filter(function ($item) {
+                return (bool) ($item->kena_ppn ?? true);
+            })
+            ->count();
 
-        $totalEstimasiNilaiJual = $barang->sum(function ($item) {
-            return (float) $item->stok_saat_ini * (float) ($item->harga_jual_default ?? 0);
-        });
+        $totalBarangNonPpn = $barang
+            ->filter(function ($item) {
+                return !(bool) ($item->kena_ppn ?? true);
+            })
+            ->count();
+
+        $totalNilaiStok = 0;
+        $totalEstimasiNilaiJual = 0;
+        $totalJumlahSatuanHarga = 0;
+
+        foreach ($barang as $item) {
+            $stokSaatIni = (float) ($item->stok_saat_ini ?? 0);
+            $hargaBeli = (float) ($item->harga_beli_terakhir ?? 0);
+            $hargaJual = (float) ($item->harga_jual_default ?? 0);
+            $tipePerhitungan = $item->tipe_perhitungan_harga ?? 'normal';
+            $isiPerSatuan = $tipePerhitungan === 'isi_kemasan'
+                ? (float) ($item->isi_per_satuan ?? 1)
+                : 1;
+
+            $jumlahSatuanHarga = $stokSaatIni * $isiPerSatuan;
+
+            $totalNilaiStok += $stokSaatIni * $hargaBeli;
+            $totalEstimasiNilaiJual += $jumlahSatuanHarga * $hargaJual;
+            $totalJumlahSatuanHarga += $jumlahSatuanHarga;
+        }
 
         $totalEstimasiLabaKotor = $totalEstimasiNilaiJual - $totalNilaiStok;
 
@@ -924,6 +1260,9 @@ class LaporanController extends Controller
             'totalBarangTersedia',
             'totalBarangNormal',
             'totalBarangIsiKemasan',
+            'totalBarangKenaPpn',
+            'totalBarangNonPpn',
+            'totalJumlahSatuanHarga',
             'totalNilaiStok',
             'totalEstimasiNilaiJual',
             'totalEstimasiLabaKotor'
@@ -963,22 +1302,18 @@ class LaporanController extends Controller
             ->count();
 
         $totalSelisihPlus = $riwayatStok
-            ->filter(function ($item) {
-                return $item->jenis_pergerakan === 'penyesuaian'
-                    && ((int) $item->stok_sesudah - (int) $item->stok_sebelum) > 0;
-            })
             ->sum(function ($item) {
-                return (int) $item->stok_sesudah - (int) $item->stok_sebelum;
+                $selisih = (int) ($item->stok_sesudah ?? 0) - (int) ($item->stok_sebelum ?? 0);
+                return $selisih > 0 ? $selisih : 0;
             });
 
         $totalSelisihMinus = $riwayatStok
-            ->filter(function ($item) {
-                return $item->jenis_pergerakan === 'penyesuaian'
-                    && ((int) $item->stok_sesudah - (int) $item->stok_sebelum) < 0;
-            })
             ->sum(function ($item) {
-                return abs((int) $item->stok_sesudah - (int) $item->stok_sebelum);
+                $selisih = (int) ($item->stok_sesudah ?? 0) - (int) ($item->stok_sebelum ?? 0);
+                return $selisih < 0 ? abs($selisih) : 0;
             });
+
+        $totalNettoPerubahan = $totalSelisihPlus - $totalSelisihMinus;
 
         $totalTransaksiMasuk = $riwayatStok
             ->where('jenis_pergerakan', 'masuk')
@@ -986,6 +1321,36 @@ class LaporanController extends Controller
 
         $totalTransaksiKeluar = $riwayatStok
             ->where('jenis_pergerakan', 'keluar')
+            ->count();
+
+        $totalBarangUnik = $riwayatStok
+            ->pluck('id_barang')
+            ->filter()
+            ->unique()
+            ->count();
+
+        $totalBarangNormal = $riwayatStok
+            ->filter(function ($item) {
+                return ($item->barang->tipe_perhitungan_harga ?? 'normal') === 'normal';
+            })
+            ->count();
+
+        $totalBarangIsiKemasan = $riwayatStok
+            ->filter(function ($item) {
+                return ($item->barang->tipe_perhitungan_harga ?? 'normal') === 'isi_kemasan';
+            })
+            ->count();
+
+        $totalBarangKenaPpn = $riwayatStok
+            ->filter(function ($item) {
+                return (bool) ($item->barang->kena_ppn ?? true);
+            })
+            ->count();
+
+        $totalBarangNonPpn = $riwayatStok
+            ->filter(function ($item) {
+                return !(bool) ($item->barang->kena_ppn ?? true);
+            })
             ->count();
 
         return compact(
@@ -998,8 +1363,14 @@ class LaporanController extends Controller
             'totalNonOpname',
             'totalSelisihPlus',
             'totalSelisihMinus',
+            'totalNettoPerubahan',
             'totalTransaksiMasuk',
-            'totalTransaksiKeluar'
+            'totalTransaksiKeluar',
+            'totalBarangUnik',
+            'totalBarangNormal',
+            'totalBarangIsiKemasan',
+            'totalBarangKenaPpn',
+            'totalBarangNonPpn'
         );
     }
 
