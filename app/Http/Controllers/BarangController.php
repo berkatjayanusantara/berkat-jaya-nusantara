@@ -17,7 +17,8 @@ class BarangController extends Controller
                 $query->where('nama_barang', 'like', "%{$search}%")
                     ->orWhere('kode_barang', 'like', "%{$search}%")
                     ->orWhere('satuan', 'like', "%{$search}%")
-                    ->orWhere('satuan_hitung_harga', 'like', "%{$search}%");
+                    ->orWhere('satuan_hitung_harga', 'like', "%{$search}%")
+                    ->orWhere('jenis_ppn', 'like', "%{$search}%");
             })
             ->orderBy('created_at', 'desc')
             ->paginate(10);
@@ -30,11 +31,13 @@ class BarangController extends Controller
         $kodeBarang = $this->generateKodeBarang();
         $satuanOptions = $this->getSatuanOptions();
         $satuanHitungOptions = $this->getSatuanHitungHargaOptions();
+        $jenisPpnOptions = $this->getJenisPpnOptions();
 
         return view('barang.create', compact(
             'kodeBarang',
             'satuanOptions',
-            'satuanHitungOptions'
+            'satuanHitungOptions',
+            'jenisPpnOptions'
         ));
     }
 
@@ -68,11 +71,15 @@ class BarangController extends Controller
                 'numeric',
                 'min:0.001',
             ],
-            'kena_ppn' => 'nullable|boolean',
+            'jenis_ppn' => [
+                'required',
+                Rule::in(array_keys($this->getJenisPpnOptions())),
+            ],
             'keterangan' => 'nullable|string',
         ]);
 
         $tipePerhitunganHarga = $request->tipe_perhitungan_harga;
+        $jenisPpn = $this->normalisasiJenisPpn($request->jenis_ppn);
 
         Barang::create([
             'kode_barang' => $this->generateKodeBarang(),
@@ -88,7 +95,8 @@ class BarangController extends Controller
             'isi_per_satuan' => $tipePerhitunganHarga === 'isi_kemasan'
                 ? $request->isi_per_satuan
                 : 1,
-            'kena_ppn' => $request->boolean('kena_ppn'),
+            'jenis_ppn' => $jenisPpn,
+            'kena_ppn' => $this->isBarangKenaPpn($jenisPpn),
             'keterangan' => $request->keterangan,
             'status_aktif' => true,
         ]);
@@ -102,11 +110,13 @@ class BarangController extends Controller
     {
         $satuanOptions = $this->getSatuanOptions();
         $satuanHitungOptions = $this->getSatuanHitungHargaOptions();
+        $jenisPpnOptions = $this->getJenisPpnOptions();
 
         return view('barang.edit', compact(
             'barang',
             'satuanOptions',
-            'satuanHitungOptions'
+            'satuanHitungOptions',
+            'jenisPpnOptions'
         ));
     }
 
@@ -140,12 +150,16 @@ class BarangController extends Controller
                 'numeric',
                 'min:0.001',
             ],
-            'kena_ppn' => 'nullable|boolean',
+            'jenis_ppn' => [
+                'required',
+                Rule::in(array_keys($this->getJenisPpnOptions())),
+            ],
             'keterangan' => 'nullable|string',
             'status_aktif' => 'required|boolean',
         ]);
 
         $tipePerhitunganHarga = $request->tipe_perhitungan_harga;
+        $jenisPpn = $this->normalisasiJenisPpn($request->jenis_ppn);
 
         $barang->update([
             'nama_barang' => trim($request->nama_barang),
@@ -160,7 +174,8 @@ class BarangController extends Controller
             'isi_per_satuan' => $tipePerhitunganHarga === 'isi_kemasan'
                 ? $request->isi_per_satuan
                 : 1,
-            'kena_ppn' => $request->boolean('kena_ppn'),
+            'jenis_ppn' => $jenisPpn,
+            'kena_ppn' => $this->isBarangKenaPpn($jenisPpn),
             'keterangan' => $request->keterangan,
             'status_aktif' => $request->status_aktif,
         ]);
@@ -227,5 +242,28 @@ class BarangController extends Controller
             'meter',
             'pcs',
         ];
+    }
+
+    private function getJenisPpnOptions(): array
+    {
+        return [
+            'non_ppn' => 'Non PPN',
+            'ppn_normal' => 'PPN Normal',
+            'ppn_dpp_nilai_lain' => 'PPN DPP Nilai Lain / Khusus',
+        ];
+    }
+
+    private function normalisasiJenisPpn(?string $jenisPpn): string
+    {
+        if (array_key_exists($jenisPpn, $this->getJenisPpnOptions())) {
+            return $jenisPpn;
+        }
+
+        return 'ppn_dpp_nilai_lain';
+    }
+
+    private function isBarangKenaPpn(string $jenisPpn): bool
+    {
+        return $jenisPpn !== 'non_ppn';
     }
 }

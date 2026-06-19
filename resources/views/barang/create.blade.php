@@ -110,30 +110,32 @@
                                 Untuk perhitungan normal, harga ini dihitung per satuan stok/jual.
                             </p>
                         </div>
+                    </div>
 
-                        <div class="mb-4 border rounded-md p-4 bg-gray-50">
-                            <label class="block mb-2 font-medium">
-                                Status PPN Barang <span class="text-red-600">*</span>
-                            </label>
+                    <div class="mb-4 border rounded-md p-4 bg-gray-50">
+                        <label class="block mb-2 font-medium">
+                            Jenis PPN Barang <span class="text-red-600">*</span>
+                        </label>
 
-                            <input type="hidden" name="kena_ppn" value="0">
+                        @php
+                        $selectedJenisPpn = old('jenis_ppn', 'ppn_dpp_nilai_lain');
+                        @endphp
 
-                            <label class="flex items-start gap-2">
-                                <input type="checkbox"
-                                    name="kena_ppn"
-                                    value="1"
-                                    class="mt-1"
-                                    {{ old('kena_ppn', 1) ? 'checked' : '' }}>
+                        <select name="jenis_ppn"
+                            id="jenisPpn"
+                            class="w-full border-gray-300 rounded-md shadow-sm"
+                            required>
+                            @foreach ($jenisPpnOptions as $value => $label)
+                            <option value="{{ $value }}" {{ $selectedJenisPpn === $value ? 'selected' : '' }}>
+                                {{ $label }}
+                            </option>
+                            @endforeach
+                        </select>
 
-                                <span>
-                                    <strong>Barang ini kena PPN</strong>
-                                    <br>
-                                    <small class="text-gray-500">
-                                        Jika dicentang, barang ini akan dihitung PPN saat transaksi penjualan memakai mode Include atau Exclude.
-                                        Jika tidak dicentang, barang tetap masuk invoice tetapi nilai PPN barang tersebut Rp0.
-                                    </small>
-                                </span>
-                            </label>
+                        <div class="text-sm text-gray-500 mt-2 space-y-1">
+                            <p><strong>Non PPN:</strong> barang tidak dihitung PPN.</p>
+                            <p><strong>PPN Normal:</strong> barang masuk kelompok PPN normal.</p>
+                            <p><strong>PPN DPP Nilai Lain / Khusus:</strong> barang masuk kelompok PPN khusus untuk kebutuhan pajak.</p>
                         </div>
                     </div>
 

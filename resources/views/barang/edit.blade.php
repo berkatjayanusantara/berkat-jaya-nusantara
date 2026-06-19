@@ -111,6 +111,36 @@
 
                     <div class="mb-4 border rounded-md p-4 bg-gray-50">
                         <label class="block mb-2 font-medium">
+                            Jenis PPN Barang <span class="text-red-600">*</span>
+                        </label>
+
+                        @php
+                        $jenisPpnDefault = $barang->jenis_ppn
+                        ?? (($barang->kena_ppn ?? true) ? 'ppn_dpp_nilai_lain' : 'non_ppn');
+
+                        $selectedJenisPpn = old('jenis_ppn', $jenisPpnDefault);
+                        @endphp
+
+                        <select name="jenis_ppn"
+                            id="jenisPpn"
+                            class="w-full border-gray-300 rounded-md shadow-sm"
+                            required>
+                            @foreach ($jenisPpnOptions as $value => $label)
+                            <option value="{{ $value }}" {{ $selectedJenisPpn === $value ? 'selected' : '' }}>
+                                {{ $label }}
+                            </option>
+                            @endforeach
+                        </select>
+
+                        <div class="text-sm text-gray-500 mt-2 space-y-1">
+                            <p><strong>Non PPN:</strong> barang tidak dihitung PPN.</p>
+                            <p><strong>PPN Normal:</strong> barang masuk kelompok PPN normal.</p>
+                            <p><strong>PPN DPP Nilai Lain / Khusus:</strong> barang masuk kelompok PPN khusus untuk kebutuhan pajak.</p>
+                        </div>
+                    </div>
+
+                    <div class="mb-4 border rounded-md p-4 bg-gray-50">
+                        <label class="block mb-2 font-medium">
                             Tipe Perhitungan Harga <span class="text-red-600">*</span>
                         </label>
 
@@ -186,31 +216,6 @@
                                 </p>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="mb-4 border rounded-md p-4 bg-gray-50">
-                        <label class="block mb-2 font-medium">
-                            Status PPN Barang <span class="text-red-600">*</span>
-                        </label>
-
-                        <input type="hidden" name="kena_ppn" value="0">
-
-                        <label class="flex items-start gap-2">
-                            <input type="checkbox"
-                                name="kena_ppn"
-                                value="1"
-                                class="mt-1"
-                                {{ old('kena_ppn', $barang->kena_ppn ?? true) ? 'checked' : '' }}>
-
-                            <span>
-                                <strong>Barang ini kena PPN</strong>
-                                <br>
-                                <small class="text-gray-500">
-                                    Jika dicentang, barang ini akan dihitung PPN saat transaksi penjualan memakai mode Include atau Exclude.
-                                    Jika tidak dicentang, barang tetap masuk invoice tetapi nilai PPN barang tersebut Rp0.
-                                </small>
-                            </span>
-                        </label>
                     </div>
 
                     <div class="mb-4">

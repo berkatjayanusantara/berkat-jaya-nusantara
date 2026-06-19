@@ -23,6 +23,7 @@ class Barang extends Model
         'satuan_hitung_harga',
         'isi_per_satuan',
         'kena_ppn',
+        'jenis_ppn',
         'keterangan',
         'status_aktif',
     ];

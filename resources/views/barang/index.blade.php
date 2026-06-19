@@ -27,7 +27,7 @@
                     <input type="text"
                         name="search"
                         value="{{ $search }}"
-                        placeholder="Cari kode, nama barang, atau satuan..."
+                        placeholder="Cari kode, nama barang, satuan, atau jenis PPN..."
                         class="w-full border-gray-300 rounded-md shadow-sm">
 
                     <button type="submit"
@@ -53,7 +53,7 @@
                                 <th class="border px-3 py-2 text-right">Harga Beli</th>
                                 <th class="border px-3 py-2 text-right">Harga Jual</th>
                                 <th class="border px-3 py-2 text-left">Perhitungan Harga</th>
-                                <th class="border px-3 py-2 text-center">PPN</th>
+                                <th class="border px-3 py-2 text-center">Jenis PPN</th>
                                 <th class="border px-3 py-2 text-center">Status</th>
                                 <th class="border px-3 py-2 text-center">Aksi</th>
                             </tr>
@@ -118,14 +118,26 @@
                                 </td>
 
                                 <td class="border px-3 py-2 text-center">
-                                    @if ($item->kena_ppn ?? true)
-                                    <span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-sm">
-                                        Kena PPN
-                                    </span>
-                                    @else
+                                    @php
+                                    $jenisPpn = $item->jenis_ppn
+                                    ?? (($item->kena_ppn ?? true) ? 'ppn_dpp_nilai_lain' : 'non_ppn');
+                                    @endphp
+
+                                    @if ($jenisPpn === 'non_ppn')
                                     <span class="px-2 py-1 bg-gray-100 text-gray-700 rounded text-sm">
                                         Non PPN
                                     </span>
+                                    @elseif ($jenisPpn === 'ppn_normal')
+                                    <span class="px-2 py-1 bg-green-100 text-green-700 rounded text-sm">
+                                        PPN Normal
+                                    </span>
+                                    @else
+                                    <span class="px-2 py-1 bg-purple-100 text-purple-700 rounded text-sm">
+                                        PPN Khusus
+                                    </span>
+                                    <p class="text-xs text-gray-500 mt-1">
+                                        DPP Nilai Lain
+                                    </p>
                                     @endif
                                 </td>
 

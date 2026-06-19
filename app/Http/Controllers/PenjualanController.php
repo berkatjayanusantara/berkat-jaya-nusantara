@@ -55,12 +55,7 @@ class PenjualanController extends Controller
         $request->validate($this->rulesPenjualan($request, null));
 
         DB::transaction(function () use ($request) {
-            $ringkasanSubtotal = $this->hitungSubtotalPenjualanDariRequest($request, true);
-            $perhitunganPpn = $this->hitungPpnPenjualan(
-                $ringkasanSubtotal['subtotal_penjualan'],
-                $ringkasanSubtotal['subtotal_kena_ppn'],
-                $request->mode_ppn
-            );
+            $perhitunganPpn = $this->hitungRingkasanPenjualanDariRequest($request, true);
 
             $perhitunganTotal = $this->hitungTotalDenganPenyesuaian(
                 $perhitunganPpn['total_akhir'],
@@ -75,7 +70,7 @@ class PenjualanController extends Controller
                 'nomor_invoice' => trim($request->nomor_invoice),
                 'tanggal_penjualan' => $request->tanggal_penjualan,
                 'id_customer' => $request->id_customer,
-                'subtotal' => $ringkasanSubtotal['subtotal_penjualan'],
+                'subtotal' => $perhitunganPpn['subtotal_penjualan'],
                 'subtotal_kena_ppn' => $perhitunganPpn['subtotal_kena_ppn'],
                 'subtotal_non_ppn' => $perhitunganPpn['subtotal_non_ppn'],
                 'dpp_ppn' => $perhitunganPpn['dpp_ppn'],
@@ -177,12 +172,7 @@ class PenjualanController extends Controller
                 }
             }
 
-            $ringkasanSubtotal = $this->hitungSubtotalPenjualanDariRequest($request, $affectStock);
-            $perhitunganPpn = $this->hitungPpnPenjualan(
-                $ringkasanSubtotal['subtotal_penjualan'],
-                $ringkasanSubtotal['subtotal_kena_ppn'],
-                $request->mode_ppn
-            );
+            $perhitunganPpn = $this->hitungRingkasanPenjualanDariRequest($request, $affectStock);
 
             $perhitunganTotal = $this->hitungTotalDenganPenyesuaian(
                 $perhitunganPpn['total_akhir'],
@@ -197,7 +187,7 @@ class PenjualanController extends Controller
                 'nomor_invoice' => trim($request->nomor_invoice),
                 'tanggal_penjualan' => $request->tanggal_penjualan,
                 'id_customer' => $request->id_customer,
-                'subtotal' => $ringkasanSubtotal['subtotal_penjualan'],
+                'subtotal' => $perhitunganPpn['subtotal_penjualan'],
                 'subtotal_kena_ppn' => $perhitunganPpn['subtotal_kena_ppn'],
                 'subtotal_non_ppn' => $perhitunganPpn['subtotal_non_ppn'],
                 'dpp_ppn' => $perhitunganPpn['dpp_ppn'],
@@ -258,7 +248,7 @@ class PenjualanController extends Controller
             ->setFitToWidth(1)
             ->setFitToHeight(0);
 
-        foreach (['A' => 6, 'B' => 18, 'C' => 30, 'D' => 12, 'E' => 16, 'F' => 16, 'G' => 18] as $col => $width) {
+        foreach (['A' => 6, 'B' => 18, 'C' => 30, 'D' => 12, 'E' => 16, 'F' => 16, 'G' => 18, 'H' => 16, 'I' => 16] as $col => $width) {
             $sheet->getColumnDimension($col)->setWidth($width);
         }
 
@@ -278,128 +268,84 @@ class PenjualanController extends Controller
             ],
         ];
 
-        $sheet->mergeCells('A1:G1');
+        $sheet->mergeCells('A1:I1');
         $sheet->setCellValue('A1', 'CV. BERKAT JAYA NUSANTARA');
         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
         $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
-        $sheet->mergeCells('A2:G2');
+        $sheet->mergeCells('A2:I2');
         $sheet->setCellValue('A2', 'INVOICE / NOTA PENJUALAN');
         $sheet->getStyle('A2')->getFont()->setBold(true)->setSize(13);
         $sheet->getStyle('A2')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
         $sheet->setCellValue('A4', 'Nomor Invoice');
         $sheet->setCellValue('B4', $nomorInvoiceTampil);
+        $sheet->setCellValue('D4', 'Tanggal');
+        $sheet->setCellValue('E4', $penjualan->tanggal_penjualan ? $penjualan->tanggal_penjualan->format('d-m-Y') : '-');
+        $sheet->setCellValue('A5', 'Customer');
+        $sheet->setCellValue('B5', $penjualan->customer->nama_customer ?? '-');
+        $sheet->setCellValue('D5', 'Metode Bayar');
+        $sheet->setCellValue('E5', ucfirst($penjualan->metode_pembayaran ?? '-'));
+        $sheet->setCellValue('A6', 'NPWP');
+        $sheet->setCellValue('B6', $penjualan->customer->npwp ?? '-');
+        $sheet->setCellValue('D6', 'Status');
+        $sheet->setCellValue('E6', str_replace('_', ' ', ucfirst($penjualan->status_pembayaran ?? '-')));
+        $sheet->setCellValue('A7', 'Mode PPN');
+        $sheet->setCellValue('B7', $labelModePpn);
+        $sheet->setCellValue('D7', 'Butuh Faktur Pajak');
+        $sheet->setCellValue('E7', $penjualan->butuh_faktur_pajak ? 'Ya' : 'Tidak');
 
-        if ($isInvoiceHistoris && !empty($penjualan->nomor_invoice)) {
-            $sheet->setCellValue('A5', 'Nomor Sistem');
-            $sheet->setCellValue('B5', $penjualan->nomor_invoice);
-
-            $sheet->setCellValue('D4', 'Tanggal');
-            $sheet->setCellValue('E4', $penjualan->tanggal_penjualan ? $penjualan->tanggal_penjualan->format('d-m-Y') : '-');
-
-            $sheet->setCellValue('D5', 'Metode Bayar');
-            $sheet->setCellValue('E5', ucfirst($penjualan->metode_pembayaran ?? '-'));
-
-            $sheet->setCellValue('A6', 'Customer');
-            $sheet->setCellValue('B6', $penjualan->customer->nama_customer ?? '-');
-            $sheet->setCellValue('D6', 'Status');
-            $sheet->setCellValue('E6', str_replace('_', ' ', ucfirst($penjualan->status_pembayaran ?? '-')));
-
-            $sheet->setCellValue('A7', 'NPWP');
-            $sheet->setCellValue('B7', $penjualan->customer->npwp ?? '-');
-
-            $sheet->setCellValue('A8', 'Mode PPN');
-            $sheet->setCellValue('B8', $labelModePpn);
-            $sheet->setCellValue('D8', 'Butuh Faktur Pajak');
-            $sheet->setCellValue('E8', $penjualan->butuh_faktur_pajak ? 'Ya' : 'Tidak');
-
-            $infoRowFaktur = 9;
-            $rowTanpaFaktur = 10;
-            $rowDenganFaktur = 12;
-        } else {
-            $sheet->setCellValue('D4', 'Tanggal');
-            $sheet->setCellValue('E4', $penjualan->tanggal_penjualan ? $penjualan->tanggal_penjualan->format('d-m-Y') : '-');
-
-            $sheet->setCellValue('A5', 'Customer');
-            $sheet->setCellValue('B5', $penjualan->customer->nama_customer ?? '-');
-            $sheet->setCellValue('D5', 'Metode Bayar');
-            $sheet->setCellValue('E5', ucfirst($penjualan->metode_pembayaran ?? '-'));
-
-            $sheet->setCellValue('A6', 'NPWP');
-            $sheet->setCellValue('B6', $penjualan->customer->npwp ?? '-');
-            $sheet->setCellValue('D6', 'Status');
-            $sheet->setCellValue('E6', str_replace('_', ' ', ucfirst($penjualan->status_pembayaran ?? '-')));
-
-            $sheet->setCellValue('A7', 'Mode PPN');
-            $sheet->setCellValue('B7', $labelModePpn);
-            $sheet->setCellValue('D7', 'Butuh Faktur Pajak');
-            $sheet->setCellValue('E7', $penjualan->butuh_faktur_pajak ? 'Ya' : 'Tidak');
-
-            $infoRowFaktur = 8;
-            $rowTanpaFaktur = 9;
-            $rowDenganFaktur = 11;
-        }
+        $row = 9;
 
         if ($penjualan->butuh_faktur_pajak) {
-            $sheet->setCellValue('A' . $infoRowFaktur, 'No Faktur');
-            $sheet->setCellValue('B' . $infoRowFaktur, $penjualan->nomor_faktur_pajak ?? '-');
-            $sheet->setCellValue('D' . $infoRowFaktur, 'Tanggal Faktur');
-            $sheet->setCellValue('E' . $infoRowFaktur, $penjualan->tanggal_faktur_pajak ? $penjualan->tanggal_faktur_pajak->format('d-m-Y') : '-');
-
-            $sheet->setCellValue('A' . ($infoRowFaktur + 1), 'Nama Faktur');
-            $sheet->setCellValue('B' . ($infoRowFaktur + 1), $penjualan->nama_faktur_pajak ?? '-');
-            $sheet->setCellValue('D' . ($infoRowFaktur + 1), 'NPWP Faktur');
-            $sheet->setCellValue('E' . ($infoRowFaktur + 1), $penjualan->npwp_faktur_pajak ?? '-');
-
-            $row = $rowDenganFaktur;
-        } else {
-            $row = $rowTanpaFaktur;
-        }
-
-        $sheet->fromArray(['No', 'Kode Barang', 'Nama Barang', 'Qty', 'Harga', 'Subtotal', 'Keterangan'], null, 'A' . $row);
-        $sheet->getStyle('A' . $row . ':G' . $row)->applyFromArray($headerFill);
-        $sheet->getStyle('A' . $row . ':G' . $row)->applyFromArray($border);
-        $sheet->getStyle('A' . $row . ':G' . $row)->getFont()->setBold(true);
-        $row++;
-
-        foreach ($penjualan->detailPenjualan as $index => $detail) {
-            $tipe = $detail->tipe_perhitungan_harga ?? 'normal';
-            $satuanTransaksi = $detail->satuan_transaksi ?? ($detail->barang->satuan ?? '');
-            $satuanHitung = $detail->satuan_hitung_harga ?? $satuanTransaksi;
-            $isiPerSatuan = (float) ($detail->isi_per_satuan ?? 1);
-
-            $keterangan = $tipe === 'isi_kemasan'
-                ? $detail->jumlah . ' ' . $satuanTransaksi . ' x ' . $isiPerSatuan . ' ' . $satuanHitung . ' x harga per ' . $satuanHitung
-                : 'Harga per ' . $satuanTransaksi;
-
-            $sheet->setCellValue('A' . $row, $index + 1);
-            $sheet->setCellValue('B' . $row, $detail->barang->kode_barang ?? '-');
-            $sheet->setCellValue('C' . $row, $detail->barang->nama_barang ?? '-');
-            $sheet->setCellValue('D' . $row, $detail->jumlah . ' ' . $satuanTransaksi);
-            $sheet->setCellValue('E' . $row, (float) $detail->harga_jual);
-            $sheet->setCellValue('F' . $row, (float) $detail->subtotal);
-            $sheet->setCellValue('G' . $row, $keterangan);
-            $sheet->getStyle('A' . $row . ':G' . $row)->applyFromArray($border);
+            $sheet->setCellValue('A' . $row, 'No Faktur');
+            $sheet->setCellValue('B' . $row, $penjualan->nomor_faktur_pajak ?? '-');
+            $sheet->setCellValue('D' . $row, 'Tanggal Faktur');
+            $sheet->setCellValue('E' . $row, $penjualan->tanggal_faktur_pajak ? $penjualan->tanggal_faktur_pajak->format('d-m-Y') : '-');
             $row++;
+
+            $sheet->setCellValue('A' . $row, 'Nama Faktur');
+            $sheet->setCellValue('B' . $row, $penjualan->nama_faktur_pajak ?? '-');
+            $sheet->setCellValue('D' . $row, 'NPWP Faktur');
+            $sheet->setCellValue('E' . $row, $penjualan->npwp_faktur_pajak ?? '-');
+            $row += 2;
         }
 
+        $detailPpnKhusus = $penjualan->detailPenjualan->filter(function ($detail) {
+            return $this->normalisasiJenisPpnDetail($detail) === 'ppn_dpp_nilai_lain';
+        });
+
+        $detailUmum = $penjualan->detailPenjualan->reject(function ($detail) {
+            return $this->normalisasiJenisPpnDetail($detail) === 'ppn_dpp_nilai_lain';
+        });
+
+        $row = $this->tulisKelompokDetailExcel($sheet, $detailPpnKhusus, $row, 'DETAIL 1 - BARANG PPN KHUSUS / DPP NILAI LAIN', $headerFill, $border);
+        $row = $this->tulisKelompokDetailExcel($sheet, $detailUmum, $row, 'DETAIL 2 - BARANG PPN NORMAL DAN NON PPN', $headerFill, $border);
+
         $row++;
-        $sheet->setCellValue('E' . $row, 'Subtotal');
-        $sheet->setCellValue('F' . $row, (float) $penjualan->subtotal);
+        $sheet->setCellValue('H' . $row, 'Subtotal');
+        $sheet->setCellValue('I' . $row, (float) $penjualan->subtotal);
+        $row++;
+
+        $sheet->setCellValue('H' . $row, 'Subtotal Kena PPN');
+        $sheet->setCellValue('I' . $row, (float) ($penjualan->subtotal_kena_ppn ?? 0));
+        $row++;
+
+        $sheet->setCellValue('H' . $row, 'Subtotal Non PPN');
+        $sheet->setCellValue('I' . $row, (float) ($penjualan->subtotal_non_ppn ?? 0));
         $row++;
 
         if ($modePpn !== 'tanpa_ppn') {
-            $sheet->setCellValue('E' . $row, 'DPP');
-            $sheet->setCellValue('F' . $row, (float) ($penjualan->dpp_ppn ?? $penjualan->subtotal));
+            $sheet->setCellValue('H' . $row, 'DPP');
+            $sheet->setCellValue('I' . $row, (float) ($penjualan->dpp_ppn ?? $penjualan->subtotal));
             $row++;
 
-            $sheet->setCellValue('E' . $row, 'PPN 11%');
-            $sheet->setCellValue('F' . $row, (float) $penjualan->nilai_pajak);
+            $sheet->setCellValue('H' . $row, 'Nilai PPN');
+            $sheet->setCellValue('I' . $row, (float) $penjualan->nilai_pajak);
             $row++;
         } else {
-            $sheet->setCellValue('E' . $row, 'PPN');
-            $sheet->setCellValue('F' . $row, 0);
+            $sheet->setCellValue('H' . $row, 'PPN');
+            $sheet->setCellValue('I' . $row, 0);
             $row++;
         }
 
@@ -407,40 +353,32 @@ class PenjualanController extends Controller
         $jenisPenyesuaian = $penjualan->jenis_penyesuaian_total ?? 'tidak_ada';
         $nominalPenyesuaian = (float) ($penjualan->nominal_penyesuaian_total ?? 0);
 
-        $sheet->setCellValue('E' . $row, 'Total Sebelum Penyesuaian');
-        $sheet->setCellValue('F' . $row, $totalSebelumPenyesuaian);
+        $sheet->setCellValue('H' . $row, 'Total Sebelum Penyesuaian');
+        $sheet->setCellValue('I' . $row, $totalSebelumPenyesuaian);
         $row++;
 
         if ($jenisPenyesuaian !== 'tidak_ada' && $nominalPenyesuaian > 0) {
-            $labelPenyesuaian = $jenisPenyesuaian === 'tambah'
-                ? 'Penyesuaian Tambah'
-                : 'Penyesuaian Kurang';
-
-            $nilaiPenyesuaianExcel = $jenisPenyesuaian === 'kurang'
-                ? -$nominalPenyesuaian
-                : $nominalPenyesuaian;
-
-            $sheet->setCellValue('E' . $row, $labelPenyesuaian);
-            $sheet->setCellValue('F' . $row, $nilaiPenyesuaianExcel);
+            $sheet->setCellValue('H' . $row, $jenisPenyesuaian === 'kurang' ? 'Penyesuaian Kurang' : 'Penyesuaian Tambah');
+            $sheet->setCellValue('I' . $row, $jenisPenyesuaian === 'kurang' ? -$nominalPenyesuaian : $nominalPenyesuaian);
             $row++;
 
             if ($penjualan->keterangan_penyesuaian_total) {
-                $sheet->setCellValue('E' . $row, 'Ket. Penyesuaian');
-                $sheet->setCellValue('F' . $row, $penjualan->keterangan_penyesuaian_total);
+                $sheet->setCellValue('H' . $row, 'Ket. Penyesuaian');
+                $sheet->setCellValue('I' . $row, $penjualan->keterangan_penyesuaian_total);
                 $row++;
             }
         }
 
-        $sheet->setCellValue('E' . $row, 'Total Akhir');
-        $sheet->setCellValue('F' . $row, (float) $penjualan->total_akhir);
-        $sheet->getStyle('E' . $row . ':F' . $row)->getFont()->setBold(true);
+        $sheet->setCellValue('H' . $row, 'Total Akhir');
+        $sheet->setCellValue('I' . $row, (float) $penjualan->total_akhir);
+        $sheet->getStyle('H' . $row . ':I' . $row)->getFont()->setBold(true);
 
-        $sheet->getStyle('E1:F' . $row)
+        $sheet->getStyle('E1:I' . $row)
             ->getNumberFormat()
             ->setFormatCode('"Rp" #,##0');
 
-        $sheet->getStyle('A1:G' . $row)->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
-        $sheet->getStyle('A1:G' . $row)->getAlignment()->setWrapText(true);
+        $sheet->getStyle('A1:I' . $row)->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
+        $sheet->getStyle('A1:I' . $row)->getAlignment()->setWrapText(true);
 
         $safeInvoice = preg_replace('/[^A-Za-z0-9\-_]+/', '-', $nomorInvoiceTampil ?? 'nota');
         $safeInvoice = trim(preg_replace('/-+/', '-', $safeInvoice), '-');
@@ -456,6 +394,50 @@ class PenjualanController extends Controller
         ]);
     }
 
+    private function tulisKelompokDetailExcel($sheet, $details, int $row, string $judul, array $headerFill, array $border): int
+    {
+        if ($details->count() <= 0) {
+            return $row;
+        }
+
+        $sheet->mergeCells('A' . $row . ':I' . $row);
+        $sheet->setCellValue('A' . $row, $judul);
+        $sheet->getStyle('A' . $row . ':I' . $row)->getFont()->setBold(true);
+        $row++;
+
+        $sheet->fromArray(['No', 'Kode Barang', 'Nama Barang', 'Qty', 'Harga', 'Jenis PPN', 'DPP', 'PPN', 'Subtotal'], null, 'A' . $row);
+        $sheet->getStyle('A' . $row . ':I' . $row)->applyFromArray($headerFill);
+        $sheet->getStyle('A' . $row . ':I' . $row)->applyFromArray($border);
+        $sheet->getStyle('A' . $row . ':I' . $row)->getFont()->setBold(true);
+        $row++;
+
+        $no = 1;
+        foreach ($details as $detail) {
+            $tipe = $detail->tipe_perhitungan_harga ?? 'normal';
+            $satuanTransaksi = $detail->satuan_transaksi ?? ($detail->barang->satuan ?? '');
+            $satuanHitung = $detail->satuan_hitung_harga ?? $satuanTransaksi;
+            $isiPerSatuan = (float) ($detail->isi_per_satuan ?? 1);
+
+            $namaBarang = $detail->barang->nama_barang ?? '-';
+            if ($tipe === 'isi_kemasan') {
+                $namaBarang .= "\n" . $detail->jumlah . ' ' . $satuanTransaksi . ' x ' . $isiPerSatuan . ' ' . $satuanHitung . ' x harga per ' . $satuanHitung;
+            }
+
+            $sheet->setCellValue('A' . $row, $no++);
+            $sheet->setCellValue('B' . $row, $detail->barang->kode_barang ?? '-');
+            $sheet->setCellValue('C' . $row, $namaBarang);
+            $sheet->setCellValue('D' . $row, $detail->jumlah . ' ' . $satuanTransaksi);
+            $sheet->setCellValue('E' . $row, (float) $detail->harga_jual);
+            $sheet->setCellValue('F' . $row, $this->labelJenisPpn($this->normalisasiJenisPpnDetail($detail)));
+            $sheet->setCellValue('G' . $row, (float) ($detail->dpp_ppn ?? 0));
+            $sheet->setCellValue('H' . $row, (float) ($detail->nilai_ppn ?? 0));
+            $sheet->setCellValue('I' . $row, (float) $detail->subtotal);
+            $sheet->getStyle('A' . $row . ':I' . $row)->applyFromArray($border);
+            $row++;
+        }
+
+        return $row + 1;
+    }
 
     private function rulesPenjualan(Request $request, ?Penjualan $penjualan): array
     {
@@ -468,15 +450,23 @@ class PenjualanController extends Controller
             'nomor_invoice' => ['required', 'string', 'max:100', $uniqueInvoice],
             'tanggal_penjualan' => 'required|date',
             'id_customer' => 'required|exists:customers,id_customer',
-            'mode_ppn' => 'required|in:tanpa_ppn,include,exclude',
+            'mode_ppn' => [
+                'required',
+                Rule::in(['tanpa_ppn', 'include', 'exclude']),
+                function ($attribute, $value, $fail) use ($request) {
+                    if ($request->boolean('butuh_faktur_pajak') && $value === 'tanpa_ppn') {
+                        $fail('Jika customer membutuhkan faktur pajak, mode PPN harus Harga Sudah Termasuk PPN atau Harga Belum Termasuk PPN.');
+                    }
+                },
+            ],
             'jenis_penyesuaian_total' => 'nullable|in:tidak_ada,tambah,kurang',
             'nominal_penyesuaian_total' => 'nullable|numeric|min:0',
             'keterangan_penyesuaian_total' => 'nullable|string',
             'butuh_faktur_pajak' => 'nullable|boolean',
             'nomor_faktur_pajak' => 'nullable|string|max:100',
             'tanggal_faktur_pajak' => 'nullable|date',
-            'nama_faktur_pajak' => 'nullable|required_if:butuh_faktur_pajak,1|string|max:255',
-            'npwp_faktur_pajak' => 'nullable|required_if:butuh_faktur_pajak,1|string|max:50',
+            'nama_faktur_pajak' => 'nullable|string|max:255',
+            'npwp_faktur_pajak' => 'nullable|string|max:50',
             'alamat_faktur_pajak' => 'nullable|string',
             'metode_pembayaran' => 'required|in:tunai,kredit',
             'tanggal_jatuh_tempo' => 'nullable|required_if:metode_pembayaran,kredit|date',
@@ -499,10 +489,16 @@ class PenjualanController extends Controller
         return round($jumlah * $hargaJual, 2);
     }
 
-    private function hitungSubtotalPenjualanDariRequest(Request $request, bool $cekStok = true): array
+    private function hitungRingkasanPenjualanDariRequest(Request $request, bool $cekStok = true): array
     {
+        $modePpn = $this->normalisasiModePpn($request->mode_ppn ?? null);
         $subtotalPenjualan = 0;
         $subtotalKenaPpn = 0;
+        $subtotalNonPpn = 0;
+        $dppPpn = 0;
+        $nilaiPpn = 0;
+        $adaPpnNormal = false;
+        $adaPpnKhusus = false;
 
         foreach ($request->id_barang as $index => $idBarang) {
             $barang = Barang::where('id_barang', $idBarang)->lockForUpdate()->firstOrFail();
@@ -515,35 +511,92 @@ class PenjualanController extends Controller
             }
 
             $subtotalDetail = $this->hitungSubtotalDetail($barang, $jumlah, (float) $request->harga_jual[$index]);
-            $subtotalPenjualan += $subtotalDetail;
+            $jenisPpn = $this->normalisasiJenisPpnBarang($barang);
+            $ppnDetail = $this->hitungPpnDetail($subtotalDetail, $jenisPpn, $modePpn);
 
-            if ((bool) ($barang->kena_ppn ?? true)) {
+            $subtotalPenjualan += $subtotalDetail;
+            $dppPpn += $ppnDetail['dpp_ppn'];
+            $nilaiPpn += $ppnDetail['nilai_ppn'];
+
+            if ($jenisPpn === 'non_ppn' || $modePpn === 'tanpa_ppn') {
+                $subtotalNonPpn += $subtotalDetail;
+            } else {
                 $subtotalKenaPpn += $subtotalDetail;
+                if ($jenisPpn === 'ppn_normal') {
+                    $adaPpnNormal = true;
+                }
+                if ($jenisPpn === 'ppn_dpp_nilai_lain') {
+                    $adaPpnKhusus = true;
+                }
             }
         }
 
+        $persentasePajak = 0;
+        if ($modePpn !== 'tanpa_ppn' && ($adaPpnNormal || $adaPpnKhusus)) {
+            $persentasePajak = 11;
+        }
+
         return [
+            'mode_ppn' => $modePpn,
             'subtotal_penjualan' => round($subtotalPenjualan, 2),
             'subtotal_kena_ppn' => round($subtotalKenaPpn, 2),
-            'subtotal_non_ppn' => round(max($subtotalPenjualan - $subtotalKenaPpn, 0), 2),
+            'subtotal_non_ppn' => round($subtotalNonPpn, 2),
+            'persentase_pajak' => $persentasePajak,
+            'dpp_ppn' => round($dppPpn, 2),
+            'nilai_pajak' => round($nilaiPpn, 2),
+            'pajak_ditambahkan' => $modePpn === 'exclude',
+            'total_akhir' => round($modePpn === 'exclude' ? $subtotalPenjualan + $nilaiPpn : $subtotalPenjualan, 2),
         ];
     }
 
-    private function hitungPpnDetail(float $subtotalDetail, bool $kenaPpn, string $modePpn): array
+    private function hitungPpnDetail(float $subtotalDetail, string $jenisPpn, string $modePpn): array
     {
-        $tarifPpn = 11.0;
         $subtotal = round(max($subtotalDetail, 0), 2);
+        $jenisPpn = $this->normalisasiJenisPpn($jenisPpn);
 
-        if (!$kenaPpn || $modePpn === 'tanpa_ppn') {
-            return ['dpp_ppn' => 0, 'nilai_ppn' => 0];
+        if ($jenisPpn === 'non_ppn' || $modePpn === 'tanpa_ppn') {
+            return [
+                'jenis_ppn' => $jenisPpn,
+                'kena_ppn' => false,
+                'tarif_ppn' => 0,
+                'dpp_ppn' => 0,
+                'nilai_ppn' => 0,
+            ];
         }
 
-        if ($modePpn === 'exclude') {
-            return ['dpp_ppn' => $subtotal, 'nilai_ppn' => round($subtotal * ($tarifPpn / 100), 2)];
+        if ($jenisPpn === 'ppn_normal') {
+            $tarifPpn = 11.0;
+
+            if ($modePpn === 'exclude') {
+                return [
+                    'jenis_ppn' => $jenisPpn,
+                    'kena_ppn' => true,
+                    'tarif_ppn' => $tarifPpn,
+                    'dpp_ppn' => $subtotal,
+                    'nilai_ppn' => round($subtotal * 0.11, 2),
+                ];
+            }
+
+            $dppPpn = round($subtotal * 100 / 111, 2);
+
+            return [
+                'jenis_ppn' => $jenisPpn,
+                'kena_ppn' => true,
+                'tarif_ppn' => $tarifPpn,
+                'dpp_ppn' => $dppPpn,
+                'nilai_ppn' => round($subtotal - $dppPpn, 2),
+            ];
         }
 
-        $dppPpn = round($subtotal * 100 / 111, 2);
-        return ['dpp_ppn' => $dppPpn, 'nilai_ppn' => round($subtotal - $dppPpn, 2)];
+        $tarifPpn = 11.0;
+
+        return [
+            'jenis_ppn' => $jenisPpn,
+            'kena_ppn' => true,
+            'tarif_ppn' => $tarifPpn,
+            'dpp_ppn' => round($subtotal * 11 / 12, 2),
+            'nilai_ppn' => round($subtotal * 0.11, 2),
+        ];
     }
 
     private function simpanDetailPenjualanDariRequest(Penjualan $penjualan, Request $request, bool $affectStock, string $keteranganRiwayat): void
@@ -566,8 +619,8 @@ class PenjualanController extends Controller
             $satuanHitungHarga = $tipePerhitunganHarga === 'isi_kemasan' ? $barang->satuan_hitung_harga : $barang->satuan;
             $isiPerSatuan = $tipePerhitunganHarga === 'isi_kemasan' ? (float) $barang->isi_per_satuan : 1;
             $subtotalDetail = $this->hitungSubtotalDetail($barang, $jumlah, $hargaJual);
-            $kenaPpn = (bool) ($barang->kena_ppn ?? true);
-            $ppnDetail = $this->hitungPpnDetail($subtotalDetail, $kenaPpn, $modePpn);
+            $jenisPpn = $this->normalisasiJenisPpnBarang($barang);
+            $ppnDetail = $this->hitungPpnDetail($subtotalDetail, $jenisPpn, $modePpn);
 
             DetailPenjualan::create([
                 'id_penjualan' => $penjualan->id_penjualan,
@@ -578,7 +631,9 @@ class PenjualanController extends Controller
                 'satuan_transaksi' => $satuanTransaksi,
                 'satuan_hitung_harga' => $satuanHitungHarga,
                 'isi_per_satuan' => $isiPerSatuan,
-                'kena_ppn' => $kenaPpn,
+                'kena_ppn' => $ppnDetail['kena_ppn'],
+                'jenis_ppn' => $ppnDetail['jenis_ppn'],
+                'tarif_ppn' => $ppnDetail['tarif_ppn'],
                 'dpp_ppn' => $ppnDetail['dpp_ppn'],
                 'nilai_ppn' => $ppnDetail['nilai_ppn'],
                 'subtotal' => $subtotalDetail,
@@ -604,59 +659,6 @@ class PenjualanController extends Controller
                 ]);
             }
         }
-    }
-
-    private function hitungPpnPenjualan(float $subtotalPenjualan, float $subtotalKenaPpn, string $modePpn): array
-    {
-        $tarifPpn = 11.0;
-        $subtotal = round(max($subtotalPenjualan, 0), 2);
-        $subtotalPpnable = round(max($subtotalKenaPpn, 0), 2);
-        $subtotalNonPpn = round(max($subtotal - $subtotalPpnable, 0), 2);
-
-        if (!in_array($modePpn, ['tanpa_ppn', 'include', 'exclude'], true)) {
-            $modePpn = 'include';
-        }
-
-        if ($modePpn === 'tanpa_ppn') {
-            return [
-                'mode_ppn' => 'tanpa_ppn',
-                'subtotal_kena_ppn' => $subtotalPpnable,
-                'subtotal_non_ppn' => $subtotalNonPpn,
-                'persentase_pajak' => 0,
-                'dpp_ppn' => 0,
-                'nilai_pajak' => 0,
-                'pajak_ditambahkan' => false,
-                'total_akhir' => $subtotal,
-            ];
-        }
-
-        if ($modePpn === 'exclude') {
-            $nilaiPpn = round($subtotalPpnable * ($tarifPpn / 100), 2);
-            return [
-                'mode_ppn' => 'exclude',
-                'subtotal_kena_ppn' => $subtotalPpnable,
-                'subtotal_non_ppn' => $subtotalNonPpn,
-                'persentase_pajak' => $tarifPpn,
-                'dpp_ppn' => $subtotalPpnable,
-                'nilai_pajak' => $nilaiPpn,
-                'pajak_ditambahkan' => true,
-                'total_akhir' => round($subtotal + $nilaiPpn, 2),
-            ];
-        }
-
-        $dppPpn = round($subtotalPpnable * 100 / 111, 2);
-        $nilaiPpn = round($subtotalPpnable - $dppPpn, 2);
-
-        return [
-            'mode_ppn' => 'include',
-            'subtotal_kena_ppn' => $subtotalPpnable,
-            'subtotal_non_ppn' => $subtotalNonPpn,
-            'persentase_pajak' => $tarifPpn,
-            'dpp_ppn' => $dppPpn,
-            'nilai_pajak' => $nilaiPpn,
-            'pajak_ditambahkan' => false,
-            'total_akhir' => $subtotal,
-        ];
     }
 
     private function hitungTotalDenganPenyesuaian(float $totalSebelumPenyesuaian, ?string $jenisPenyesuaian, $nominalPenyesuaian, ?string $keteranganPenyesuaian = null): array
@@ -700,11 +702,11 @@ class PenjualanController extends Controller
 
         return [
             'butuh_faktur_pajak' => $butuhFakturPajak,
-            'nomor_faktur_pajak' => $butuhFakturPajak ? $request->nomor_faktur_pajak : null,
-            'tanggal_faktur_pajak' => $butuhFakturPajak ? $request->tanggal_faktur_pajak : null,
-            'nama_faktur_pajak' => $butuhFakturPajak ? $request->nama_faktur_pajak : null,
-            'npwp_faktur_pajak' => $butuhFakturPajak ? $request->npwp_faktur_pajak : null,
-            'alamat_faktur_pajak' => $butuhFakturPajak ? $request->alamat_faktur_pajak : null,
+            'nomor_faktur_pajak' => null,
+            'tanggal_faktur_pajak' => null,
+            'nama_faktur_pajak' => null,
+            'npwp_faktur_pajak' => null,
+            'alamat_faktur_pajak' => null,
         ];
     }
 
@@ -798,5 +800,41 @@ class PenjualanController extends Controller
             'include' => 'Harga Sudah Termasuk PPN',
             'exclude' => 'Harga Belum Termasuk PPN',
         ][$modePpn] ?? 'Harga Sudah Termasuk PPN';
+    }
+
+    private function normalisasiJenisPpn(?string $jenisPpn): string
+    {
+        if (in_array($jenisPpn, ['non_ppn', 'ppn_normal', 'ppn_dpp_nilai_lain'], true)) {
+            return $jenisPpn;
+        }
+
+        return 'ppn_dpp_nilai_lain';
+    }
+
+    private function normalisasiJenisPpnBarang(Barang $barang): string
+    {
+        if (!empty($barang->jenis_ppn)) {
+            return $this->normalisasiJenisPpn($barang->jenis_ppn);
+        }
+
+        return (bool) ($barang->kena_ppn ?? true) ? 'ppn_dpp_nilai_lain' : 'non_ppn';
+    }
+
+    private function normalisasiJenisPpnDetail(DetailPenjualan $detail): string
+    {
+        if (!empty($detail->jenis_ppn)) {
+            return $this->normalisasiJenisPpn($detail->jenis_ppn);
+        }
+
+        return (bool) ($detail->kena_ppn ?? true) ? 'ppn_dpp_nilai_lain' : 'non_ppn';
+    }
+
+    private function labelJenisPpn(string $jenisPpn): string
+    {
+        return [
+            'non_ppn' => 'Non PPN',
+            'ppn_normal' => 'PPN Normal',
+            'ppn_dpp_nilai_lain' => 'PPN Khusus',
+        ][$jenisPpn] ?? 'PPN Khusus';
     }
 }
