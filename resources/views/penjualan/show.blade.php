@@ -72,13 +72,13 @@
         ? 'Tambah Total Akhir'
         : ($jenisPenyesuaianTotal === 'kurang' ? 'Kurangi Total Akhir' : 'Tidak Ada');
 
-        $backUrl = request('back_url', (bool) ($penjualan->is_historical ?? false) ? route('invoice-historis.index') : route('penjualan.index'));
+        $backUrl = request('back_url', route('penjualan.index'));
         $namaPerusahaan = 'CV. BERKAT JAYA NUSANTARA';
         $alamatPerusahaan = 'Jl. Jelambar Utama 1 No. 6A RT. 007 RW. 004, Jakarta Barat 11460';
         $teleponPerusahaan = '(021) 5664892, 5676277';
 
         $isInvoiceHistoris = (bool) ($penjualan->is_historical ?? false);
-        $nomorInvoiceTampil = $isInvoiceHistoris && !empty($penjualan->nomor_dokumen_asli)
+        $nomorInvoiceTampil = !empty($penjualan->nomor_dokumen_asli)
         ? $penjualan->nomor_dokumen_asli
         : $penjualan->nomor_invoice;
 
@@ -613,7 +613,7 @@
                     </h2>
 
                     <div class="flex gap-2">
-                        <a href="{{ $isInvoiceHistoris ? route('invoice-historis.penjualan.exportExcel', $penjualan->id_penjualan) : route('penjualan.exportExcel', $penjualan->id_penjualan) }}"
+                        <a href="{{ route('penjualan.exportExcel', $penjualan->id_penjualan) }}"
                             class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
                             Export Excel
                         </a>
@@ -709,7 +709,7 @@
                                 <div>
                                     <div class="invoice-title">INVOICE / NOTA PENJUALAN</div>
                                     <div class="invoice-number">No: {{ $nomorInvoiceTampil }}</div>
-                                    @if ($isInvoiceHistoris && !empty($penjualan->nomor_invoice))
+                                    @if (!empty($penjualan->nomor_invoice) && $penjualan->nomor_invoice !== $nomorInvoiceTampil)
                                     <div style="font-size: 10px; margin-top: 1px;">No Sistem: {{ $penjualan->nomor_invoice }}</div>
                                     @endif
                                 </div>

@@ -27,7 +27,7 @@
                         <div>
                             <label class="block mb-1 font-medium">Nomor Invoice / Nota <span class="text-red-600">*</span></label>
                             <input type="text" name="nomor_invoice" value="{{ old('nomor_invoice') }}" placeholder="Contoh: 01/05/I/2026" class="w-full border-gray-300 rounded-md shadow-sm" required>
-                            <p class="text-sm text-gray-500 mt-1">Diisi manual oleh admin dan tidak boleh sama dengan nomor invoice lain.</p>
+                            <p class="text-sm text-gray-500 mt-1">Diisi manual oleh admin. Nomor ini boleh sama; sistem tetap membuat nomor internal unik sebagai pembeda data.</p>
                         </div>
                         <div>
                             <label class="block mb-1 font-medium">Tanggal Penjualan</label>

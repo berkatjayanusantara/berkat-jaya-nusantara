@@ -33,7 +33,8 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                         <div>
                             <label class="block mb-1 font-medium">Nomor Invoice / Nota <span class="text-red-600">*</span></label>
-                            <input type="text" name="nomor_invoice" value="{{ old('nomor_invoice', $penjualan->nomor_invoice) }}" class="w-full border-gray-300 rounded-md shadow-sm" required>
+                            <input type="text" name="nomor_invoice" value="{{ old('nomor_invoice', $penjualan->nomor_dokumen_asli ?: $penjualan->nomor_invoice) }}" class="w-full border-gray-300 rounded-md shadow-sm" required>
+                            <p class="text-sm text-gray-500 mt-1">Nomor ini boleh sama. Nomor internal sistem tetap menjadi pembeda data.</p>
                         </div>
                         <div>
                             <label class="block mb-1 font-medium">Tanggal Penjualan</label>

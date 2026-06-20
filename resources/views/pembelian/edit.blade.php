@@ -73,8 +73,8 @@
 
                             <input type="text"
                                 name="nomor_pembelian"
-                                value="{{ old('nomor_pembelian', $pembelian->nomor_pembelian) }}"
-                                placeholder="Contoh: INV-SUP-001 atau PB-20260612-0001"
+                                value="{{ old('nomor_pembelian', $pembelian->nomor_dokumen_asli ?: $pembelian->nomor_pembelian) }}"
+                                placeholder="Contoh: INV-SUP-001 / Nota Supplier 001"
                                 class="w-full border-gray-300 rounded-md shadow-sm @error('nomor_pembelian') border-red-500 @enderror"
                                 required>
 
@@ -83,8 +83,14 @@
                             @enderror
 
                             <p class="text-sm text-gray-500 mt-1">
-                                Nomor diisi manual sesuai nota/invoice supplier. Tidak boleh sama.
+                                Nomor diisi manual sesuai nota/invoice supplier. Boleh sama dengan pembelian lain karena nomor sistem internal tetap menjadi pembeda.
                             </p>
+
+                            @if (!empty($pembelian->nomor_pembelian) && !empty($pembelian->nomor_dokumen_asli) && $pembelian->nomor_pembelian !== $pembelian->nomor_dokumen_asli)
+                            <p class="text-xs text-blue-600 mt-1">
+                                No Sistem: {{ $pembelian->nomor_pembelian }}
+                            </p>
+                            @endif
                         </div>
 
                         <div>

@@ -34,6 +34,7 @@
                         <div>
                             <label class="block mb-1 font-medium">Nomor Invoice / Nota Lama <span class="text-red-600">*</span></label>
                             <input type="text" name="nomor_dokumen_asli" value="{{ old('nomor_dokumen_asli', $penjualan->nomor_dokumen_asli ?: $penjualan->nomor_invoice) }}" class="w-full border-gray-300 rounded-md shadow-sm" required>
+                            <p class="text-xs text-gray-500 mt-1">Nomor invoice asli boleh sama. Sistem tetap membedakan invoice memakai nomor internal otomatis.</p>
                         </div>
                         <div>
                             <label class="block mb-1 font-medium">Tanggal Penjualan</label>

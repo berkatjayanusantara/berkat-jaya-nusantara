@@ -3,6 +3,8 @@
     $namaPerusahaan = 'CV. BERKAT JAYA NUSANTARA';
     $nomorDokumen = $pembelian->nomor_surat_jalan ?: 'SJ-SUP-' . $pembelian->nomor_pembelian;
     $statusPenerimaan = $pembelian->status_penerimaan ?? 'lengkap';
+    $nomorPembelianTampil = !empty($pembelian->nomor_dokumen_asli) ? $pembelian->nomor_dokumen_asli : $pembelian->nomor_pembelian;
+    $nomorSistemBerbeda = !empty($pembelian->nomor_dokumen_asli) && !empty($pembelian->nomor_pembelian) && $pembelian->nomor_dokumen_asli !== $pembelian->nomor_pembelian;
     @endphp
 
     <style>
@@ -89,8 +91,13 @@
                         </p>
                         <p class="text-sm text-gray-700">
                             No. Nota Pembelian:
-                            <strong>{{ $pembelian->nomor_pembelian }}</strong>
+                            <strong>{{ $nomorPembelianTampil }}</strong>
                         </p>
+                        @if ($nomorSistemBerbeda)
+                        <p class="text-xs text-gray-500">
+                            No Sistem: {{ $pembelian->nomor_pembelian }}
+                        </p>
+                        @endif
                     </div>
                 </div>
 

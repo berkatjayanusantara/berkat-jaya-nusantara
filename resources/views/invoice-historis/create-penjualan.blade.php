@@ -27,6 +27,7 @@
                         <div>
                             <label class="block mb-1 font-medium">Nomor Invoice / Nota Lama <span class="text-red-600">*</span></label>
                             <input type="text" name="nomor_dokumen_asli" value="{{ old('nomor_dokumen_asli') }}" placeholder="Contoh: 01/05/I/2026" class="w-full border-gray-300 rounded-md shadow-sm" required>
+                            <p class="text-xs text-gray-500 mt-1">Nomor invoice asli boleh sama. Sistem tetap membedakan invoice memakai nomor internal otomatis.</p>
                             <p class="text-sm text-gray-500 mt-1">Diisi sesuai nomor invoice/nota asli dari transaksi lama dan tidak boleh sama dengan nomor invoice lama lain.</p>
                         </div>
                         <div>

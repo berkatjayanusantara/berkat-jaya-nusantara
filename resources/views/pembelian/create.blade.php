@@ -38,13 +38,19 @@
                             <input type="text"
                                 name="nomor_pembelian"
                                 value="{{ old('nomor_pembelian') }}"
-                                placeholder="Contoh: INV-SUP-001 atau PB-20260612-0001"
+                                placeholder="Contoh: INV-SUP-001 / Nota Supplier 001"
                                 class="w-full border-gray-300 rounded-md shadow-sm"
                                 required>
 
                             <p class="text-sm text-gray-500 mt-1">
-                                Nomor diisi manual sesuai nota/invoice dari supplier. Tidak boleh sama.
+                                Nomor diisi manual sesuai nota/invoice dari supplier. Boleh sama dengan pembelian lain karena sistem membuat nomor internal otomatis sebagai pembeda.
                             </p>
+
+                            @if (!empty($nomorPembelian))
+                            <p class="text-xs text-blue-600 mt-1">
+                                Nomor sistem otomatis berikutnya: {{ $nomorPembelian }}
+                            </p>
+                            @endif
                         </div>
 
                         <div>

@@ -67,7 +67,8 @@ class PenjualanController extends Controller
             $statusPembayaran = $request->metode_pembayaran === 'tunai' ? 'lunas' : 'belum_lunas';
 
             $penjualan = Penjualan::create(array_merge([
-                'nomor_invoice' => trim($request->nomor_invoice),
+                'nomor_invoice' => $this->buatNomorInvoiceSistem($request->tanggal_penjualan),
+                'nomor_dokumen_asli' => trim($request->nomor_invoice),
                 'tanggal_penjualan' => $request->tanggal_penjualan,
                 'id_customer' => $request->id_customer,
                 'subtotal' => $perhitunganPpn['subtotal_penjualan'],
@@ -95,7 +96,7 @@ class PenjualanController extends Controller
             if ($request->metode_pembayaran === 'kredit') {
                 Piutang::create([
                     'id_penjualan' => $penjualan->id_penjualan,
-                    'nomor_invoice' => $penjualan->nomor_invoice,
+                    'nomor_invoice' => $this->nomorInvoiceTampil($penjualan),
                     'id_customer' => $penjualan->id_customer,
                     'total_piutang' => $penjualan->total_akhir,
                     'total_dibayar' => 0,
@@ -184,7 +185,7 @@ class PenjualanController extends Controller
             $statusPembayaran = $this->hitungStatusPembayaran($request->metode_pembayaran, $perhitunganTotal['total_akhir'], $totalDibayarLama);
 
             $penjualan->update(array_merge([
-                'nomor_invoice' => trim($request->nomor_invoice),
+                'nomor_dokumen_asli' => trim($request->nomor_invoice),
                 'tanggal_penjualan' => $request->tanggal_penjualan,
                 'id_customer' => $request->id_customer,
                 'subtotal' => $perhitunganPpn['subtotal_penjualan'],
@@ -234,9 +235,7 @@ class PenjualanController extends Controller
         $labelModePpn = $this->labelModePpn($modePpn);
 
         $isInvoiceHistoris = (bool) ($penjualan->is_historical ?? false);
-        $nomorInvoiceTampil = $isInvoiceHistoris && !empty($penjualan->nomor_dokumen_asli)
-            ? $penjualan->nomor_dokumen_asli
-            : $penjualan->nomor_invoice;
+        $nomorInvoiceTampil = $this->nomorInvoiceTampil($penjualan);
 
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
@@ -439,15 +438,38 @@ class PenjualanController extends Controller
         return $row + 1;
     }
 
+
+    private function nomorInvoiceTampil(Penjualan $penjualan): string
+    {
+        return !empty($penjualan->nomor_dokumen_asli)
+            ? $penjualan->nomor_dokumen_asli
+            : $penjualan->nomor_invoice;
+    }
+
+    private function buatNomorInvoiceSistem(?string $tanggalPenjualan = null): string
+    {
+        $tanggal = $tanggalPenjualan
+            ? \Carbon\Carbon::parse($tanggalPenjualan)
+            : now();
+
+        $prefix = 'INV-' . $tanggal->format('Ymd') . '-';
+        $nomorUrut = 1;
+
+        do {
+            $nomorInvoice = $prefix . str_pad((string) $nomorUrut, 4, '0', STR_PAD_LEFT);
+            $nomorUrut++;
+        } while (Penjualan::where('nomor_invoice', $nomorInvoice)->exists());
+
+        return $nomorInvoice;
+    }
+
     private function rulesPenjualan(Request $request, ?Penjualan $penjualan): array
     {
-        $uniqueInvoice = Rule::unique('penjualan', 'nomor_invoice');
-        if ($penjualan) {
-            $uniqueInvoice->ignore($penjualan->id_penjualan, 'id_penjualan');
-        }
-
         return [
-            'nomor_invoice' => ['required', 'string', 'max:100', $uniqueInvoice],
+            // Nomor invoice/nota yang diisi admin boleh sama.
+            // Sistem tetap menyimpan nomor internal unik di kolom nomor_invoice,
+            // sedangkan input admin disimpan ke nomor_dokumen_asli.
+            'nomor_invoice' => ['required', 'string', 'max:100'],
             'tanggal_penjualan' => 'required|date',
             'id_customer' => 'required|exists:customers,id_customer',
             'mode_ppn' => [
@@ -740,7 +762,7 @@ class PenjualanController extends Controller
 
         if ($penjualan->piutang) {
             $penjualan->piutang->update([
-                'nomor_invoice' => $penjualan->nomor_invoice,
+                'nomor_invoice' => $this->nomorInvoiceTampil($penjualan),
                 'id_customer' => $penjualan->id_customer,
                 'total_piutang' => $totalAkhir,
                 'total_dibayar' => $totalDibayarLama,
@@ -754,7 +776,7 @@ class PenjualanController extends Controller
 
         Piutang::create([
             'id_penjualan' => $penjualan->id_penjualan,
-            'nomor_invoice' => $penjualan->nomor_invoice,
+            'nomor_invoice' => $this->nomorInvoiceTampil($penjualan),
             'id_customer' => $penjualan->id_customer,
             'total_piutang' => $totalAkhir,
             'total_dibayar' => 0,

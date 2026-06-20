@@ -68,9 +68,7 @@
                             @php
                             $isHistoris = (bool) ($item->is_historical ?? false);
 
-                            $nomorInvoiceTampil = $isHistoris && $item->nomor_dokumen_asli
-                            ? $item->nomor_dokumen_asli
-                            : $item->nomor_invoice;
+                            $nomorInvoiceTampil = $item->nomor_dokumen_asli ?: $item->nomor_invoice;
                             @endphp
 
                             <tr>

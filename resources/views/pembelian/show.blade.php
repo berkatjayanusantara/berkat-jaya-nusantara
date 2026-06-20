@@ -4,9 +4,12 @@
     $statusPenerimaan = $pembelian->status_penerimaan ?? 'lengkap';
     $backUrl = request('back_url', route('pembelian.index'));
     $isPembelianHistoris = (bool) ($pembelian->is_historical ?? false);
-    $nomorPembelianTampil = $isPembelianHistoris && !empty($pembelian->nomor_dokumen_asli)
+    $nomorPembelianTampil = !empty($pembelian->nomor_dokumen_asli)
     ? $pembelian->nomor_dokumen_asli
     : $pembelian->nomor_pembelian;
+    $nomorSistemBerbeda = !empty($pembelian->nomor_dokumen_asli)
+    && !empty($pembelian->nomor_pembelian)
+    && $pembelian->nomor_dokumen_asli !== $pembelian->nomor_pembelian;
 
     $namaPerusahaan = 'CV. BERKAT JAYA NUSANTARA';
     $alamatPerusahaan = 'Jl. Jelambar Utama 1 No. 6A RT. 007 RW. 004, Jakarta Barat 11460';
@@ -755,7 +758,6 @@
 
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6 invoice-box">
 
-                    @foreach (['SUPPLIER', 'ARSIP PERUSAHAAN'] as $copyIndex => $copyLabel)
                     <div class="invoice-copy">
                         <div class="invoice-copy-header">
                             <div class="logo-placeholder">
@@ -775,9 +777,6 @@
                                 </div>
                             </div>
 
-                            <div class="copy-label">
-                                {{ $copyLabel }}
-                            </div>
                         </div>
 
                         <div class="invoice-title-row">
@@ -788,7 +787,7 @@
                                 <div class="invoice-number">
                                     No: {{ $nomorPembelianTampil }}
                                 </div>
-                                @if ($isPembelianHistoris && !empty($pembelian->nomor_pembelian))
+                                @if ($nomorSistemBerbeda)
                                 <div style="font-size: 10px; margin-top: 1px;">
                                     No Sistem: {{ $pembelian->nomor_pembelian }}
                                 </div>
@@ -1018,8 +1017,6 @@
                             </div>
                         </div>
                     </div>
-
-                    @endforeach
 
                     <div class="flex justify-end mt-6 no-print">
                         <a href="{{ $backUrl }}"

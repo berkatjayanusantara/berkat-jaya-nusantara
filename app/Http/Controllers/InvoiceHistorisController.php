@@ -65,7 +65,6 @@ class InvoiceHistorisController extends Controller
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('pembelian', 'nomor_dokumen_asli'),
             ],
             'nomor_delivery_order' => [
                 'nullable',
@@ -241,8 +240,6 @@ class InvoiceHistorisController extends Controller
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('pembelian', 'nomor_dokumen_asli')
-                    ->ignore($pembelian->id_pembelian, 'id_pembelian'),
             ],
             'nomor_delivery_order' => [
                 'nullable',
@@ -590,14 +587,8 @@ class InvoiceHistorisController extends Controller
 
     private function rulesPenjualanHistoris(Request $request, ?Penjualan $penjualan): array
     {
-        $uniqueNomorDokumenAsli = Rule::unique('penjualan', 'nomor_dokumen_asli');
-
-        if ($penjualan) {
-            $uniqueNomorDokumenAsli->ignore($penjualan->id_penjualan, 'id_penjualan');
-        }
-
         return [
-            'nomor_dokumen_asli' => ['required', 'string', 'max:100', $uniqueNomorDokumenAsli],
+            'nomor_dokumen_asli' => ['required', 'string', 'max:100'],
             'tanggal_penjualan' => 'required|date',
             'id_customer' => 'required|exists:customers,id_customer',
             'mode_ppn' => [

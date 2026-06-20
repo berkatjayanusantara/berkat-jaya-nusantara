@@ -70,9 +70,10 @@
 
                             $isHistoris = (bool) ($item->is_historical ?? false);
 
-                            $nomorPembelianTampil = $isHistoris && $item->nomor_dokumen_asli
-                            ? $item->nomor_dokumen_asli
-                            : $item->nomor_pembelian;
+                            $nomorPembelianTampil = $item->nomor_dokumen_asli ?: $item->nomor_pembelian;
+                            $nomorSistemBerbeda = !empty($item->nomor_dokumen_asli)
+                            && !empty($item->nomor_pembelian)
+                            && $item->nomor_dokumen_asli !== $item->nomor_pembelian;
                             @endphp
 
                             <tr>
@@ -90,7 +91,7 @@
                                         Historis
                                     </div>
 
-                                    @if ($item->nomor_pembelian)
+                                    @if ($nomorSistemBerbeda)
                                     <div class="text-xs text-gray-500">
                                         No Sistem: {{ $item->nomor_pembelian }}
                                     </div>

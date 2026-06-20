@@ -28,6 +28,7 @@ class PembelianController extends Controller
         $pembelian = Pembelian::with(['supplier', 'user'])
             ->when($search, function ($query, $search) {
                 $query->where('nomor_pembelian', 'like', "%{$search}%")
+                    ->orWhere('nomor_dokumen_asli', 'like', "%{$search}%")
                     ->orWhere('nomor_delivery_order', 'like', "%{$search}%")
                     ->orWhere('nomor_surat_jalan', 'like', "%{$search}%")
                     ->orWhereHas('supplier', function ($supplierQuery) use ($search) {
@@ -71,7 +72,6 @@ class PembelianController extends Controller
                 'required',
                 'string',
                 'max:100',
-                Rule::unique('pembelian', 'nomor_pembelian'),
             ],
             'nomor_delivery_order' => [
                 'nullable',
@@ -160,8 +160,14 @@ class PembelianController extends Controller
                 ? round(($nilaiPajak / $subtotalPembelian) * 100, 2)
                 : 0;
 
+            $nomorDokumenAsli = trim($request->nomor_pembelian);
+            $nomorPembelianSistem = $this->generateNomorPembelian(true);
+
             $pembelian = Pembelian::create([
-                'nomor_pembelian' => trim($request->nomor_pembelian),
+                'nomor_pembelian' => $nomorPembelianSistem,
+                'nomor_dokumen_asli' => $nomorDokumenAsli,
+                'is_historical' => false,
+                'affect_stock' => true,
                 'nomor_delivery_order' => $this->ubahKosongMenjadiNull($request->nomor_delivery_order),
                 'nomor_surat_jalan' => $this->ubahKosongMenjadiNull($request->nomor_surat_jalan),
                 'tanggal_pembelian' => $request->tanggal_pembelian,
@@ -262,8 +268,6 @@ class PembelianController extends Controller
                 'required',
                 'string',
                 'max:100',
-                Rule::unique('pembelian', 'nomor_pembelian')
-                    ->ignore($pembelian->id_pembelian, 'id_pembelian'),
             ],
             'nomor_delivery_order' => [
                 'nullable',
@@ -402,10 +406,11 @@ class PembelianController extends Controller
                 ? round(($nilaiPajak / $subtotalPembelian) * 100, 2)
                 : 0;
 
-            $nomorPembelianLama = $pembelian->nomor_pembelian;
+            $nomorPembelianLama = $pembelian->nomor_dokumen_asli ?: $pembelian->nomor_pembelian;
+            $nomorDokumenAsli = trim($request->nomor_pembelian);
 
             $pembelian->update([
-                'nomor_pembelian' => trim($request->nomor_pembelian),
+                'nomor_dokumen_asli' => $nomorDokumenAsli,
                 'nomor_delivery_order' => $this->ubahKosongMenjadiNull($request->nomor_delivery_order),
                 'nomor_surat_jalan' => $this->ubahKosongMenjadiNull($request->nomor_surat_jalan),
                 'tanggal_pembelian' => $request->tanggal_pembelian,
@@ -606,6 +611,7 @@ class PembelianController extends Controller
         };
 
         $terbilangTotal = $bersihkanTerbilang($terbilang(round($pembelian->total_akhir))) . ' rupiah';
+        $nomorPembelianTampil = $pembelian->nomor_dokumen_asli ?: $pembelian->nomor_pembelian;
 
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
@@ -615,7 +621,7 @@ class PembelianController extends Controller
         $spreadsheet->getProperties()
             ->setCreator('Berkat Jaya Nusantara')
             ->setLastModifiedBy('Berkat Jaya Nusantara')
-            ->setTitle('Nota Pembelian ' . $pembelian->nomor_pembelian)
+            ->setTitle('Nota Pembelian ' . $nomorPembelianTampil)
             ->setSubject('Nota Pembelian')
             ->setDescription('Nota pembelian Berkat Jaya Nusantara');
 
@@ -748,11 +754,14 @@ class PembelianController extends Controller
 
         $sheet->mergeCells('A6:E6');
         $sheet->mergeCells('F6:J6');
-        $sheet->setCellValue('A6', 'No: ' . $pembelian->nomor_pembelian);
+        $sheet->setCellValue('A6', 'No: ' . $nomorPembelianTampil);
         $sheet->setCellValue('F6', 'Status Terima: ' . $statusText);
 
         $sheet->mergeCells('A7:E7');
         $sheet->mergeCells('F7:J7');
+        if (!empty($pembelian->nomor_dokumen_asli) && $pembelian->nomor_dokumen_asli !== $pembelian->nomor_pembelian) {
+            $sheet->setCellValue('A7', 'No Sistem: ' . $pembelian->nomor_pembelian);
+        }
         $sheet->setCellValue('F7', 'Admin: ' . ($pembelian->user->nama_user ?? '-'));
 
         $sheet->getStyle('A5')->getFont()->setBold(true)->setSize(14);
@@ -1018,7 +1027,7 @@ class PembelianController extends Controller
         $sheet->getStyle('A1:J' . $row)->getFont()->setName('Arial');
         $sheet->getStyle('A' . $totalStartRow . ':J' . $row)->getAlignment()->setWrapText(true);
 
-        $safeNomor = preg_replace('/[^A-Za-z0-9\-_]+/', '-', $pembelian->nomor_pembelian ?? 'nota');
+        $safeNomor = preg_replace('/[^A-Za-z0-9\-_]+/', '-', $nomorPembelianTampil ?? 'nota');
         $safeNomor = trim(preg_replace('/-+/', '-', $safeNomor), '-');
         $fileName = 'Nota-Pembelian-' . ($safeNomor ?: 'nota') . '.xlsx';
 
