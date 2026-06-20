@@ -11,9 +11,14 @@
                     <a href="{{ route('dashboard') }}" class="flex items-center gap-3">
                         <div class="w-14 h-14 bg-white border border-gray-200 rounded-xl flex items-center justify-center shadow-sm overflow-hidden">
                             <img
-                                src="{{ asset('assets/img/logo-bjn.png') }}"
+                                src="{{ asset('images/logo-bjn-monogram.png') }}"
                                 alt="Logo Berkat Jaya Nusantara"
-                                class="w-12 h-12 object-contain">
+                                class="w-11 h-11 object-contain"
+                                onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');">
+
+                            <div class="hidden text-sm font-bold text-gray-700">
+                                BJN
+                            </div>
                         </div>
 
                         <div class="hidden md:block">
@@ -109,7 +114,7 @@
                     <x-dropdown align="left" width="56">
                         <x-slot name="trigger">
                             <button class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md transition
-                                {{ request()->routeIs('riwayat-stok.*') || request()->routeIs('invoice-historis.*') || request()->routeIs('stock-opname.*')
+                                {{ request()->routeIs('riwayat-stok.*') || request()->routeIs('invoice-historis.*') || request()->routeIs('stock-opname.*') || request()->routeIs('arsip-invoice.*')
                                     ? 'text-blue-700 bg-blue-50'
                                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50' }}">
                                 Monitoring
@@ -130,12 +135,20 @@
                                 Riwayat Stok
                             </x-dropdown-link>
 
-                            <x-dropdown-link :href="route('stock-opname.create')">
+                            <x-dropdown-link :href="route('stock-opname.index')">
                                 Stock Opname
                             </x-dropdown-link>
 
                             <x-dropdown-link :href="route('invoice-historis.index')">
                                 Invoice History
+                            </x-dropdown-link>
+
+                            <x-dropdown-link :href="route('arsip-invoice.index')">
+                                Arsip Invoice
+                            </x-dropdown-link>
+
+                            <x-dropdown-link :href="route('kop-surat.index')">
+                                Kop Surat
                             </x-dropdown-link>
                         </x-slot>
                     </x-dropdown>
@@ -294,12 +307,20 @@
                 Riwayat Stok
             </x-responsive-nav-link>
 
-            <x-responsive-nav-link :href="route('stock-opname.create')" :active="request()->routeIs('stock-opname.*')">
+            <x-responsive-nav-link :href="route('stock-opname.index')" :active="request()->routeIs('stock-opname.*')">
                 Stock Opname
             </x-responsive-nav-link>
 
             <x-responsive-nav-link :href="route('invoice-historis.index')" :active="request()->routeIs('invoice-historis.*')">
                 Invoice History
+            </x-responsive-nav-link>
+
+            <x-responsive-nav-link :href="route('arsip-invoice.index')" :active="request()->routeIs('arsip-invoice.*')">
+                Arsip Invoice
+            </x-responsive-nav-link>
+
+            <x-responsive-nav-link :href="route('kop-surat.index')" :active="request()->routeIs('kop-surat.*')">
+                Kop Surat
             </x-responsive-nav-link>
 
             <div class="px-4 pt-3 pb-1 text-xs font-bold text-gray-400 uppercase">

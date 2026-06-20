@@ -12,6 +12,8 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LaporanController;
 use App\Http\Controllers\StockOpnameController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ArsipInvoiceController;
+use App\Http\Controllers\KopSuratController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -75,11 +77,11 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/riwayat-stok', [RiwayatStokController::class, 'index'])->name('riwayat-stok.index');
 
-    Route::get('/stock-opname', [StockOpnameController::class, 'create'])->name('stock-opname.create');
+    Route::get('/stock-opname', [StockOpnameController::class, 'index'])->name('stock-opname.index');
+    Route::get('/stock-opname/create', [StockOpnameController::class, 'index'])->name('stock-opname.create');
     Route::post('/stock-opname', [StockOpnameController::class, 'store'])->name('stock-opname.store');
 
     Route::get('/invoice-historis', [InvoiceHistorisController::class, 'index'])->name('invoice-historis.index');
-
     Route::get('/invoice-historis/pembelian/create', [InvoiceHistorisController::class, 'createPembelian'])->name('invoice-historis.pembelian.create');
     Route::post('/invoice-historis/pembelian', [InvoiceHistorisController::class, 'storePembelian'])->name('invoice-historis.pembelian.store');
     Route::get('/invoice-historis/pembelian/{pembelian}/edit', [InvoiceHistorisController::class, 'editPembelian'])->name('invoice-historis.pembelian.edit');
@@ -93,7 +95,7 @@ Route::middleware('auth')->group(function () {
     Route::put('/invoice-historis/penjualan/{penjualan}', [InvoiceHistorisController::class, 'updatePenjualan'])->name('invoice-historis.penjualan.update');
     Route::get('/invoice-historis/penjualan/{penjualan}/export-excel', [InvoiceHistorisController::class, 'exportPenjualanExcel'])->name('invoice-historis.penjualan.exportExcel');
     Route::get('/invoice-historis/penjualan/{penjualan}', [InvoiceHistorisController::class, 'showPenjualan'])->name('invoice-historis.penjualan.show');
-    
+
     Route::prefix('laporan')->name('laporan.')->group(function () {
         Route::get('/penjualan', [LaporanController::class, 'penjualan'])->name('penjualan');
         Route::get('/penjualan/export-excel', [LaporanController::class, 'penjualanExportExcel'])->name('penjualan.exportExcel');
@@ -115,6 +117,13 @@ Route::middleware('auth')->group(function () {
         Route::get('/riwayat-stok/export-excel', [LaporanController::class, 'riwayatStokExportExcel'])->name('riwayatStok.exportExcel');
         Route::get('/riwayat-stok/export-pdf', [LaporanController::class, 'riwayatStokExportPdf'])->name('riwayatStok.exportPdf');
     });
+
+    Route::get('/arsip-invoice', [ArsipInvoiceController::class, 'index'])->name('arsip-invoice.index');
+
+    Route::get('/kop-surat/download-kop-kosong', [KopSuratController::class, 'downloadKopKosong'])->name('kop-surat.downloadKopKosong');
+    Route::get('/kop-surat/{suratKeluar}/download-word', [KopSuratController::class, 'downloadWord'])->name('kop-surat.downloadWord');
+    Route::resource('kop-surat', KopSuratController::class)
+        ->parameters(['kop-surat' => 'suratKeluar']);
 });
 
 require __DIR__ . '/auth.php';

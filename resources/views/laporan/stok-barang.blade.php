@@ -28,9 +28,41 @@
     $namaPerusahaan = 'CV. BERKAT JAYA NUSANTARA';
     $alamatPerusahaan = 'Jl. Jelambar Utama 1 No. 6A RT. 007 RW. 004, Jakarta Barat 11460';
     $teleponPerusahaan = '(021) 5664892, 5676277';
+
     $totalPotensiMargin = $totalEstimasiLabaKotor ?? (($totalEstimasiNilaiJual ?? 0) - ($totalNilaiStok ?? 0));
+
     $formatAngka = function ($angka) {
     return rtrim(rtrim(number_format((float) $angka, 3, ',', '.'), '0'), ',');
+    };
+
+    $normalisasiJenisPpn = function ($item) {
+    $jenisPpn = $item->jenis_ppn ?? null;
+
+    if (in_array($jenisPpn, ['non_ppn', 'ppn_normal', 'ppn_dpp_nilai_lain'], true)) {
+    return $jenisPpn;
+    }
+
+    $kenaPpnLegacy = (bool) ($item->kena_ppn ?? true);
+
+    return $kenaPpnLegacy ? 'ppn_normal' : 'non_ppn';
+    };
+
+    $labelJenisPpn = function ($jenisPpn) {
+    return match ($jenisPpn) {
+    'non_ppn' => 'Non PPN',
+    'ppn_normal' => 'PPN Normal',
+    'ppn_dpp_nilai_lain' => 'PPN DPP Nilai Lain',
+    default => 'PPN Normal',
+    };
+    };
+
+    $classJenisPpn = function ($jenisPpn) {
+    return match ($jenisPpn) {
+    'non_ppn' => 'bg-gray-100 text-gray-700',
+    'ppn_normal' => 'bg-blue-100 text-blue-700',
+    'ppn_dpp_nilai_lain' => 'bg-purple-100 text-purple-700',
+    default => 'bg-blue-100 text-blue-700',
+    };
     };
     @endphp
 
@@ -56,8 +88,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-4">
                         <div>
                             <label class="block mb-1 font-medium">Status Barang</label>
-                            <select name="status_barang"
-                                class="w-full border-gray-300 rounded-md shadow-sm">
+                            <select name="status_barang" class="w-full border-gray-300 rounded-md shadow-sm">
                                 <option value="">Semua</option>
                                 <option value="1" {{ request('status_barang') === '1' ? 'selected' : '' }}>
                                     Aktif
@@ -70,8 +101,7 @@
 
                         <div>
                             <label class="block mb-1 font-medium">Kondisi Stok</label>
-                            <select name="kondisi_stok"
-                                class="w-full border-gray-300 rounded-md shadow-sm">
+                            <select name="kondisi_stok" class="w-full border-gray-300 rounded-md shadow-sm">
                                 <option value="">Semua</option>
                                 <option value="kosong" {{ request('kondisi_stok') === 'kosong' ? 'selected' : '' }}>
                                     Stok Kosong
@@ -87,8 +117,7 @@
 
                         <div>
                             <label class="block mb-1 font-medium">Tipe Harga</label>
-                            <select name="tipe_harga"
-                                class="w-full border-gray-300 rounded-md shadow-sm">
+                            <select name="tipe_harga" class="w-full border-gray-300 rounded-md shadow-sm">
                                 <option value="">Semua</option>
                                 <option value="normal" {{ request('tipe_harga') === 'normal' ? 'selected' : '' }}>
                                     Normal
@@ -101,11 +130,16 @@
 
                         <div>
                             <label class="block mb-1 font-medium">Status PPN</label>
-                            <select name="status_ppn"
-                                class="w-full border-gray-300 rounded-md shadow-sm">
+                            <select name="status_ppn" class="w-full border-gray-300 rounded-md shadow-sm">
                                 <option value="">Semua</option>
                                 <option value="kena_ppn" {{ request('status_ppn') === 'kena_ppn' ? 'selected' : '' }}>
-                                    Kena PPN
+                                    Semua Kena PPN
+                                </option>
+                                <option value="ppn_normal" {{ request('status_ppn') === 'ppn_normal' ? 'selected' : '' }}>
+                                    PPN Normal
+                                </option>
+                                <option value="ppn_dpp_nilai_lain" {{ request('status_ppn') === 'ppn_dpp_nilai_lain' ? 'selected' : '' }}>
+                                    PPN DPP Nilai Lain
                                 </option>
                                 <option value="non_ppn" {{ request('status_ppn') === 'non_ppn' ? 'selected' : '' }}>
                                     Non PPN
@@ -208,6 +242,28 @@
                 </div>
 
                 <div class="bg-white shadow-sm rounded-lg p-4">
+                    <p class="text-sm text-gray-500">PPN Normal</p>
+                    <p class="text-xl font-bold text-blue-700">
+                        {{ $totalBarangPpnNormal ?? 0 }}
+                    </p>
+                    <p class="text-xs text-gray-500 mt-1">
+                        Barang dengan PPN standar.
+                    </p>
+                </div>
+
+                <div class="bg-white shadow-sm rounded-lg p-4">
+                    <p class="text-sm text-gray-500">PPN DPP Nilai Lain</p>
+                    <p class="text-xl font-bold text-purple-700">
+                        {{ $totalBarangPpnDppNilaiLain ?? 0 }}
+                    </p>
+                    <p class="text-xs text-gray-500 mt-1">
+                        Barang PPN khusus / nilai lain.
+                    </p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Estimasi Nilai Stok</p>
                     <p class="text-xl font-bold">
                         Rp {{ number_format($totalNilaiStok ?? 0, 0, ',', '.') }}
@@ -226,16 +282,14 @@
                         Mengikuti tipe harga normal / isi kemasan.
                     </p>
                 </div>
-            </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-1 gap-4 mb-6">
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Estimasi Margin Kotor</p>
-                    <p class="text-2xl font-bold {{ $totalPotensiMargin >= 0 ? 'text-blue-700' : 'text-red-700' }}">
+                    <p class="text-xl font-bold {{ $totalPotensiMargin >= 0 ? 'text-blue-700' : 'text-red-700' }}">
                         Rp {{ number_format($totalPotensiMargin, 0, ',', '.') }}
                     </p>
                     <p class="text-xs text-gray-500 mt-1">
-                        Estimasi nilai jual dikurangi estimasi nilai stok. Nilai ini hanya perkiraan, bukan laba final.
+                        Estimasi nilai jual dikurangi estimasi nilai stok.
                     </p>
                 </div>
             </div>
@@ -250,7 +304,7 @@
                                 <th class="border px-3 py-2 text-left">Nama Barang</th>
                                 <th class="border px-3 py-2 text-center">Satuan</th>
                                 <th class="border px-3 py-2 text-left">Perhitungan Harga</th>
-                                <th class="border px-3 py-2 text-center">PPN</th>
+                                <th class="border px-3 py-2 text-center">Status PPN</th>
                                 <th class="border px-3 py-2 text-center">Stok</th>
                                 <th class="border px-3 py-2 text-center">Qty Harga</th>
                                 <th class="border px-3 py-2 text-right">Harga Beli</th>
@@ -279,7 +333,10 @@
                             $nilaiStok = $stokSaatIni * $hargaBeli;
                             $estimasiNilaiJual = $jumlahSatuanHarga * $hargaJual;
                             $estimasiMargin = $estimasiNilaiJual - $nilaiStok;
-                            $kenaPpn = (bool) ($item->kena_ppn ?? true);
+
+                            $jenisPpn = $normalisasiJenisPpn($item);
+                            $labelPpn = $labelJenisPpn($jenisPpn);
+                            $classPpn = $classJenisPpn($jenisPpn);
 
                             if ($stokSaatIni <= 0) {
                                 $statusStok='Kosong' ;
@@ -351,15 +408,9 @@
                                 </td>
 
                                 <td class="border px-3 py-2 text-center">
-                                    @if ($kenaPpn)
-                                    <span class="px-2 py-1 text-xs rounded bg-blue-100 text-blue-700">
-                                        Kena
+                                    <span class="px-2 py-1 text-xs rounded {{ $classPpn }}">
+                                        {{ $labelPpn }}
                                     </span>
-                                    @else
-                                    <span class="px-2 py-1 text-xs rounded bg-gray-100 text-gray-700">
-                                        Non
-                                    </span>
-                                    @endif
                                 </td>
 
                                 <td class="border px-3 py-2 text-center font-semibold">

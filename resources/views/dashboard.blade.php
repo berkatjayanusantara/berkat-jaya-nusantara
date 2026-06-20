@@ -61,6 +61,31 @@
     'belum_dikirim' => 'Belum Dikirim',
     ][$status ?? 'lengkap'] ?? 'Lengkap';
     };
+
+    $normalisasiJenisPpnBarang = function ($item) {
+    if (!$item) {
+    return 'ppn_normal';
+    }
+
+    $jenisPpn = $item->jenis_ppn ?? null;
+
+    if (in_array($jenisPpn, ['non_ppn', 'ppn_normal', 'ppn_dpp_nilai_lain'], true)) {
+    return $jenisPpn;
+    }
+
+    $kenaPpnLegacy = (bool) ($item->kena_ppn ?? true);
+
+    return $kenaPpnLegacy ? 'ppn_normal' : 'non_ppn';
+    };
+
+    $labelJenisPpnBarang = function ($jenisPpn) {
+    return match ($jenisPpn) {
+    'non_ppn' => 'Non PPN',
+    'ppn_normal' => 'PPN Normal',
+    'ppn_dpp_nilai_lain' => 'PPN DPP Nilai Lain',
+    default => 'PPN Normal',
+    };
+    };
     @endphp
 
     <div class="py-6 bg-gray-50 min-h-screen">
@@ -82,7 +107,7 @@
                         </p>
 
                         <p class="text-sm text-gray-500 mt-1 max-w-3xl">
-                            Dashboard ini disesuaikan dengan update terbaru: invoice historis memakai nomor dokumen asli, pembelian memakai status penerimaan, piutang mengikuti invoice penjualan, stok barang mendukung isi kemasan dan PPN, serta stock opname massal tercatat di riwayat stok.
+                            Dashboard ini disesuaikan dengan update terbaru: invoice historis penjualan mengikuti format penjualan baru, nomor dokumen asli tetap tampil, transaksi historis tidak mengubah stok, piutang historis tetap terpantau, stok barang mendukung isi kemasan dan klasifikasi PPN terbaru, serta stock opname massal tercatat di riwayat stok.
                         </p>
                     </div>
 
@@ -97,7 +122,7 @@
                             + Penjualan
                         </a>
 
-                        <a href="{{ route('stock-opname.create') }}"
+                        <a href="{{ route('stock-opname.index') }}"
                             class="px-4 py-3 rounded-xl bg-yellow-500 text-white text-sm font-semibold text-center hover:bg-yellow-600 transition">
                             Stock Opname
                         </a>
@@ -292,7 +317,7 @@
                     <div class="flex items-start justify-between gap-3 mb-4">
                         <div>
                             <h3 class="font-bold text-gray-900">Penjualan Hari Ini</h3>
-                            <p class="text-sm text-gray-500">Memisahkan tunai, kredit, PPN, dan barang terjual.</p>
+                            <p class="text-sm text-gray-500">Memisahkan tunai, kredit, PPN, faktur pajak, invoice sistem, dan invoice historis.</p>
                         </div>
                         <a href="{{ route('laporan.penjualan') }}" class="text-sm text-blue-600 hover:underline">
                             Laporan
@@ -338,6 +363,15 @@
                             </p>
                         </div>
                     </div>
+
+                    <div class="mt-4 pt-4 border-t text-xs text-gray-500">
+                        Sistem hari ini: {{ $formatRupiah($penjualanSistemHariIni ?? 0) }}
+                        ({{ $formatAngka($jumlahPenjualanSistemHariIni ?? 0) }} invoice) ·
+                        Historis hari ini: {{ $formatRupiah($penjualanHistorisHariIni ?? 0) }}
+                        ({{ $formatAngka($jumlahPenjualanHistorisHariIni ?? 0) }} invoice) ·
+                        DPP PPN: {{ $formatRupiah($dppPpnPenjualanHariIni ?? 0) }} ·
+                        Faktur pajak: {{ $formatAngka($penjualanButuhFakturPajakHariIni ?? 0) }}
+                    </div>
                 </div>
             </div>
 
@@ -348,7 +382,7 @@
                         {{ $formatAngka(($invoiceSistemBerjalan ?? 0) + ($invoiceHistoris ?? 0)) }}
                     </h3>
                     <p class="text-xs text-gray-500 mt-2">
-                        Sistem: {{ $formatAngka($invoiceSistemBerjalan ?? 0) }} · Historis: {{ $formatAngka($invoiceHistoris ?? 0) }} · Hari ini: {{ $formatAngka($invoiceHariIni ?? 0) }}
+                        Sistem: {{ $formatAngka($invoiceSistemBerjalan ?? 0) }} · Historis: {{ $formatAngka($invoiceHistoris ?? 0) }} · Hari ini: {{ $formatAngka($invoiceHariIni ?? 0) }} · Historis hari ini: {{ $formatAngka($invoiceHistorisHariIni ?? 0) }}
                     </p>
                     <a href="{{ route('invoice-historis.index') }}" class="text-sm text-purple-600 hover:underline mt-3 inline-block">
                         Invoice history
@@ -387,7 +421,9 @@
                         {{ $formatAngka($totalBarangKenaPpn ?? 0) }} kena PPN
                     </h3>
                     <p class="text-xs text-gray-500 mt-2">
-                        Non PPN: {{ $formatAngka($totalBarangNonPpn ?? 0) }} barang
+                        PPN Normal: {{ $formatAngka($totalBarangPpnNormal ?? 0) }} ·
+                        DPP Nilai Lain: {{ $formatAngka($totalBarangPpnDppNilaiLain ?? 0) }} ·
+                        Non PPN: {{ $formatAngka($totalBarangNonPpn ?? 0) }}
                     </p>
                     <a href="{{ route('laporan.stokBarang') }}" class="text-sm text-blue-600 hover:underline mt-3 inline-block">
                         Laporan stok
@@ -402,14 +438,21 @@
                             Konsistensi Fitur Sistem
                         </h3>
                         <p class="text-sm text-gray-500 mt-1 max-w-3xl">
-                            Bagian ini membantu admin melihat fitur penting yang sudah disesuaikan: invoice historis tetap masuk laporan, transaksi historis tidak mengubah stok, pembelian bisa lengkap/sebagian/belum dikirim, dan stock opname tercatat sebagai audit trail.
+                            Bagian ini membantu admin melihat fitur penting yang sudah disesuaikan: invoice history penjualan mengikuti fitur penjualan baru, invoice historis tetap masuk laporan dan piutang, transaksi historis tidak mengubah stok, pembelian bisa lengkap/sebagian/belum dikirim, dan stock opname tercatat sebagai audit trail.
                         </p>
                     </div>
 
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                    <div class="grid grid-cols-2 md:grid-cols-6 gap-3 text-sm">
                         <div class="rounded-xl bg-purple-50 px-4 py-3">
                             <p class="text-gray-500">Invoice Historis</p>
                             <p class="font-bold text-purple-700">{{ $formatAngka($invoiceHistoris ?? 0) }}</p>
+                            <p class="text-xs text-gray-500 mt-1">Nilai: {{ $formatRupiah($totalNilaiInvoiceHistoris ?? 0) }}</p>
+                        </div>
+
+                        <div class="rounded-xl bg-indigo-50 px-4 py-3">
+                            <p class="text-gray-500">Piutang Historis</p>
+                            <p class="font-bold text-indigo-700">{{ $formatAngka($piutangDariInvoiceHistoris ?? 0) }}</p>
+                            <p class="text-xs text-gray-500 mt-1">Sisa: {{ $formatRupiah($sisaPiutangInvoiceHistoris ?? 0) }}</p>
                         </div>
 
                         <div class="rounded-xl bg-blue-50 px-4 py-3">
@@ -419,12 +462,12 @@
 
                         <div class="rounded-xl bg-orange-50 px-4 py-3">
                             <p class="text-gray-500">Tidak Ubah Stok</p>
-                            <p class="font-bold text-orange-700">{{ $formatAngka($pembelianTidakMempengaruhiStok ?? 0) }}</p>
+                            <p class="font-bold text-orange-700">{{ $formatAngka(($pembelianTidakMempengaruhiStok ?? 0) + ($penjualanTidakMempengaruhiStok ?? 0)) }}</p>
                         </div>
 
                         <div class="rounded-xl bg-green-50 px-4 py-3">
                             <p class="text-gray-500">Ubah Stok</p>
-                            <p class="font-bold text-green-700">{{ $formatAngka($pembelianMempengaruhiStok ?? 0) }}</p>
+                            <p class="font-bold text-green-700">{{ $formatAngka(($pembelianMempengaruhiStok ?? 0) + ($penjualanMempengaruhiStok ?? 0)) }}</p>
                         </div>
                     </div>
                 </div>
@@ -499,7 +542,7 @@
                                     {{ $item->nama_barang }}
                                 </p>
                                 <p class="text-xs text-gray-500">
-                                    {{ $item->kode_barang }} · {{ strtoupper($item->satuan ?? '-') }} · {{ $tipePerhitungan === 'isi_kemasan' ? 'Isi Kemasan' : 'Normal' }} · {{ ($item->kena_ppn ?? true) ? 'PPN' : 'Non PPN' }}
+                                    {{ $item->kode_barang }} · {{ strtoupper($item->satuan ?? '-') }} · {{ $tipePerhitungan === 'isi_kemasan' ? 'Isi Kemasan' : 'Normal' }} · {{ $labelJenisPpnBarang($normalisasiJenisPpnBarang($item)) }}
                                 </p>
                             </div>
 
@@ -580,7 +623,7 @@
                     </div>
 
                     <p class="text-xs text-gray-500">
-                        Detail penjualan: normal {{ $formatAngka($detailPenjualanNormal ?? 0) }} baris, isi kemasan {{ $formatAngka($detailPenjualanIsiKemasan ?? 0) }} baris.
+                        Detail penjualan: normal {{ $formatAngka($detailPenjualanNormal ?? 0) }} baris, isi kemasan {{ $formatAngka($detailPenjualanIsiKemasan ?? 0) }} baris. PPN normal {{ $formatAngka($detailPenjualanPpnNormal ?? 0) }}, DPP nilai lain {{ $formatAngka($detailPenjualanPpnDppNilaiLain ?? 0) }}, non PPN {{ $formatAngka($detailPenjualanNonPpn ?? 0) }}.
                     </p>
                 </div>
 

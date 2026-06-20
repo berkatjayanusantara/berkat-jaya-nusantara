@@ -18,11 +18,9 @@ $normalisasiModePpn = function ($modePpn, $persentasePajak = 0, $pajakDitambahka
 if (in_array($modePpn, ['tanpa_ppn', 'include', 'exclude'], true)) {
 return $modePpn;
 }
-
 if ((float) ($persentasePajak ?? 0) <= 0) {
     return 'tanpa_ppn' ;
     }
-
     return (bool) $pajakDitambahkan ? 'exclude' : 'include' ;
     };
 
@@ -46,7 +44,6 @@ if ((float) ($persentasePajak ?? 0) <= 0) {
     if ($nominal <= 0 || !$jenis || $jenis==='tidak_ada' ) {
         return '-' ;
         }
-
         return ($jenis==='tambah' ? '+' : '-' ) . $formatRupiah($nominal);
         };
         @endphp
@@ -57,7 +54,6 @@ if ((float) ($persentasePajak ?? 0) <= 0) {
         <head>
             <meta charset="UTF-8">
             <title>Laporan Penjualan</title>
-
             <style>
                 body {
                     font-family: DejaVu Sans, sans-serif;
@@ -188,7 +184,6 @@ if ((float) ($persentasePajak ?? 0) <= 0) {
             <div class="subtitle">
                 Periode: {{ $periodeAwal }} s/d {{ $periodeAkhir }} | Dicetak: {{ now()->format('d-m-Y H:i') }}
             </div>
-
             <table class="summary-table">
                 <tr>
                     <td>
@@ -240,7 +235,6 @@ if ((float) ($persentasePajak ?? 0) <= 0) {
                     </td>
                 </tr>
             </table>
-
             <table class="data-table">
                 <thead>
                     <tr>
@@ -260,7 +254,6 @@ if ((float) ($persentasePajak ?? 0) <= 0) {
                         <th style="width: 7%;">Sisa</th>
                     </tr>
                 </thead>
-
                 <tbody>
                     @forelse ($penjualan as $item)
                     @php
@@ -276,7 +269,6 @@ if ((float) ($persentasePajak ?? 0) <= 0) {
                     $tipeClass = $isHistoris ? 'badge-historis' : 'badge-sistem';
                     $penyesuaian = $labelPenyesuaian($item->jenis_penyesuaian_total ?? 'tidak_ada', $item->nominal_penyesuaian_total ?? 0);
                     @endphp
-
                     <tr>
                         <td class="text-center">{{ $loop->iteration }}</td>
                         <td class="text-center">{{ $item->tanggal_penjualan ? $item->tanggal_penjualan->format('d-m-Y') : '-' }}</td>
@@ -300,14 +292,14 @@ if ((float) ($persentasePajak ?? 0) <= 0) {
                             $satuanTransaksi = $detail->satuan_transaksi ?? ($detail->barang->satuan ?? '-');
                             $satuanHitungHarga = $detail->satuan_hitung_harga ?? $satuanTransaksi;
                             $isiPerSatuan = (float) ($detail->isi_per_satuan ?? 1);
-                            $kenaPpn = (bool) ($detail->kena_ppn ?? false);
+                            $kenaPpnDetail = (bool) ($detail->kena_ppn ?? false);
                             $rumus = $tipeHarga === 'isi_kemasan'
                             ? $detail->jumlah . ' ' . $satuanTransaksi . ' x ' . $formatAngka($isiPerSatuan) . ' ' . $satuanHitungHarga . ' x ' . $formatRupiah($detail->harga_jual)
                             : $detail->jumlah . ' ' . $satuanTransaksi . ' x ' . $formatRupiah($detail->harga_jual);
                             @endphp
                             <strong>{{ $detail->barang->kode_barang ?? '-' }}</strong> - {{ $detail->barang->nama_barang ?? '-' }}
                             <br><span class="small-text">{{ $rumus }} = {{ $formatRupiah($detail->subtotal ?? 0) }}</span>
-                            <br><span class="small-text">{{ $tipeHarga === 'isi_kemasan' ? 'Isi Kemasan' : 'Normal' }} | {{ $kenaPpn ? 'Kena PPN' : 'Non PPN' }} | PPN: {{ $formatRupiah($detail->nilai_ppn ?? 0) }}</span>
+                            <br><span class="small-text">{{ $tipeHarga === 'isi_kemasan' ? 'Isi Kemasan' : 'Normal' }} | {{ $kenaPpnDetail ? 'Kena PPN' : 'Non PPN' }} | PPN: {{ $formatRupiah($detail->nilai_ppn ?? 0) }}</span>
                             @if (!$loop->last)<br><br>@endif
                             @empty
                             Detail barang tidak tersedia.
@@ -346,7 +338,6 @@ if ((float) ($persentasePajak ?? 0) <= 0) {
                     @endforelse
                 </tbody>
             </table>
-
             <div class="footer">
                 Laporan ini dibuat otomatis oleh sistem Berkat Jaya Nusantara.
             </div>

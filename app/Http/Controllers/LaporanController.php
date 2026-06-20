@@ -53,8 +53,8 @@ class LaporanController extends Controller
 
         return response()
             ->view('laporan.penjualan-excel', array_merge([
-                'penjualan' => $penjualan,
-                'tanggalAwal' => $tanggalAwal,
+                'penjualan'    => $penjualan,
+                'tanggalAwal'  => $tanggalAwal,
                 'tanggalAkhir' => $tanggalAkhir,
             ], $ringkasan))
             ->header('Content-Type', 'application/vnd.ms-excel; charset=UTF-8')
@@ -77,8 +77,8 @@ class LaporanController extends Controller
         $fileName = $this->namaFileLaporan('Laporan-Penjualan', $tanggalAwal, $tanggalAkhir, 'pdf');
 
         $pdf = Pdf::loadView('laporan.penjualan-pdf', array_merge([
-            'penjualan' => $penjualan,
-            'tanggalAwal' => $tanggalAwal,
+            'penjualan'    => $penjualan,
+            'tanggalAwal'  => $tanggalAwal,
             'tanggalAkhir' => $tanggalAkhir,
         ], $ringkasan))->setPaper('a4', 'landscape');
 
@@ -677,14 +677,41 @@ class LaporanController extends Controller
             ->when($request->tipe_harga === 'isi_kemasan', function ($query) {
                 $query->where('tipe_perhitungan_harga', 'isi_kemasan');
             })
-            ->when($request->status_ppn === 'kena_ppn', function ($query) {
+            ->when($request->status_ppn === 'non_ppn', function ($query) {
                 $query->where(function ($subQuery) {
-                    $subQuery->where('kena_ppn', true)
-                        ->orWhereNull('kena_ppn');
+                    $subQuery->where('jenis_ppn', 'non_ppn')
+                        ->orWhere(function ($legacyQuery) {
+                            $legacyQuery->whereNull('jenis_ppn')
+                                ->where('kena_ppn', false);
+                        });
                 });
             })
-            ->when($request->status_ppn === 'non_ppn', function ($query) {
-                $query->where('kena_ppn', false);
+            ->when($request->status_ppn === 'ppn_normal', function ($query) {
+                $query->where(function ($subQuery) {
+                    $subQuery->where('jenis_ppn', 'ppn_normal')
+                        ->orWhere(function ($legacyQuery) {
+                            $legacyQuery->whereNull('jenis_ppn')
+                                ->where(function ($kenaPpnQuery) {
+                                    $kenaPpnQuery->where('kena_ppn', true)
+                                        ->orWhereNull('kena_ppn');
+                                });
+                        });
+                });
+            })
+            ->when($request->status_ppn === 'ppn_dpp_nilai_lain', function ($query) {
+                $query->where('jenis_ppn', 'ppn_dpp_nilai_lain');
+            })
+            ->when($request->status_ppn === 'kena_ppn', function ($query) {
+                $query->where(function ($subQuery) {
+                    $subQuery->whereIn('jenis_ppn', ['ppn_normal', 'ppn_dpp_nilai_lain'])
+                        ->orWhere(function ($legacyQuery) {
+                            $legacyQuery->whereNull('jenis_ppn')
+                                ->where(function ($kenaPpnQuery) {
+                                    $kenaPpnQuery->where('kena_ppn', true)
+                                        ->orWhereNull('kena_ppn');
+                                });
+                        });
+                });
             })
             ->when($request->search, function ($query) use ($request) {
                 $search = $request->search;
@@ -695,6 +722,7 @@ class LaporanController extends Controller
                         ->orWhere('satuan', 'like', "%{$search}%")
                         ->orWhere('satuan_hitung_harga', 'like', "%{$search}%")
                         ->orWhere('tipe_perhitungan_harga', 'like', "%{$search}%")
+                        ->orWhere('jenis_ppn', 'like', "%{$search}%")
                         ->orWhere('keterangan', 'like', "%{$search}%");
                 });
             });
@@ -742,17 +770,48 @@ class LaporanController extends Controller
                     $barangQuery->where('tipe_perhitungan_harga', 'isi_kemasan');
                 });
             })
-            ->when($request->status_ppn_barang === 'kena_ppn', function ($query) {
+            ->when($request->status_ppn_barang === 'non_ppn', function ($query) {
                 $query->whereHas('barang', function ($barangQuery) {
                     $barangQuery->where(function ($subQuery) {
-                        $subQuery->where('kena_ppn', true)
-                            ->orWhereNull('kena_ppn');
+                        $subQuery->where('jenis_ppn', 'non_ppn')
+                            ->orWhere(function ($legacyQuery) {
+                                $legacyQuery->whereNull('jenis_ppn')
+                                    ->where('kena_ppn', false);
+                            });
                     });
                 });
             })
-            ->when($request->status_ppn_barang === 'non_ppn', function ($query) {
+            ->when($request->status_ppn_barang === 'ppn_normal', function ($query) {
                 $query->whereHas('barang', function ($barangQuery) {
-                    $barangQuery->where('kena_ppn', false);
+                    $barangQuery->where(function ($subQuery) {
+                        $subQuery->where('jenis_ppn', 'ppn_normal')
+                            ->orWhere(function ($legacyQuery) {
+                                $legacyQuery->whereNull('jenis_ppn')
+                                    ->where(function ($kenaPpnQuery) {
+                                        $kenaPpnQuery->where('kena_ppn', true)
+                                            ->orWhereNull('kena_ppn');
+                                    });
+                            });
+                    });
+                });
+            })
+            ->when($request->status_ppn_barang === 'ppn_dpp_nilai_lain', function ($query) {
+                $query->whereHas('barang', function ($barangQuery) {
+                    $barangQuery->where('jenis_ppn', 'ppn_dpp_nilai_lain');
+                });
+            })
+            ->when($request->status_ppn_barang === 'kena_ppn', function ($query) {
+                $query->whereHas('barang', function ($barangQuery) {
+                    $barangQuery->where(function ($subQuery) {
+                        $subQuery->whereIn('jenis_ppn', ['ppn_normal', 'ppn_dpp_nilai_lain'])
+                            ->orWhere(function ($legacyQuery) {
+                                $legacyQuery->whereNull('jenis_ppn')
+                                    ->where(function ($kenaPpnQuery) {
+                                        $kenaPpnQuery->where('kena_ppn', true)
+                                            ->orWhereNull('kena_ppn');
+                                    });
+                            });
+                    });
                 });
             })
             ->when($request->search, function ($query) use ($request) {
@@ -767,6 +826,7 @@ class LaporanController extends Controller
                                 ->orWhere('satuan', 'like', "%{$search}%")
                                 ->orWhere('satuan_hitung_harga', 'like', "%{$search}%")
                                 ->orWhere('tipe_perhitungan_harga', 'like', "%{$search}%")
+                                ->orWhere('jenis_ppn', 'like', "%{$search}%")
                                 ->orWhere('keterangan', 'like', "%{$search}%");
                         })
                         ->orWhereHas('user', function ($userQuery) use ($search) {
@@ -834,9 +894,9 @@ class LaporanController extends Controller
             return $item->piutang->sisa_piutang ?? 0;
         });
 
-        $totalPpnTanpaPpn = 0;
-        $totalPpnInclude = 0;
-        $totalPpnExclude = 0;
+        $totalPpnTanpaPpn      = 0;
+        $totalPpnInclude       = 0;
+        $totalPpnExclude       = 0;
         $totalNilaiPajakInclude = 0;
         $totalNilaiPajakExclude = 0;
         $totalButuhFakturPajak = 0;
@@ -844,16 +904,16 @@ class LaporanController extends Controller
         $totalPenyesuaianTambah = 0;
         $totalPenyesuaianKurang = 0;
 
-        $totalItemBarang = 0;
-        $totalJumlahTerjual = 0;
-        $totalBarangNormal = 0;
-        $totalBarangIsiKemasan = 0;
+        $totalItemBarang        = 0;
+        $totalJumlahTerjual     = 0;
+        $totalBarangNormal      = 0;
+        $totalBarangIsiKemasan  = 0;
         $totalNilaiBarangNormal = 0;
         $totalNilaiBarangIsiKemasan = 0;
-        $totalItemKenaPpn = 0;
-        $totalItemNonPpn = 0;
-        $totalDppPpnDetail = 0;
-        $totalNilaiPpnDetail = 0;
+        $totalItemKenaPpn       = 0;
+        $totalItemNonPpn        = 0;
+        $totalDppPpnDetail      = 0;
+        $totalNilaiPpnDetail    = 0;
 
         foreach ($penjualan as $item) {
             $modePpn = $this->normalisasiModePpnLaporan($item->mode_ppn ?? null, $item);
@@ -1216,17 +1276,25 @@ class LaporanController extends Controller
             })
             ->count();
 
-        $totalBarangKenaPpn = $barang
+        $totalBarangNonPpn = $barang
             ->filter(function ($item) {
-                return (bool) ($item->kena_ppn ?? true);
+                return $this->normalisasiJenisPpnBarang($item) === 'non_ppn';
             })
             ->count();
 
-        $totalBarangNonPpn = $barang
+        $totalBarangPpnNormal = $barang
             ->filter(function ($item) {
-                return !(bool) ($item->kena_ppn ?? true);
+                return $this->normalisasiJenisPpnBarang($item) === 'ppn_normal';
             })
             ->count();
+
+        $totalBarangPpnDppNilaiLain = $barang
+            ->filter(function ($item) {
+                return $this->normalisasiJenisPpnBarang($item) === 'ppn_dpp_nilai_lain';
+            })
+            ->count();
+
+        $totalBarangKenaPpn = $totalBarangPpnNormal + $totalBarangPpnDppNilaiLain;
 
         $totalNilaiStok = 0;
         $totalEstimasiNilaiJual = 0;
@@ -1237,6 +1305,7 @@ class LaporanController extends Controller
             $hargaBeli = (float) ($item->harga_beli_terakhir ?? 0);
             $hargaJual = (float) ($item->harga_jual_default ?? 0);
             $tipePerhitungan = $item->tipe_perhitungan_harga ?? 'normal';
+
             $isiPerSatuan = $tipePerhitungan === 'isi_kemasan'
                 ? (float) ($item->isi_per_satuan ?? 1)
                 : 1;
@@ -1262,11 +1331,26 @@ class LaporanController extends Controller
             'totalBarangIsiKemasan',
             'totalBarangKenaPpn',
             'totalBarangNonPpn',
+            'totalBarangPpnNormal',
+            'totalBarangPpnDppNilaiLain',
             'totalJumlahSatuanHarga',
             'totalNilaiStok',
             'totalEstimasiNilaiJual',
             'totalEstimasiLabaKotor'
         );
+    }
+
+    private function normalisasiJenisPpnBarang($item): string
+    {
+        $jenisPpn = $item->jenis_ppn ?? null;
+
+        if (in_array($jenisPpn, ['non_ppn', 'ppn_normal', 'ppn_dpp_nilai_lain'], true)) {
+            return $jenisPpn;
+        }
+
+        $kenaPpnLegacy = (bool) ($item->kena_ppn ?? true);
+
+        return $kenaPpnLegacy ? 'ppn_normal' : 'non_ppn';
     }
 
     private function hitungRingkasanRiwayatStok($riwayatStok): array
@@ -1341,17 +1425,25 @@ class LaporanController extends Controller
             })
             ->count();
 
-        $totalBarangKenaPpn = $riwayatStok
+        $totalBarangNonPpn = $riwayatStok
             ->filter(function ($item) {
-                return (bool) ($item->barang->kena_ppn ?? true);
+                return $this->normalisasiJenisPpnBarang($item->barang) === 'non_ppn';
             })
             ->count();
 
-        $totalBarangNonPpn = $riwayatStok
+        $totalBarangPpnNormal = $riwayatStok
             ->filter(function ($item) {
-                return !(bool) ($item->barang->kena_ppn ?? true);
+                return $this->normalisasiJenisPpnBarang($item->barang) === 'ppn_normal';
             })
             ->count();
+
+        $totalBarangPpnDppNilaiLain = $riwayatStok
+            ->filter(function ($item) {
+                return $this->normalisasiJenisPpnBarang($item->barang) === 'ppn_dpp_nilai_lain';
+            })
+            ->count();
+
+        $totalBarangKenaPpn = $totalBarangPpnNormal + $totalBarangPpnDppNilaiLain;
 
         return compact(
             'totalData',
@@ -1370,7 +1462,9 @@ class LaporanController extends Controller
             'totalBarangNormal',
             'totalBarangIsiKemasan',
             'totalBarangKenaPpn',
-            'totalBarangNonPpn'
+            'totalBarangNonPpn',
+            'totalBarangPpnNormal',
+            'totalBarangPpnDppNilaiLain'
         );
     }
 

@@ -2,7 +2,29 @@
 $namaPerusahaan = 'CV. BERKAT JAYA NUSANTARA';
 $alamatPerusahaan = 'Jl. Jelambar Utama 1 No. 6A RT. 007 RW. 004, Jakarta Barat 11460';
 $teleponPerusahaan = '(021) 5664892, 5676277';
+
 $totalPotensiMargin = $totalEstimasiLabaKotor ?? (($totalEstimasiNilaiJual ?? 0) - ($totalNilaiStok ?? 0));
+
+$normalisasiJenisPpn = function ($item) {
+$jenisPpn = $item->jenis_ppn ?? null;
+
+if (in_array($jenisPpn, ['non_ppn', 'ppn_normal', 'ppn_dpp_nilai_lain'], true)) {
+return $jenisPpn;
+}
+
+$kenaPpnLegacy = (bool) ($item->kena_ppn ?? true);
+
+return $kenaPpnLegacy ? 'ppn_normal' : 'non_ppn';
+};
+
+$labelJenisPpn = function ($jenisPpn) {
+return match ($jenisPpn) {
+'non_ppn' => 'Non PPN',
+'ppn_normal' => 'PPN Normal',
+'ppn_dpp_nilai_lain' => 'PPN DPP Nilai Lain',
+default => 'PPN Normal',
+};
+};
 @endphp
 
 <!DOCTYPE html>
@@ -15,7 +37,7 @@ $totalPotensiMargin = $totalEstimasiLabaKotor ?? (($totalEstimasiNilaiJual ?? 0)
     <style>
         body {
             font-family: DejaVu Sans, sans-serif;
-            font-size: 7.3px;
+            font-size: 7.1px;
             color: #111827;
         }
 
@@ -71,7 +93,7 @@ $totalPotensiMargin = $totalEstimasiLabaKotor ?? (($totalEstimasiNilaiJual ?? 0)
         }
 
         .small-text {
-            font-size: 6.6px;
+            font-size: 6.5px;
             color: #4b5563;
         }
 
@@ -127,8 +149,18 @@ $totalPotensiMargin = $totalEstimasiLabaKotor ?? (($totalEstimasiNilaiJual ?? 0)
             font-weight: bold;
         }
 
-        .status-ppn {
+        .ppn-normal {
             color: #1d4ed8;
+            font-weight: bold;
+        }
+
+        .ppn-dpp {
+            color: #6d28d9;
+            font-weight: bold;
+        }
+
+        .ppn-non {
+            color: #374151;
             font-weight: bold;
         }
 
@@ -149,8 +181,7 @@ $totalPotensiMargin = $totalEstimasiLabaKotor ?? (($totalEstimasiNilaiJual ?? 0)
     <div class="title">LAPORAN STOK BARANG</div>
 
     <div class="subtitle">
-        Batas Stok Rendah: {{ $batasStokRendah ?? 5 }}
-        |
+        Batas Stok Rendah: {{ $batasStokRendah ?? 5 }} |
         Dicetak: {{ now()->format('d-m-Y H:i') }}
     </div>
 
@@ -159,25 +190,34 @@ $totalPotensiMargin = $totalEstimasiLabaKotor ?? (($totalEstimasiNilaiJual ?? 0)
             <td>
                 <div class="summary-label">Total Jenis Barang</div>
                 <div class="summary-value">{{ $totalBarang ?? 0 }}</div>
-                <div class="small-text">Aktif: {{ $totalBarangAktif ?? 0 }} | Nonaktif: {{ $totalBarangNonaktif ?? 0 }}</div>
+                <div class="small-text">
+                    Aktif: {{ $totalBarangAktif ?? 0 }} |
+                    Nonaktif: {{ $totalBarangNonaktif ?? 0 }}
+                </div>
             </td>
 
             <td>
                 <div class="summary-label">Total Stok</div>
                 <div class="summary-value">{{ number_format($totalStok ?? 0, 0, ',', '.') }}</div>
-                <div class="small-text">Qty harga: {{ number_format($totalJumlahSatuanHarga ?? 0, 0, ',', '.') }}</div>
+                <div class="small-text">
+                    Qty harga: {{ number_format($totalJumlahSatuanHarga ?? 0, 0, ',', '.') }}
+                </div>
             </td>
 
             <td>
                 <div class="summary-label">Barang Kosong</div>
                 <div class="summary-value">{{ $totalBarangKosong ?? 0 }}</div>
-                <div class="small-text">Stok rendah: {{ $totalBarangStokRendah ?? 0 }}</div>
+                <div class="small-text">
+                    Stok rendah: {{ $totalBarangStokRendah ?? 0 }}
+                </div>
             </td>
 
             <td>
                 <div class="summary-label">Stok Tersedia</div>
                 <div class="summary-value">{{ $totalBarangTersedia ?? 0 }}</div>
-                <div class="small-text">Batas rendah: {{ $batasStokRendah ?? 5 }}</div>
+                <div class="small-text">
+                    Batas rendah: {{ $batasStokRendah ?? 5 }}
+                </div>
             </td>
         </tr>
 
@@ -185,24 +225,45 @@ $totalPotensiMargin = $totalEstimasiLabaKotor ?? (($totalEstimasiNilaiJual ?? 0)
             <td>
                 <div class="summary-label">Tipe Harga</div>
                 <div class="summary-value">Normal: {{ $totalBarangNormal ?? 0 }}</div>
-                <div class="small-text">Isi kemasan: {{ $totalBarangIsiKemasan ?? 0 }}</div>
+                <div class="small-text">
+                    Isi kemasan: {{ $totalBarangIsiKemasan ?? 0 }}
+                </div>
             </td>
 
             <td>
                 <div class="summary-label">Status PPN</div>
                 <div class="summary-value">Kena: {{ $totalBarangKenaPpn ?? 0 }}</div>
-                <div class="small-text">Non: {{ $totalBarangNonPpn ?? 0 }}</div>
+                <div class="small-text">
+                    Non: {{ $totalBarangNonPpn ?? 0 }}
+                </div>
             </td>
 
             <td>
+                <div class="summary-label">PPN Normal</div>
+                <div class="summary-value">{{ $totalBarangPpnNormal ?? 0 }}</div>
+                <div class="small-text">
+                    PPN DPP Nilai Lain: {{ $totalBarangPpnDppNilaiLain ?? 0 }}
+                </div>
+            </td>
+
+            <td>
+                <div class="summary-label">Estimasi Margin Kotor</div>
+                <div class="summary-value">Rp {{ number_format($totalPotensiMargin, 0, ',', '.') }}</div>
+                <div class="small-text">
+                    Nilai jual - nilai stok.
+                </div>
+            </td>
+        </tr>
+
+        <tr>
+            <td colspan="2">
                 <div class="summary-label">Estimasi Nilai Stok</div>
                 <div class="summary-value">Rp {{ number_format($totalNilaiStok ?? 0, 0, ',', '.') }}</div>
             </td>
 
-            <td>
+            <td colspan="2">
                 <div class="summary-label">Estimasi Nilai Jual</div>
                 <div class="summary-value">Rp {{ number_format($totalEstimasiNilaiJual ?? 0, 0, ',', '.') }}</div>
-                <div class="small-text">Margin: Rp {{ number_format($totalPotensiMargin, 0, ',', '.') }}</div>
             </td>
         </tr>
     </table>
@@ -212,18 +273,18 @@ $totalPotensiMargin = $totalEstimasiLabaKotor ?? (($totalEstimasiNilaiJual ?? 0)
             <tr>
                 <th style="width: 3%;">No</th>
                 <th style="width: 7%;">Kode</th>
-                <th style="width: 15%;">Nama Barang</th>
-                <th style="width: 6%;">Satuan</th>
-                <th style="width: 11%;">Hitung Harga</th>
-                <th style="width: 5%;">PPN</th>
-                <th style="width: 6%;">Stok</th>
+                <th style="width: 14%;">Nama Barang</th>
+                <th style="width: 5%;">Satuan</th>
+                <th style="width: 10%;">Hitung Harga</th>
+                <th style="width: 7%;">PPN</th>
+                <th style="width: 5%;">Stok</th>
                 <th style="width: 7%;">Qty Harga</th>
                 <th style="width: 8%;">Harga Beli</th>
-                <th style="width: 9%;">Nilai Stok</th>
+                <th style="width: 8%;">Nilai Stok</th>
                 <th style="width: 8%;">Harga Jual</th>
-                <th style="width: 9%;">Est. Jual</th>
-                <th style="width: 8%;">Margin</th>
-                <th style="width: 8%;">Status</th>
+                <th style="width: 8%;">Est. Jual</th>
+                <th style="width: 7%;">Margin</th>
+                <th style="width: 7%;">Status</th>
             </tr>
         </thead>
 
@@ -243,7 +304,17 @@ $totalPotensiMargin = $totalEstimasiLabaKotor ?? (($totalEstimasiNilaiJual ?? 0)
             $nilaiStok = $stokSaatIni * $hargaBeli;
             $estimasiNilaiJual = $jumlahSatuanHarga * $hargaJual;
             $estimasiMargin = $estimasiNilaiJual - $nilaiStok;
-            $kenaPpn = (bool) ($item->kena_ppn ?? true);
+
+            $jenisPpn = $normalisasiJenisPpn($item);
+            $labelPpn = $labelJenisPpn($jenisPpn);
+
+            if ($jenisPpn === 'non_ppn') {
+            $classPpn = 'ppn-non';
+            } elseif ($jenisPpn === 'ppn_dpp_nilai_lain') {
+            $classPpn = 'ppn-dpp';
+            } else {
+            $classPpn = 'ppn-normal';
+            }
 
             if ($stokSaatIni <= 0) {
                 $statusStok='Kosong' ;
@@ -292,8 +363,8 @@ $totalPotensiMargin = $totalEstimasiLabaKotor ?? (($totalEstimasiNilaiJual ?? 0)
                     </td>
 
                     <td class="text-center">
-                        <span class="{{ $kenaPpn ? 'status-ppn' : '' }}">
-                            {{ $kenaPpn ? 'Kena' : 'Non' }}
+                        <span class="{{ $classPpn }}">
+                            {{ $labelPpn }}
                         </span>
                     </td>
 

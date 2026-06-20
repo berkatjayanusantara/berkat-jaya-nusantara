@@ -6,6 +6,31 @@ $teleponPerusahaan = '(021) 5664892, 5676277';
 $periodeAwal = $tanggalAwal === 'awal' ? 'Awal' : $tanggalAwal;
 $periodeAkhir = $tanggalAkhir === 'akhir' ? 'Akhir' : $tanggalAkhir;
 $nettoPerubahan = $totalNettoPerubahan ?? (($totalSelisihPlus ?? 0) - ($totalSelisihMinus ?? 0));
+
+$normalisasiJenisPpn = function ($item) {
+if (!$item) {
+return 'ppn_normal';
+}
+
+$jenisPpn = $item->jenis_ppn ?? null;
+
+if (in_array($jenisPpn, ['non_ppn', 'ppn_normal', 'ppn_dpp_nilai_lain'], true)) {
+return $jenisPpn;
+}
+
+$kenaPpnLegacy = (bool) ($item->kena_ppn ?? true);
+
+return $kenaPpnLegacy ? 'ppn_normal' : 'non_ppn';
+};
+
+$labelJenisPpn = function ($jenisPpn) {
+return match ($jenisPpn) {
+'non_ppn' => 'Non PPN',
+'ppn_normal' => 'PPN Normal',
+'ppn_dpp_nilai_lain' => 'PPN DPP Nilai Lain',
+default => 'PPN Normal',
+};
+};
 @endphp
 
 <!DOCTYPE html>
@@ -18,7 +43,7 @@ $nettoPerubahan = $totalNettoPerubahan ?? (($totalSelisihPlus ?? 0) - ($totalSel
     <style>
         body {
             font-family: DejaVu Sans, sans-serif;
-            font-size: 7.5px;
+            font-size: 7.1px;
             color: #111827;
         }
 
@@ -71,6 +96,11 @@ $nettoPerubahan = $totalNettoPerubahan ?? (($totalSelisihPlus ?? 0) - ($totalSel
             font-size: 9px;
             font-weight: bold;
             margin-top: 2px;
+        }
+
+        .small-text {
+            font-size: 6.4px;
+            color: #4b5563;
         }
 
         .data-table {
@@ -140,9 +170,19 @@ $nettoPerubahan = $totalNettoPerubahan ?? (($totalSelisihPlus ?? 0) - ($totalSel
             font-weight: bold;
         }
 
-        .small-text {
-            font-size: 6.8px;
-            color: #4b5563;
+        .ppn-normal {
+            color: #1d4ed8;
+            font-weight: bold;
+        }
+
+        .ppn-dpp {
+            color: #6d28d9;
+            font-weight: bold;
+        }
+
+        .ppn-non {
+            color: #374151;
+            font-weight: bold;
         }
 
         .footer {
@@ -162,8 +202,7 @@ $nettoPerubahan = $totalNettoPerubahan ?? (($totalSelisihPlus ?? 0) - ($totalSel
     <div class="title">LAPORAN RIWAYAT STOK</div>
 
     <div class="subtitle">
-        Periode: {{ $periodeAwal }} s/d {{ $periodeAkhir }}
-        |
+        Periode: {{ $periodeAwal }} s/d {{ $periodeAkhir }} |
         Dicetak: {{ now()->format('d-m-Y H:i') }}
     </div>
 
@@ -233,11 +272,13 @@ $nettoPerubahan = $totalNettoPerubahan ?? (($totalSelisihPlus ?? 0) - ($totalSel
             <td>
                 <div class="summary-label">Barang Kena PPN</div>
                 <div class="summary-value">{{ number_format($totalBarangKenaPpn ?? 0, 0, ',', '.') }}</div>
+                <div class="small-text">Non PPN: {{ number_format($totalBarangNonPpn ?? 0, 0, ',', '.') }}</div>
             </td>
 
             <td>
-                <div class="summary-label">Barang Non PPN</div>
-                <div class="summary-value">{{ number_format($totalBarangNonPpn ?? 0, 0, ',', '.') }}</div>
+                <div class="summary-label">Jenis PPN</div>
+                <div class="summary-value">Normal: {{ number_format($totalBarangPpnNormal ?? 0, 0, ',', '.') }}</div>
+                <div class="small-text">DPP nilai lain: {{ number_format($totalBarangPpnDppNilaiLain ?? 0, 0, ',', '.') }}</div>
             </td>
         </tr>
     </table>
@@ -248,7 +289,7 @@ $nettoPerubahan = $totalNettoPerubahan ?? (($totalSelisihPlus ?? 0) - ($totalSel
                 <th style="width: 3%;">No</th>
                 <th style="width: 7%;">Tanggal</th>
                 <th style="width: 8%;">Kode</th>
-                <th style="width: 14%;">Barang</th>
+                <th style="width: 13%;">Barang</th>
                 <th style="width: 7%;">Jenis</th>
                 <th style="width: 6%;">Tipe</th>
                 <th style="width: 6%;">Jumlah</th>
@@ -256,6 +297,7 @@ $nettoPerubahan = $totalNettoPerubahan ?? (($totalSelisihPlus ?? 0) - ($totalSel
                 <th style="width: 7%;">Sesudah</th>
                 <th style="width: 7%;">Selisih</th>
                 <th style="width: 10%;">Hitung</th>
+                <th style="width: 8%;">PPN</th>
                 <th style="width: 10%;">Sumber</th>
                 <th style="width: 8%;">Keterangan</th>
             </tr>
@@ -269,11 +311,22 @@ $nettoPerubahan = $totalNettoPerubahan ?? (($totalSelisihPlus ?? 0) - ($totalSel
             $stokSesudah = (int) ($item->stok_sesudah ?? 0);
             $selisih = $stokSesudah - $stokSebelum;
             $isOpname = str_starts_with((string) $item->sumber_transaksi, 'STOCK-OPNAME');
+
             $tipePerhitungan = $barangItem->tipe_perhitungan_harga ?? 'normal';
             $satuan = $barangItem->satuan ?? '-';
             $satuanHitung = $barangItem->satuan_hitung_harga ?? $satuan;
             $isiPerSatuan = (float) ($barangItem->isi_per_satuan ?? 1);
-            $kenaPpn = (bool) ($barangItem->kena_ppn ?? true);
+
+            $jenisPpn = $normalisasiJenisPpn($barangItem);
+            $labelPpn = $labelJenisPpn($jenisPpn);
+
+            if ($jenisPpn === 'non_ppn') {
+            $classPpn = 'ppn-non';
+            } elseif ($jenisPpn === 'ppn_dpp_nilai_lain') {
+            $classPpn = 'ppn-dpp';
+            } else {
+            $classPpn = 'ppn-normal';
+            }
 
             if ($item->jenis_pergerakan === 'masuk') {
             $jenisLabel = 'Masuk';
@@ -313,7 +366,7 @@ $nettoPerubahan = $totalNettoPerubahan ?? (($totalSelisihPlus ?? 0) - ($totalSel
                     {{ $barangItem->nama_barang ?? '-' }}
                     <br>
                     <span class="small-text">
-                        {{ strtoupper($satuan) }} | {{ $kenaPpn ? 'Kena PPN' : 'Non PPN' }}
+                        {{ strtoupper($satuan) }}
                     </span>
                 </td>
 
@@ -355,13 +408,17 @@ $nettoPerubahan = $totalNettoPerubahan ?? (($totalSelisihPlus ?? 0) - ($totalSel
                     @endif
                 </td>
 
+                <td class="text-center">
+                    <span class="{{ $classPpn }}">{{ $labelPpn }}</span>
+                </td>
+
                 <td>{{ $item->sumber_transaksi ?? '-' }}</td>
 
                 <td>{{ $item->keterangan ?? '-' }}</td>
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="13" class="text-center">
+                    <td colspan="14" class="text-center">
                         Data laporan riwayat stok belum tersedia.
                     </td>
                 </tr>

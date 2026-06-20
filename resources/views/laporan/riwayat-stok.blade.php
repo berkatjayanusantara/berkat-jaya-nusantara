@@ -28,7 +28,42 @@
     $namaPerusahaan = 'CV. BERKAT JAYA NUSANTARA';
     $alamatPerusahaan = 'Jl. Jelambar Utama 1 No. 6A RT. 007 RW. 004, Jakarta Barat 11460';
     $teleponPerusahaan = '(021) 5664892, 5676277';
+
     $nettoPerubahan = $totalNettoPerubahan ?? (($totalSelisihPlus ?? 0) - ($totalSelisihMinus ?? 0));
+
+    $normalisasiJenisPpn = function ($item) {
+    if (!$item) {
+    return 'ppn_normal';
+    }
+
+    $jenisPpn = $item->jenis_ppn ?? null;
+
+    if (in_array($jenisPpn, ['non_ppn', 'ppn_normal', 'ppn_dpp_nilai_lain'], true)) {
+    return $jenisPpn;
+    }
+
+    $kenaPpnLegacy = (bool) ($item->kena_ppn ?? true);
+
+    return $kenaPpnLegacy ? 'ppn_normal' : 'non_ppn';
+    };
+
+    $labelJenisPpn = function ($jenisPpn) {
+    return match ($jenisPpn) {
+    'non_ppn' => 'Non PPN',
+    'ppn_normal' => 'PPN Normal',
+    'ppn_dpp_nilai_lain' => 'PPN DPP Nilai Lain',
+    default => 'PPN Normal',
+    };
+    };
+
+    $classJenisPpn = function ($jenisPpn) {
+    return match ($jenisPpn) {
+    'non_ppn' => 'bg-gray-100 text-gray-700',
+    'ppn_normal' => 'bg-blue-100 text-blue-700',
+    'ppn_dpp_nilai_lain' => 'bg-purple-100 text-purple-700',
+    default => 'bg-blue-100 text-blue-700',
+    };
+    };
     @endphp
 
     <div class="py-6">
@@ -69,8 +104,7 @@
 
                         <div>
                             <label class="block mb-1 font-medium">Barang</label>
-                            <select name="id_barang"
-                                class="w-full border-gray-300 rounded-md shadow-sm">
+                            <select name="id_barang" class="w-full border-gray-300 rounded-md shadow-sm">
                                 <option value="">Semua Barang</option>
 
                                 @foreach ($barang as $itemBarang)
@@ -84,8 +118,7 @@
 
                         <div>
                             <label class="block mb-1 font-medium">Jenis Pergerakan</label>
-                            <select name="jenis_pergerakan"
-                                class="w-full border-gray-300 rounded-md shadow-sm">
+                            <select name="jenis_pergerakan" class="w-full border-gray-300 rounded-md shadow-sm">
                                 <option value="">Semua Jenis</option>
                                 <option value="masuk" {{ request('jenis_pergerakan') === 'masuk' ? 'selected' : '' }}>
                                     Barang Masuk
@@ -101,8 +134,7 @@
 
                         <div>
                             <label class="block mb-1 font-medium">Tipe Riwayat</label>
-                            <select name="tipe_riwayat"
-                                class="w-full border-gray-300 rounded-md shadow-sm">
+                            <select name="tipe_riwayat" class="w-full border-gray-300 rounded-md shadow-sm">
                                 <option value="">Semua</option>
                                 <option value="opname" {{ request('tipe_riwayat') === 'opname' ? 'selected' : '' }}>
                                     Stock Opname
@@ -115,8 +147,7 @@
 
                         <div>
                             <label class="block mb-1 font-medium">Tipe Harga</label>
-                            <select name="tipe_harga"
-                                class="w-full border-gray-300 rounded-md shadow-sm">
+                            <select name="tipe_harga" class="w-full border-gray-300 rounded-md shadow-sm">
                                 <option value="">Semua</option>
                                 <option value="normal" {{ request('tipe_harga') === 'normal' ? 'selected' : '' }}>
                                     Normal
@@ -129,11 +160,16 @@
 
                         <div>
                             <label class="block mb-1 font-medium">PPN Barang</label>
-                            <select name="status_ppn_barang"
-                                class="w-full border-gray-300 rounded-md shadow-sm">
+                            <select name="status_ppn_barang" class="w-full border-gray-300 rounded-md shadow-sm">
                                 <option value="">Semua</option>
                                 <option value="kena_ppn" {{ request('status_ppn_barang') === 'kena_ppn' ? 'selected' : '' }}>
-                                    Kena PPN
+                                    Semua Kena PPN
+                                </option>
+                                <option value="ppn_normal" {{ request('status_ppn_barang') === 'ppn_normal' ? 'selected' : '' }}>
+                                    PPN Normal
+                                </option>
+                                <option value="ppn_dpp_nilai_lain" {{ request('status_ppn_barang') === 'ppn_dpp_nilai_lain' ? 'selected' : '' }}>
+                                    PPN DPP Nilai Lain
                                 </option>
                                 <option value="non_ppn" {{ request('status_ppn_barang') === 'non_ppn' ? 'selected' : '' }}>
                                     Non PPN
@@ -143,8 +179,7 @@
 
                         <div>
                             <label class="block mb-1 font-medium">Status Barang</label>
-                            <select name="status_barang"
-                                class="w-full border-gray-300 rounded-md shadow-sm">
+                            <select name="status_barang" class="w-full border-gray-300 rounded-md shadow-sm">
                                 <option value="">Semua</option>
                                 <option value="1" {{ request('status_barang') === '1' ? 'selected' : '' }}>
                                     Aktif
@@ -285,12 +320,40 @@
                     <p class="text-2xl font-bold text-green-700">
                         {{ number_format($totalBarangKenaPpn ?? 0, 0, ',', '.') }}
                     </p>
+                    <p class="text-xs text-gray-500 mt-1">
+                        PPN normal + PPN DPP nilai lain.
+                    </p>
                 </div>
 
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Barang Non PPN</p>
                     <p class="text-2xl font-bold text-gray-700">
                         {{ number_format($totalBarangNonPpn ?? 0, 0, ',', '.') }}
+                    </p>
+                    <p class="text-xs text-gray-500 mt-1">
+                        Berdasarkan baris riwayat.
+                    </p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div class="bg-white shadow-sm rounded-lg p-4">
+                    <p class="text-sm text-gray-500">Barang PPN Normal</p>
+                    <p class="text-2xl font-bold text-blue-700">
+                        {{ number_format($totalBarangPpnNormal ?? 0, 0, ',', '.') }}
+                    </p>
+                    <p class="text-xs text-gray-500 mt-1">
+                        Barang dengan PPN standar pada riwayat stok.
+                    </p>
+                </div>
+
+                <div class="bg-white shadow-sm rounded-lg p-4">
+                    <p class="text-sm text-gray-500">Barang PPN DPP Nilai Lain</p>
+                    <p class="text-2xl font-bold text-purple-700">
+                        {{ number_format($totalBarangPpnDppNilaiLain ?? 0, 0, ',', '.') }}
+                    </p>
+                    <p class="text-xs text-gray-500 mt-1">
+                        Barang dengan perlakuan PPN khusus / nilai lain.
                     </p>
                 </div>
             </div>
@@ -309,6 +372,7 @@
                                 <th class="border px-3 py-2 text-right">Stok Sesudah</th>
                                 <th class="border px-3 py-2 text-right">Selisih</th>
                                 <th class="border px-3 py-2 text-left">Perhitungan</th>
+                                <th class="border px-3 py-2 text-center">PPN</th>
                                 <th class="border px-3 py-2 text-left">Sumber</th>
                                 <th class="border px-3 py-2 text-left">Keterangan</th>
                                 <th class="border px-3 py-2 text-left">Admin</th>
@@ -323,11 +387,15 @@
                             $stokSesudah = (int) ($item->stok_sesudah ?? 0);
                             $selisih = $stokSesudah - $stokSebelum;
                             $isOpname = str_starts_with((string) $item->sumber_transaksi, 'STOCK-OPNAME');
+
                             $tipePerhitungan = $barangItem->tipe_perhitungan_harga ?? 'normal';
                             $satuan = $barangItem->satuan ?? '-';
                             $satuanHitung = $barangItem->satuan_hitung_harga ?? $satuan;
                             $isiPerSatuan = (float) ($barangItem->isi_per_satuan ?? 1);
-                            $kenaPpn = (bool) ($barangItem->kena_ppn ?? true);
+
+                            $jenisPpn = $normalisasiJenisPpn($barangItem);
+                            $labelPpn = $labelJenisPpn($jenisPpn);
+                            $classPpn = $classJenisPpn($jenisPpn);
 
                             if ($item->jenis_pergerakan === 'masuk') {
                             $jenisLabel = 'Masuk';
@@ -377,13 +445,12 @@
                                     <div class="text-xs text-gray-500">
                                         Satuan: {{ strtoupper($satuan) }}
                                     </div>
-                                    <div class="text-xs mt-1">
-                                        @if ($kenaPpn)
-                                        <span class="text-green-700">Kena PPN</span>
-                                        @else
-                                        <span class="text-gray-600">Non PPN</span>
-                                        @endif
+
+                                    @if (!($barangItem->status_aktif ?? true))
+                                    <div class="text-xs text-red-600 mt-1">
+                                        Barang nonaktif
                                     </div>
+                                    @endif
                                 </td>
 
                                 <td class="border px-3 py-2 text-center">
@@ -436,6 +503,12 @@
                                     @endif
                                 </td>
 
+                                <td class="border px-3 py-2 text-center min-w-[120px]">
+                                    <span class="px-2 py-1 text-xs rounded {{ $classPpn }}">
+                                        {{ $labelPpn }}
+                                    </span>
+                                </td>
+
                                 <td class="border px-3 py-2 min-w-[160px]">
                                     {{ $item->sumber_transaksi ?? '-' }}
                                 </td>
@@ -450,7 +523,7 @@
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="12" class="border px-3 py-6 text-center text-gray-500">
+                                    <td colspan="13" class="border px-3 py-6 text-center text-gray-500">
                                         Data laporan riwayat stok belum tersedia.
                                     </td>
                                 </tr>

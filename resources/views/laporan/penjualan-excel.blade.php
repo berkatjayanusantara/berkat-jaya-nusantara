@@ -14,11 +14,9 @@ $normalisasiModePpn = function ($modePpn, $persentasePajak = 0, $pajakDitambahka
 if (in_array($modePpn, ['tanpa_ppn', 'include', 'exclude'], true)) {
 return $modePpn;
 }
-
 if ((float) ($persentasePajak ?? 0) <= 0) {
     return 'tanpa_ppn' ;
     }
-
     return (bool) $pajakDitambahkan ? 'exclude' : 'include' ;
     };
 
@@ -42,7 +40,6 @@ if ((float) ($persentasePajak ?? 0) <= 0) {
     if ($nominal <= 0 || !$jenis || $jenis==='tidak_ada' ) {
         return 'Tidak Ada' ;
         }
-
         return $jenis==='tambah' ? 'Tambah' : 'Kurang' ;
         };
 
@@ -56,7 +53,6 @@ if ((float) ($persentasePajak ?? 0) <= 0) {
         <head>
             <meta charset="UTF-8">
             <title>Laporan Penjualan</title>
-
             <style>
                 table {
                     border-collapse: collapse;
@@ -142,33 +138,27 @@ if ((float) ($persentasePajak ?? 0) <= 0) {
                         {{ $namaPerusahaan }}
                     </td>
                 </tr>
-
                 <tr>
                     <td colspan="{{ $jumlahKolom }}" class="text-center">
                         {{ $alamatPerusahaan }} | Telp: {{ $teleponPerusahaan }}
                     </td>
                 </tr>
-
                 <tr>
                     <td colspan="{{ $jumlahKolom }}" class="title">
                         LAPORAN PENJUALAN
                     </td>
                 </tr>
-
                 <tr>
                     <td colspan="{{ $jumlahKolom }}" class="subtitle">
                         Periode: {{ $periodeAwal }} s/d {{ $periodeAkhir }} | Dicetak: {{ now()->format('d-m-Y H:i') }}
                     </td>
                 </tr>
-
                 <tr>
                     <td colspan="{{ $jumlahKolom }}"></td>
                 </tr>
-
                 <tr class="section-header">
                     <td colspan="{{ $jumlahKolom }}">Ringkasan Laporan</td>
                 </tr>
-
                 <tr>
                     <td class="bold">Total Transaksi</td>
                     <td class="text-center">{{ $totalTransaksi ?? 0 }}</td>
@@ -191,7 +181,6 @@ if ((float) ($persentasePajak ?? 0) <= 0) {
                     <td class="bold">Sisa Piutang</td>
                     <td colspan="23" class="text-right currency">{{ $totalSisaPiutang ?? 0 }}</td>
                 </tr>
-
                 <tr>
                     <td class="bold">Total Subtotal</td>
                     <td colspan="3" class="text-right currency">{{ $totalSubtotal ?? 0 }}</td>
@@ -208,7 +197,6 @@ if ((float) ($persentasePajak ?? 0) <= 0) {
                     <td class="bold">Total Akhir</td>
                     <td colspan="15" class="text-right currency">{{ $totalAkhir ?? 0 }}</td>
                 </tr>
-
                 <tr>
                     <td class="bold">Tanpa PPN</td>
                     <td class="text-center">{{ $totalPpnTanpaPpn ?? 0 }}</td>
@@ -231,7 +219,6 @@ if ((float) ($persentasePajak ?? 0) <= 0) {
                     <td class="bold">Penyesuaian Bersih</td>
                     <td colspan="14" class="text-right currency">{{ $totalPenyesuaianBersih ?? 0 }}</td>
                 </tr>
-
                 <tr>
                     <td class="bold">Total Baris Barang</td>
                     <td class="text-center number-format">{{ $totalItemBarang ?? 0 }}</td>
@@ -254,11 +241,9 @@ if ((float) ($persentasePajak ?? 0) <= 0) {
                     <td class="bold">PPN Detail</td>
                     <td colspan="16" class="text-right currency">{{ $totalNilaiPpnDetail ?? 0 }}</td>
                 </tr>
-
                 <tr>
                     <td colspan="{{ $jumlahKolom }}"></td>
                 </tr>
-
                 <tr class="header">
                     <td>No</td>
                     <td>Tanggal</td>
@@ -303,7 +288,6 @@ if ((float) ($persentasePajak ?? 0) <= 0) {
                     <td>Total Dibayar</td>
                     <td>Sisa Piutang</td>
                 </tr>
-
                 @foreach ($penjualan as $item)
                 @php
                 $nomorTelepon = $item->customer->nomor_telepon ?? '-';
@@ -321,7 +305,6 @@ if ((float) ($persentasePajak ?? 0) <= 0) {
                 $jenisPenyesuaian = $labelPenyesuaian($item->jenis_penyesuaian_total ?? 'tidak_ada', $item->nominal_penyesuaian_total ?? 0);
                 $detailList = $item->detailPenjualan;
                 @endphp
-
                 @forelse ($detailList as $detail)
                 @php
                 $tipeHarga = $detail->tipe_perhitungan_harga ?? 'normal';
@@ -334,7 +317,6 @@ if ((float) ($persentasePajak ?? 0) <= 0) {
                 ? $detail->jumlah . ' ' . $satuanTransaksi . ' x ' . $formatIsi($isiPerSatuan) . ' ' . $satuanHitungHarga . ' x Rp ' . number_format((float) $detail->harga_jual, 0, ',', '.')
                 : $detail->jumlah . ' ' . $satuanTransaksi . ' x Rp ' . number_format((float) $detail->harga_jual, 0, ',', '.');
                 @endphp
-
                 <tr class="{{ $isHistoris ? 'historis' : ($tipeHarga === 'isi_kemasan' ? 'isi-kemasan' : 'sistem') }}">
                     <td class="text-center">{{ $nomor++ }}</td>
                     <td class="text-center">{{ $item->tanggal_penjualan ? $item->tanggal_penjualan->format('d-m-Y') : '-' }}</td>
@@ -409,36 +391,29 @@ if ((float) ($persentasePajak ?? 0) <= 0) {
                 </tr>
                 @endforelse
                 @endforeach
-
                 <tr>
                     <td colspan="{{ $jumlahKolom }}"></td>
                 </tr>
-
                 <tr class="total-row">
                     <td colspan="30" class="bold">TOTAL SUBTOTAL INVOICE</td>
                     <td colspan="12" class="text-right currency">{{ $totalSubtotal ?? 0 }}</td>
                 </tr>
-
                 <tr class="total-row">
                     <td colspan="30" class="bold">TOTAL DPP PPN</td>
                     <td colspan="12" class="text-right currency">{{ $totalDppPpn ?? 0 }}</td>
                 </tr>
-
                 <tr class="total-row">
                     <td colspan="30" class="bold">TOTAL PPN INVOICE</td>
                     <td colspan="12" class="text-right currency">{{ $totalPajak ?? 0 }}</td>
                 </tr>
-
                 <tr class="total-row">
                     <td colspan="30" class="bold">TOTAL PENYESUAIAN BERSIH</td>
                     <td colspan="12" class="text-right currency">{{ $totalPenyesuaianBersih ?? 0 }}</td>
                 </tr>
-
                 <tr class="total-row">
                     <td colspan="30" class="bold">TOTAL AKHIR INVOICE</td>
                     <td colspan="12" class="text-right currency">{{ $totalAkhir ?? 0 }}</td>
                 </tr>
-
                 <tr class="total-row">
                     <td colspan="30" class="bold">TOTAL SISA PIUTANG</td>
                     <td colspan="12" class="text-right currency">{{ $totalSisaPiutang ?? 0 }}</td>

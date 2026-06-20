@@ -72,7 +72,7 @@
         ? 'Tambah Total Akhir'
         : ($jenisPenyesuaianTotal === 'kurang' ? 'Kurangi Total Akhir' : 'Tidak Ada');
 
-        $backUrl = request('back_url', route('penjualan.index'));
+        $backUrl = request('back_url', (bool) ($penjualan->is_historical ?? false) ? route('invoice-historis.index') : route('penjualan.index'));
         $namaPerusahaan = 'CV. BERKAT JAYA NUSANTARA';
         $alamatPerusahaan = 'Jl. Jelambar Utama 1 No. 6A RT. 007 RW. 004, Jakarta Barat 11460';
         $teleponPerusahaan = '(021) 5664892, 5676277';
@@ -613,7 +613,7 @@
                     </h2>
 
                     <div class="flex gap-2">
-                        <a href="{{ route('penjualan.exportExcel', $penjualan->id_penjualan) }}"
+                        <a href="{{ $isInvoiceHistoris ? route('invoice-historis.penjualan.exportExcel', $penjualan->id_penjualan) : route('penjualan.exportExcel', $penjualan->id_penjualan) }}"
                             class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
                             Export Excel
                         </a>

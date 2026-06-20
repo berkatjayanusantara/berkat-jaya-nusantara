@@ -77,7 +77,6 @@
         if ($nominal <= 0 || !$jenis || $jenis==='tidak_ada' ) {
             return 'Tidak ada' ;
             }
-
             return ($jenis==='tambah' ? 'Tambah ' : 'Kurang ' ) . $formatRupiah($nominal);
             };
             @endphp
@@ -463,7 +462,7 @@
                                         $satuanTransaksi = $detail->satuan_transaksi ?? ($detail->barang->satuan ?? '-');
                                         $satuanHitungHarga = $detail->satuan_hitung_harga ?? $satuanTransaksi;
                                         $isiPerSatuan = (float) ($detail->isi_per_satuan ?? 1);
-                                        $kenaPpn = (bool) ($detail->kena_ppn ?? false);
+                                        $kenaPpnDetail = (bool) ($detail->kena_ppn ?? false);
                                         $rumus = $tipeHarga === 'isi_kemasan'
                                         ? $detail->jumlah . ' ' . $satuanTransaksi . ' x ' . $formatAngka($isiPerSatuan) . ' ' . $satuanHitungHarga . ' x ' . $formatRupiah($detail->harga_jual)
                                         : $detail->jumlah . ' ' . $satuanTransaksi . ' x ' . $formatRupiah($detail->harga_jual);
@@ -478,7 +477,7 @@
                                             </div>
                                             <div class="text-xs text-gray-500 mt-1">
                                                 Tipe: {{ $tipeHarga === 'isi_kemasan' ? 'Isi Kemasan' : 'Normal' }} |
-                                                {{ $kenaPpn ? 'Kena PPN' : 'Non PPN' }} |
+                                                {{ $kenaPpnDetail ? 'Kena PPN' : 'Non PPN' }} |
                                                 DPP: {{ $formatRupiah($detail->dpp_ppn ?? 0) }} |
                                                 PPN: {{ $formatRupiah($detail->nilai_ppn ?? 0) }}
                                             </div>

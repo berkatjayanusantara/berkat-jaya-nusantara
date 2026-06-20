@@ -17,20 +17,14 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        $today = now()->toDateString();
-        $tanggalTujuhHariKeDepan = now()->addDays(7)->toDateString();
+        $today = now('Asia/Jakarta')->toDateString();
+        $tanggalTujuhHariKeDepan = now('Asia/Jakarta')->addDays(7)->toDateString();
         $batasStokRendah = 5;
 
         /*
         |--------------------------------------------------------------------------
         | Master Barang
         |--------------------------------------------------------------------------
-        | Dashboard mengikuti update stok barang terbaru:
-        | - status aktif/nonaktif
-        | - tipe harga normal/isi kemasan
-        | - status PPN barang
-        | - estimasi nilai jual barang isi kemasan memakai rumus:
-        |   stok x isi_per_satuan x harga_jual_default
         */
         $totalBarang = Barang::count();
         $totalBarangAktif = Barang::where('status_aktif', true)->count();
@@ -43,12 +37,11 @@ class DashboardController extends Controller
 
         $totalBarangIsiKemasan = Barang::where('tipe_perhitungan_harga', 'isi_kemasan')->count();
 
-        $totalBarangKenaPpn = Barang::where(function ($query) {
-            $query->where('kena_ppn', true)
-                ->orWhereNull('kena_ppn');
-        })->count();
+        $totalBarangNonPpn = $this->queryBarangByJenisPpn('non_ppn')->count();
+        $totalBarangPpnNormal = $this->queryBarangByJenisPpn('ppn_normal')->count();
+        $totalBarangPpnDppNilaiLain = $this->queryBarangByJenisPpn('ppn_dpp_nilai_lain')->count();
+        $totalBarangKenaPpn = $totalBarangPpnNormal + $totalBarangPpnDppNilaiLain;
 
-        $totalBarangNonPpn = Barang::where('kena_ppn', false)->count();
         $totalStok = Barang::sum('stok_saat_ini');
 
         $totalBarangKosong = Barang::where('status_aktif', true)
@@ -100,8 +93,14 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
 
-        $barangNonPpn = Barang::where('status_aktif', true)
-            ->where('kena_ppn', false)
+        $barangNonPpn = $this->queryBarangByJenisPpn('non_ppn')
+            ->where('status_aktif', true)
+            ->orderBy('nama_barang')
+            ->limit(5)
+            ->get();
+
+        $barangPpnDppNilaiLain = $this->queryBarangByJenisPpn('ppn_dpp_nilai_lain')
+            ->where('status_aktif', true)
             ->orderBy('nama_barang')
             ->limit(5)
             ->get();
@@ -127,12 +126,6 @@ class DashboardController extends Controller
         |--------------------------------------------------------------------------
         | Pembelian
         |--------------------------------------------------------------------------
-        | Mengikuti update pembelian:
-        | - invoice sistem & historis
-        | - nomor dokumen asli untuk historis
-        | - delivery order dan surat jalan
-        | - status penerimaan lengkap/sebagian/belum dikirim
-        | - affect_stock untuk membedakan yang mengubah stok dan tidak
         */
         $pembelianHariIni = Pembelian::whereDate('tanggal_pembelian', $today)
             ->sum('total_akhir');
@@ -179,13 +172,35 @@ class DashboardController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Penjualan
+        | Penjualan & Invoice History Penjualan
         |--------------------------------------------------------------------------
         */
         $penjualanHariIni = Penjualan::whereDate('tanggal_penjualan', $today)
             ->sum('total_akhir');
 
         $jumlahPenjualanHariIni = Penjualan::whereDate('tanggal_penjualan', $today)
+            ->count();
+
+        $penjualanSistemHariIni = Penjualan::whereDate('tanggal_penjualan', $today)
+            ->where(function ($query) {
+                $query->where('is_historical', false)
+                    ->orWhereNull('is_historical');
+            })
+            ->sum('total_akhir');
+
+        $penjualanHistorisHariIni = Penjualan::whereDate('tanggal_penjualan', $today)
+            ->where('is_historical', true)
+            ->sum('total_akhir');
+
+        $jumlahPenjualanSistemHariIni = Penjualan::whereDate('tanggal_penjualan', $today)
+            ->where(function ($query) {
+                $query->where('is_historical', false)
+                    ->orWhereNull('is_historical');
+            })
+            ->count();
+
+        $jumlahPenjualanHistorisHariIni = Penjualan::whereDate('tanggal_penjualan', $today)
+            ->where('is_historical', true)
             ->count();
 
         $penjualanTunaiHariIni = Penjualan::whereDate('tanggal_penjualan', $today)
@@ -198,6 +213,17 @@ class DashboardController extends Controller
 
         $ppnPenjualanHariIni = Penjualan::whereDate('tanggal_penjualan', $today)
             ->sum('nilai_pajak');
+
+        $dppPpnPenjualanHariIni = Penjualan::whereDate('tanggal_penjualan', $today)
+            ->sum('dpp_ppn');
+
+        $penjualanButuhFakturPajakHariIni = Penjualan::whereDate('tanggal_penjualan', $today)
+            ->where('butuh_faktur_pajak', true)
+            ->count();
+
+        $penjualanModePpnTanpa = Penjualan::where('mode_ppn', 'tanpa_ppn')->count();
+        $penjualanModePpnInclude = Penjualan::where('mode_ppn', 'include')->count();
+        $penjualanModePpnExclude = Penjualan::where('mode_ppn', 'exclude')->count();
 
         $barangTerjualHariIni = DetailPenjualan::whereHas('penjualan', function ($query) use ($today) {
             $query->whereDate('tanggal_penjualan', $today)
@@ -213,6 +239,9 @@ class DashboardController extends Controller
         })->count();
 
         $detailPenjualanIsiKemasan = DetailPenjualan::where('tipe_perhitungan_harga', 'isi_kemasan')->count();
+        $detailPenjualanNonPpn = $this->queryDetailPenjualanByJenisPpn('non_ppn')->count();
+        $detailPenjualanPpnNormal = $this->queryDetailPenjualanByJenisPpn('ppn_normal')->count();
+        $detailPenjualanPpnDppNilaiLain = $this->queryDetailPenjualanByJenisPpn('ppn_dpp_nilai_lain')->count();
 
         $invoiceHariIni = Penjualan::whereDate('tanggal_penjualan', $today)->count();
 
@@ -226,6 +255,21 @@ class DashboardController extends Controller
         $invoiceHistorisHariIni = Penjualan::whereDate('tanggal_penjualan', $today)
             ->where('is_historical', true)
             ->count();
+
+        $totalNilaiInvoiceSistemBerjalan = Penjualan::where(function ($query) {
+            $query->where('is_historical', false)
+                ->orWhereNull('is_historical');
+        })->sum('total_akhir');
+
+        $totalNilaiInvoiceHistoris = Penjualan::where('is_historical', true)
+            ->sum('total_akhir');
+
+        $penjualanMempengaruhiStok = Penjualan::where(function ($query) {
+            $query->where('affect_stock', true)
+                ->orWhereNull('affect_stock');
+        })->count();
+
+        $penjualanTidakMempengaruhiStok = Penjualan::where('affect_stock', false)->count();
 
         $penjualanTerbaru = Penjualan::with(['customer', 'piutang'])
             ->orderBy('created_at', 'desc')
@@ -252,6 +296,15 @@ class DashboardController extends Controller
         $sisaPiutangLewatTempo = Piutang::where('status_piutang', '!=', 'lunas')
             ->whereNotNull('tanggal_jatuh_tempo')
             ->whereDate('tanggal_jatuh_tempo', '<', $today)
+            ->sum('sisa_piutang');
+
+        $piutangDariInvoiceHistoris = Piutang::whereHas('penjualan', function ($query) {
+            $query->where('is_historical', true);
+        })->count();
+
+        $sisaPiutangInvoiceHistoris = Piutang::whereHas('penjualan', function ($query) {
+            $query->where('is_historical', true);
+        })->where('status_piutang', '!=', 'lunas')
             ->sum('sisa_piutang');
 
         $persentasePiutangTertagih = $totalPiutang > 0
@@ -336,14 +389,14 @@ class DashboardController extends Controller
             DB::raw('DATE(tanggal_penjualan) as tanggal'),
             DB::raw('SUM(total_akhir) as total')
         )
-            ->whereDate('tanggal_penjualan', '>=', now()->subDays(6)->toDateString())
+            ->whereDate('tanggal_penjualan', '>=', now('Asia/Jakarta')->subDays(6)->toDateString())
             ->groupBy('tanggal')
             ->orderBy('tanggal')
             ->get()
             ->keyBy('tanggal');
 
         $grafikPenjualan7Hari = collect(range(0, 6))->map(function ($index) use ($grafikPenjualanRaw) {
-            $tanggal = now()->subDays(6)->addDays($index)->toDateString();
+            $tanggal = now('Asia/Jakarta')->subDays(6)->addDays($index)->toDateString();
 
             return (object) [
                 'tanggal' => $tanggal,
@@ -361,6 +414,8 @@ class DashboardController extends Controller
             'totalBarangIsiKemasan',
             'totalBarangKenaPpn',
             'totalBarangNonPpn',
+            'totalBarangPpnNormal',
+            'totalBarangPpnDppNilaiLain',
             'totalStok',
             'totalBarangKosong',
             'totalBarangStokRendah',
@@ -371,6 +426,7 @@ class DashboardController extends Controller
             'stokTerendah',
             'barangIsiKemasan',
             'barangNonPpn',
+            'barangPpnDppNilaiLain',
             'totalCustomer',
             'totalCustomerAktif',
             'totalCustomerNonaktif',
@@ -393,16 +449,32 @@ class DashboardController extends Controller
             'pembelianBelumSelesai',
             'penjualanHariIni',
             'jumlahPenjualanHariIni',
+            'penjualanSistemHariIni',
+            'penjualanHistorisHariIni',
+            'jumlahPenjualanSistemHariIni',
+            'jumlahPenjualanHistorisHariIni',
             'penjualanTunaiHariIni',
             'penjualanKreditHariIni',
             'ppnPenjualanHariIni',
+            'dppPpnPenjualanHariIni',
+            'penjualanButuhFakturPajakHariIni',
+            'penjualanModePpnTanpa',
+            'penjualanModePpnInclude',
+            'penjualanModePpnExclude',
             'barangTerjualHariIni',
             'detailPenjualanNormal',
             'detailPenjualanIsiKemasan',
+            'detailPenjualanNonPpn',
+            'detailPenjualanPpnNormal',
+            'detailPenjualanPpnDppNilaiLain',
             'invoiceHariIni',
             'invoiceSistemBerjalan',
             'invoiceHistoris',
             'invoiceHistorisHariIni',
+            'totalNilaiInvoiceSistemBerjalan',
+            'totalNilaiInvoiceHistoris',
+            'penjualanMempengaruhiStok',
+            'penjualanTidakMempengaruhiStok',
             'penjualanTerbaru',
             'totalPiutang',
             'totalPiutangDibayar',
@@ -410,6 +482,8 @@ class DashboardController extends Controller
             'jumlahPiutangBelumLunas',
             'jumlahPiutangLewatTempo',
             'sisaPiutangLewatTempo',
+            'piutangDariInvoiceHistoris',
+            'sisaPiutangInvoiceHistoris',
             'persentasePiutangTertagih',
             'piutangJatuhTempo',
             'stokMasukHariIni',
@@ -424,5 +498,63 @@ class DashboardController extends Controller
             'stockOpnameTerbaru',
             'grafikPenjualan7Hari'
         ));
+    }
+
+    private function queryBarangByJenisPpn(string $jenisPpn)
+    {
+        return Barang::query()
+            ->when($jenisPpn === 'non_ppn', function ($query) {
+                $query->where(function ($subQuery) {
+                    $subQuery->where('jenis_ppn', 'non_ppn')
+                        ->orWhere(function ($legacyQuery) {
+                            $legacyQuery->whereNull('jenis_ppn')
+                                ->where('kena_ppn', false);
+                        });
+                });
+            })
+            ->when($jenisPpn === 'ppn_normal', function ($query) {
+                $query->where(function ($subQuery) {
+                    $subQuery->where('jenis_ppn', 'ppn_normal')
+                        ->orWhere(function ($legacyQuery) {
+                            $legacyQuery->whereNull('jenis_ppn')
+                                ->where(function ($kenaPpnQuery) {
+                                    $kenaPpnQuery->where('kena_ppn', true)
+                                        ->orWhereNull('kena_ppn');
+                                });
+                        });
+                });
+            })
+            ->when($jenisPpn === 'ppn_dpp_nilai_lain', function ($query) {
+                $query->where('jenis_ppn', 'ppn_dpp_nilai_lain');
+            });
+    }
+
+    private function queryDetailPenjualanByJenisPpn(string $jenisPpn)
+    {
+        return DetailPenjualan::query()
+            ->when($jenisPpn === 'non_ppn', function ($query) {
+                $query->where(function ($subQuery) {
+                    $subQuery->where('jenis_ppn', 'non_ppn')
+                        ->orWhere(function ($legacyQuery) {
+                            $legacyQuery->whereNull('jenis_ppn')
+                                ->where('kena_ppn', false);
+                        });
+                });
+            })
+            ->when($jenisPpn === 'ppn_normal', function ($query) {
+                $query->where(function ($subQuery) {
+                    $subQuery->where('jenis_ppn', 'ppn_normal')
+                        ->orWhere(function ($legacyQuery) {
+                            $legacyQuery->whereNull('jenis_ppn')
+                                ->where(function ($kenaPpnQuery) {
+                                    $kenaPpnQuery->where('kena_ppn', true)
+                                        ->orWhereNull('kena_ppn');
+                                });
+                        });
+                });
+            })
+            ->when($jenisPpn === 'ppn_dpp_nilai_lain', function ($query) {
+                $query->where('jenis_ppn', 'ppn_dpp_nilai_lain');
+            });
     }
 }
