@@ -35,7 +35,7 @@ class CustomerController extends Controller
 
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'nama_customer' => 'required|string|max:255',
             'nomor_telepon' => 'nullable|string|max:30',
             'npwp' => 'nullable|string|max:30',
@@ -44,18 +44,14 @@ class CustomerController extends Controller
             'catatan' => 'nullable|string',
         ]);
 
-        $this->tambahkanValidasiDuplikatCustomer($validator, $request);
-
-        $validator->validate();
-
         Customer::create([
             'kode_customer' => $this->generateKodeCustomer(),
-            'nama_customer' => trim($request->nama_customer),
-            'nomor_telepon' => $this->ubahKosongMenjadiNull($request->nomor_telepon),
-            'npwp' => $this->ubahKosongMenjadiNull($request->npwp),
-            'alamat' => $this->ubahKosongMenjadiNull($request->alamat),
-            'kategori_customer' => $this->ubahKosongMenjadiNull($request->kategori_customer),
-            'catatan' => $this->ubahKosongMenjadiNull($request->catatan),
+            'nama_customer' => trim($validated['nama_customer']),
+            'nomor_telepon' => $this->ubahKosongMenjadiNull($validated['nomor_telepon'] ?? null),
+            'npwp' => $this->ubahKosongMenjadiNull($validated['npwp'] ?? null),
+            'alamat' => $this->ubahKosongMenjadiNull($validated['alamat'] ?? null),
+            'kategori_customer' => $this->ubahKosongMenjadiNull($validated['kategori_customer'] ?? null),
+            'catatan' => $this->ubahKosongMenjadiNull($validated['catatan'] ?? null),
             'status_aktif' => true,
         ]);
 
@@ -71,7 +67,7 @@ class CustomerController extends Controller
 
     public function update(Request $request, Customer $customer)
     {
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'nama_customer' => 'required|string|max:255',
             'nomor_telepon' => 'nullable|string|max:30',
             'npwp' => 'nullable|string|max:30',
@@ -81,18 +77,14 @@ class CustomerController extends Controller
             'status_aktif' => 'required|boolean',
         ]);
 
-        $this->tambahkanValidasiDuplikatCustomer($validator, $request, $customer->id_customer);
-
-        $validator->validate();
-
         $customer->update([
-            'nama_customer' => trim($request->nama_customer),
-            'nomor_telepon' => $this->ubahKosongMenjadiNull($request->nomor_telepon),
-            'npwp' => $this->ubahKosongMenjadiNull($request->npwp),
-            'alamat' => $this->ubahKosongMenjadiNull($request->alamat),
-            'kategori_customer' => $this->ubahKosongMenjadiNull($request->kategori_customer),
-            'catatan' => $this->ubahKosongMenjadiNull($request->catatan),
-            'status_aktif' => $request->status_aktif,
+            'nama_customer' => trim($validated['nama_customer']),
+            'nomor_telepon' => $this->ubahKosongMenjadiNull($validated['nomor_telepon'] ?? null),
+            'npwp' => $this->ubahKosongMenjadiNull($validated['npwp'] ?? null),
+            'alamat' => $this->ubahKosongMenjadiNull($validated['alamat'] ?? null),
+            'kategori_customer' => $this->ubahKosongMenjadiNull($validated['kategori_customer'] ?? null),
+            'catatan' => $this->ubahKosongMenjadiNull($validated['catatan'] ?? null),
+            'status_aktif' => $validated['status_aktif'],
         ]);
 
         return redirect()
@@ -122,8 +114,6 @@ class CustomerController extends Controller
             'catatan' => 'nullable|string',
         ]);
 
-        $this->tambahkanValidasiDuplikatCustomer($validator, $request);
-
         if ($validator->fails()) {
             return response()->json([
                 'message' => 'Data customer tidak valid.',
@@ -131,14 +121,16 @@ class CustomerController extends Controller
             ], 422);
         }
 
+        $validated = $validator->validated();
+
         $customer = Customer::create([
             'kode_customer' => $this->generateKodeCustomer(),
-            'nama_customer' => trim($request->nama_customer),
-            'nomor_telepon' => $this->ubahKosongMenjadiNull($request->nomor_telepon),
-            'npwp' => $this->ubahKosongMenjadiNull($request->npwp),
-            'alamat' => $this->ubahKosongMenjadiNull($request->alamat),
-            'kategori_customer' => $this->ubahKosongMenjadiNull($request->kategori_customer),
-            'catatan' => $this->ubahKosongMenjadiNull($request->catatan),
+            'nama_customer' => trim($validated['nama_customer']),
+            'nomor_telepon' => $this->ubahKosongMenjadiNull($validated['nomor_telepon'] ?? null),
+            'npwp' => $this->ubahKosongMenjadiNull($validated['npwp'] ?? null),
+            'alamat' => $this->ubahKosongMenjadiNull($validated['alamat'] ?? null),
+            'kategori_customer' => $this->ubahKosongMenjadiNull($validated['kategori_customer'] ?? null),
+            'catatan' => $this->ubahKosongMenjadiNull($validated['catatan'] ?? null),
             'status_aktif' => true,
         ]);
 
@@ -157,99 +149,6 @@ class CustomerController extends Controller
         ]);
     }
 
-    private function tambahkanValidasiDuplikatCustomer($validator, Request $request, ?int $ignoreId = null): void
-    {
-        $validator->after(function ($validator) use ($request, $ignoreId) {
-            $namaCustomer = trim($request->nama_customer ?? '');
-            $nomorTelepon = trim($request->nomor_telepon ?? '');
-            $npwp = trim($request->npwp ?? '');
-            $alamat = trim($request->alamat ?? '');
-
-            if ($namaCustomer !== '' && $this->namaCustomerSudahAda($namaCustomer, $ignoreId)) {
-                $validator->errors()->add('nama_customer', 'Nama customer sudah digunakan oleh customer lain.');
-            }
-
-            if ($nomorTelepon !== '' && $this->nomorTeleponSudahAda($nomorTelepon, $ignoreId)) {
-                $validator->errors()->add('nomor_telepon', 'Nomor telepon sudah digunakan oleh customer lain.');
-            }
-
-            if ($npwp !== '' && $this->npwpSudahAda($npwp, $ignoreId)) {
-                $validator->errors()->add('npwp', 'NPWP sudah digunakan oleh customer lain.');
-            }
-
-            if ($alamat !== '' && $this->alamatSudahAda($alamat, $ignoreId)) {
-                $validator->errors()->add('alamat', 'Alamat sudah digunakan oleh customer lain.');
-            }
-        });
-    }
-
-    private function namaCustomerSudahAda(string $namaCustomer, ?int $ignoreId = null): bool
-    {
-        return Customer::query()
-            ->when($ignoreId, function ($query, $ignoreId) {
-                $query->where('id_customer', '!=', $ignoreId);
-            })
-            ->whereRaw('LOWER(TRIM(nama_customer)) = ?', [strtolower(trim($namaCustomer))])
-            ->exists();
-    }
-
-    private function nomorTeleponSudahAda(string $nomorTelepon, ?int $ignoreId = null): bool
-    {
-        $nomorTeleponNormal = $this->normalisasiNomorTelepon($nomorTelepon);
-
-        if ($nomorTeleponNormal === '') {
-            return false;
-        }
-
-        return Customer::query()
-            ->when($ignoreId, function ($query, $ignoreId) {
-                $query->where('id_customer', '!=', $ignoreId);
-            })
-            ->whereNotNull('nomor_telepon')
-            ->get()
-            ->contains(function ($customer) use ($nomorTeleponNormal) {
-                return $this->normalisasiNomorTelepon($customer->nomor_telepon) === $nomorTeleponNormal;
-            });
-    }
-
-    private function npwpSudahAda(string $npwp, ?int $ignoreId = null): bool
-    {
-        $npwpNormal = $this->normalisasiNpwp($npwp);
-
-        if ($npwpNormal === '') {
-            return false;
-        }
-
-        return Customer::query()
-            ->when($ignoreId, function ($query, $ignoreId) {
-                $query->where('id_customer', '!=', $ignoreId);
-            })
-            ->whereNotNull('npwp')
-            ->get()
-            ->contains(function ($customer) use ($npwpNormal) {
-                return $this->normalisasiNpwp($customer->npwp) === $npwpNormal;
-            });
-    }
-
-    private function alamatSudahAda(string $alamat, ?int $ignoreId = null): bool
-    {
-        $alamatNormal = $this->normalisasiTeks($alamat);
-
-        if ($alamatNormal === '') {
-            return false;
-        }
-
-        return Customer::query()
-            ->when($ignoreId, function ($query, $ignoreId) {
-                $query->where('id_customer', '!=', $ignoreId);
-            })
-            ->whereNotNull('alamat')
-            ->get()
-            ->contains(function ($customer) use ($alamatNormal) {
-                return $this->normalisasiTeks($customer->alamat) === $alamatNormal;
-            });
-    }
-
     private function generateKodeCustomer()
     {
         $lastCustomer = Customer::orderBy('id_customer', 'desc')->first();
@@ -262,24 +161,6 @@ class CustomerController extends Controller
         $newNumber = $lastNumber + 1;
 
         return 'CUS-' . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
-    }
-
-    private function normalisasiNomorTelepon(?string $nomorTelepon): string
-    {
-        return preg_replace('/[^0-9]/', '', $nomorTelepon ?? '');
-    }
-
-    private function normalisasiNpwp(?string $npwp): string
-    {
-        return preg_replace('/[^0-9]/', '', $npwp ?? '');
-    }
-
-    private function normalisasiTeks(?string $teks): string
-    {
-        $teks = trim($teks ?? '');
-        $teks = preg_replace('/\s+/', ' ', $teks);
-
-        return strtolower($teks);
     }
 
     private function ubahKosongMenjadiNull(?string $value): ?string

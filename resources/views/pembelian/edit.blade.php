@@ -143,7 +143,17 @@
                         </div>
 
                         <div class="md:col-span-2">
-                            <label class="block mb-1 font-medium">Supplier</label>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="block font-medium">
+                                    Supplier <span class="text-red-600">*</span>
+                                </label>
+
+                                <button type="button"
+                                    id="btnBukaModalSupplier"
+                                    class="text-sm px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700">
+                                    + Tambah Supplier
+                                </button>
+                            </div>
 
                             <select name="id_supplier"
                                 id="supplierSelect"
@@ -167,6 +177,10 @@
                                 </option>
                                 @endforeach
                             </select>
+
+                            <p class="text-sm text-gray-500 mt-1">
+                                Pilih supplier lama atau tambah supplier baru jika belum terdaftar.
+                            </p>
                         </div>
                     </div>
 
@@ -418,6 +432,113 @@
         </div>
     </div>
 
+    <div id="modalSupplier"
+        class="fixed inset-0 bg-black bg-opacity-50 hidden items-start justify-center z-50 overflow-y-auto px-4 py-6 sm:py-10">
+        <div class="bg-white rounded-xl shadow-lg w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <div class="flex items-center justify-between border-b px-6 py-4 flex-shrink-0 bg-white rounded-t-xl">
+                <h3 class="text-lg font-semibold">
+                    Tambah Supplier Baru
+                </h3>
+
+                <button type="button"
+                    id="btnTutupModalSupplier"
+                    class="text-gray-500 hover:text-gray-800 text-2xl leading-none">
+                    &times;
+                </button>
+            </div>
+
+            <form id="formQuickSupplier" class="flex flex-col min-h-0">
+                @csrf
+
+                <div class="p-6 overflow-y-auto min-h-0">
+                    <div id="quickSupplierMessage"
+                        class="hidden mb-4 p-4 rounded-md whitespace-pre-line break-words text-sm leading-relaxed">
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="md:col-span-2">
+                            <label class="block mb-1 font-medium">
+                                Nama Perusahaan Supplier <span class="text-red-600">*</span>
+                            </label>
+                            <input type="text"
+                                name="nama_supplier"
+                                id="quickNamaSupplier"
+                                placeholder="Contoh: PT Berkat Jaya Nusantara"
+                                class="w-full border-gray-300 rounded-md shadow-sm"
+                                required>
+
+                            <p class="text-sm text-gray-500 mt-1">
+                                Wajib diisi. Nama perusahaan tidak boleh sama dengan supplier lain.
+                            </p>
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block mb-1 font-medium">Nomor Telepon</label>
+                            <input type="text"
+                                name="nomor_telepon"
+                                id="quickNomorTelepon"
+                                placeholder="Contoh: 08123456789"
+                                class="w-full border-gray-300 rounded-md shadow-sm">
+
+                            <p class="text-sm text-gray-500 mt-1">
+                                Opsional. Jika nomor telepon sudah tersedia, supplier lama akan langsung dipilih.
+                            </p>
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block mb-1 font-medium">NPWP Perusahaan</label>
+                            <input type="text"
+                                name="npwp"
+                                id="quickNpwpSupplier"
+                                placeholder="Contoh: 01.234.567.8-999.000"
+                                class="w-full border-gray-300 rounded-md shadow-sm">
+
+                            <p class="text-sm text-gray-500 mt-1">
+                                Opsional. Jika NPWP sudah tersedia, supplier lama akan langsung dipilih.
+                            </p>
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block mb-1 font-medium">Alamat</label>
+                            <textarea name="alamat"
+                                id="quickAlamatSupplier"
+                                rows="3"
+                                placeholder="Alamat lengkap perusahaan supplier..."
+                                class="w-full border-gray-300 rounded-md shadow-sm"></textarea>
+
+                            <p class="text-sm text-gray-500 mt-1">
+                                Opsional. Jika alamat sudah tersedia, supplier lama akan langsung dipilih.
+                            </p>
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block mb-1 font-medium">Catatan</label>
+                            <textarea name="catatan"
+                                id="quickCatatanSupplier"
+                                rows="3"
+                                placeholder="Catatan tambahan tentang supplier..."
+                                class="w-full border-gray-300 rounded-md shadow-sm"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-2 px-6 py-4 border-t bg-white flex-shrink-0 rounded-b-xl">
+                    <button type="button"
+                        id="btnBatalSupplier"
+                        class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
+                        Batal
+                    </button>
+
+                    <button type="submit"
+                        id="btnSimpanQuickSupplier"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed">
+                        Simpan Supplier
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 
     <script>
@@ -498,6 +619,144 @@
             document.getElementById('totalAkhir').innerText = formatRupiah(totalAkhir);
         }
 
+        function bukaModalSupplier() {
+            const modal = document.getElementById('modalSupplier');
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            document.getElementById('quickSupplierMessage').classList.add('hidden');
+            document.getElementById('quickNamaSupplier').focus();
+        }
+
+        function tutupModalSupplier() {
+            const modal = document.getElementById('modalSupplier');
+
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+
+            document.getElementById('formQuickSupplier').reset();
+            document.getElementById('quickSupplierMessage').classList.add('hidden');
+        }
+
+        function tampilkanPesanSupplier(type, message) {
+            const box = document.getElementById('quickSupplierMessage');
+
+            box.classList.remove(
+                'hidden',
+                'bg-red-100',
+                'text-red-700',
+                'bg-green-100',
+                'text-green-700',
+                'bg-yellow-100',
+                'text-yellow-700'
+            );
+
+            if (type === 'error') {
+                box.classList.add('bg-red-100', 'text-red-700');
+            } else if (type === 'exists') {
+                box.classList.add('bg-yellow-100', 'text-yellow-700');
+            } else {
+                box.classList.add('bg-green-100', 'text-green-700');
+            }
+
+            box.innerText = message;
+        }
+
+        function buatTextSupplier(supplier) {
+            let text = supplier.kode_supplier + ' - ' + supplier.nama_supplier;
+
+            if (supplier.nomor_telepon) {
+                text += ' | ' + supplier.nomor_telepon;
+            }
+
+            if (supplier.npwp) {
+                text += ' | NPWP: ' + supplier.npwp;
+            }
+
+            return text;
+        }
+
+        function pilihSupplier(supplier) {
+            const supplierSelect = document.getElementById('supplierSelect');
+            const text = buatTextSupplier(supplier);
+
+            let option = supplierSelect.querySelector('option[value="' + supplier.id_supplier + '"]');
+
+            if (!option) {
+                option = new Option(text, supplier.id_supplier, true, true);
+                supplierSelect.add(option);
+            } else {
+                option.text = text;
+            }
+
+            if (supplierSelect.tomselect) {
+                supplierSelect.tomselect.addOption({
+                    value: String(supplier.id_supplier),
+                    text: text
+                });
+
+                supplierSelect.tomselect.setValue(String(supplier.id_supplier), true);
+                supplierSelect.tomselect.refreshOptions(false);
+            } else {
+                supplierSelect.value = supplier.id_supplier;
+            }
+        }
+
+        async function simpanQuickSupplier(event) {
+            event.preventDefault();
+
+            const form = document.getElementById('formQuickSupplier');
+            const button = document.getElementById('btnSimpanQuickSupplier');
+            const formData = new FormData(form);
+
+            button.disabled = true;
+            button.innerText = 'Menyimpan...';
+
+            try {
+                const response = await fetch("{{ route('suppliers.quickStore') }}", {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
+                        'Accept': 'application/json'
+                    },
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    let pesan = 'Supplier gagal disimpan.';
+
+                    if (data.errors) {
+                        pesan = Object.values(data.errors).flat().join('\n');
+                    } else if (data.message) {
+                        pesan = data.message;
+                    }
+
+                    tampilkanPesanSupplier('error', pesan);
+                    return;
+                }
+
+                pilihSupplier(data.supplier);
+
+                if (data.status === 'exists') {
+                    tampilkanPesanSupplier('exists', data.message || 'Supplier sudah tersedia dan langsung dipilih.');
+                } else {
+                    tampilkanPesanSupplier('success', data.message || 'Supplier baru berhasil ditambahkan dan langsung dipilih.');
+                }
+
+                setTimeout(function() {
+                    tutupModalSupplier();
+                }, 800);
+            } catch (error) {
+                tampilkanPesanSupplier('error', 'Terjadi kesalahan. Silakan coba lagi.');
+            } finally {
+                button.disabled = false;
+                button.innerText = 'Simpan Supplier';
+            }
+        }
+
         document.addEventListener('input', function(e) {
             if (
                 e.target.classList.contains('jumlah-dipesan-input') ||
@@ -545,6 +804,11 @@
                 hitungTotal();
             }
         });
+
+        document.getElementById('btnBukaModalSupplier').addEventListener('click', bukaModalSupplier);
+        document.getElementById('btnTutupModalSupplier').addEventListener('click', tutupModalSupplier);
+        document.getElementById('btnBatalSupplier').addEventListener('click', tutupModalSupplier);
+        document.getElementById('formQuickSupplier').addEventListener('submit', simpanQuickSupplier);
 
         document.addEventListener('DOMContentLoaded', function() {
             initSupplierSelect();

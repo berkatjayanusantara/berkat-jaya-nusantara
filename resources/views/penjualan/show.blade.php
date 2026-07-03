@@ -386,7 +386,7 @@
                 }
 
                 .signature-name {
-                    margin-top: 42px;
+                    margin-top: 64px;
                     padding-top: 3px;
                     font-weight: 700;
                 }
@@ -566,7 +566,7 @@
                     }
 
                     .signature-name {
-                        margin-top: 34px !important;
+                        margin-top: 54px !important;
                         padding-top: 2px !important;
                     }
 
@@ -716,8 +716,6 @@
 
                                 <div class="invoice-quick-info">
                                     <div><strong>Tanggal:</strong> {{ $penjualan->tanggal_penjualan ? $penjualan->tanggal_penjualan->format('d-m-Y') : '-' }}</div>
-                                    <div><strong>Pembayaran:</strong> {{ ucfirst($penjualan->metode_pembayaran) }}</div>
-                                    <div><strong>Status:</strong> {{ str_replace('_', ' ', ucfirst($penjualan->status_pembayaran)) }}</div>
                                 </div>
                             </div>
 
@@ -751,6 +749,15 @@
                                             <td style="width: 90px;">Jatuh Tempo</td>
                                             <td>: {{ $penjualan->tanggal_jatuh_tempo ? $penjualan->tanggal_jatuh_tempo->format('d-m-Y') : '-' }}</td>
                                         </tr>
+                                        @if (strtolower($penjualan->metode_pembayaran) === 'kredit' && $penjualan->tanggal_jatuh_tempo && $penjualan->tanggal_penjualan)
+                                        @php
+                                            $selisihHari = $penjualan->tanggal_penjualan->diffInDays($penjualan->tanggal_jatuh_tempo);
+                                        @endphp
+                                        <tr>
+                                            <td></td>
+                                            <td style="font-weight: 800; text-transform: uppercase;">: JATUH TEMPO SEGERA ( MAKSIMAL {{ $selisihHari }} HARI)</td>
+                                        </tr>
+                                        @endif
                                         <tr>
                                             <td>Admin</td>
                                             <td>: {{ $penjualan->user->nama_user ?? '-' }}</td>

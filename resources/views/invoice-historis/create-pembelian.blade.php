@@ -391,9 +391,9 @@
     </div>
 
     <div id="modalSupplier"
-        class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-white rounded-xl shadow-lg w-full max-w-2xl mx-4">
-            <div class="flex items-center justify-between border-b px-6 py-4">
+        class="fixed inset-0 bg-black bg-opacity-50 hidden items-start justify-center z-50 overflow-y-auto px-4 py-6 sm:py-10">
+        <div class="bg-white rounded-xl shadow-lg w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <div class="flex items-center justify-between border-b px-6 py-4 flex-shrink-0 bg-white rounded-t-xl">
                 <h3 class="text-lg font-semibold">Tambah Supplier Baru</h3>
 
                 <button type="button"
@@ -403,64 +403,66 @@
                 </button>
             </div>
 
-            <form id="formQuickSupplier" class="p-6">
+            <form id="formQuickSupplier" class="flex flex-col min-h-0">
                 @csrf
 
-                <div id="quickSupplierMessage"
-                    class="hidden mb-4 p-4 rounded-md whitespace-pre-line">
+                <div class="p-6 overflow-y-auto min-h-0">
+                    <div id="quickSupplierMessage"
+                        class="hidden mb-4 p-4 rounded-md whitespace-pre-line break-words text-sm leading-relaxed">
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="md:col-span-2">
+                            <label class="block mb-1 font-medium">
+                                Nama Perusahaan Supplier <span class="text-red-600">*</span>
+                            </label>
+                            <input type="text"
+                                name="nama_supplier"
+                                id="quickNamaSupplier"
+                                placeholder="Contoh: PT Berkat Jaya Nusantara"
+                                class="w-full border-gray-300 rounded-md shadow-sm"
+                                required>
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block mb-1 font-medium">Nomor Telepon</label>
+                            <input type="text"
+                                name="nomor_telepon"
+                                id="quickNomorTelepon"
+                                placeholder="Contoh: 08123456789"
+                                class="w-full border-gray-300 rounded-md shadow-sm">
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block mb-1 font-medium">NPWP Perusahaan</label>
+                            <input type="text"
+                                name="npwp"
+                                id="quickNpwpSupplier"
+                                placeholder="Contoh: 01.234.567.8-999.000"
+                                class="w-full border-gray-300 rounded-md shadow-sm">
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block mb-1 font-medium">Alamat</label>
+                            <textarea name="alamat"
+                                id="quickAlamatSupplier"
+                                rows="3"
+                                placeholder="Alamat lengkap perusahaan supplier..."
+                                class="w-full border-gray-300 rounded-md shadow-sm"></textarea>
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block mb-1 font-medium">Catatan</label>
+                            <textarea name="catatan"
+                                id="quickCatatanSupplier"
+                                rows="3"
+                                placeholder="Catatan tambahan tentang supplier..."
+                                class="w-full border-gray-300 rounded-md shadow-sm"></textarea>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="md:col-span-2">
-                        <label class="block mb-1 font-medium">
-                            Nama Perusahaan Supplier <span class="text-red-600">*</span>
-                        </label>
-                        <input type="text"
-                            name="nama_supplier"
-                            id="quickNamaSupplier"
-                            placeholder="Contoh: PT Berkat Jaya Nusantara"
-                            class="w-full border-gray-300 rounded-md shadow-sm"
-                            required>
-                    </div>
-
-                    <div class="md:col-span-2">
-                        <label class="block mb-1 font-medium">Nomor Telepon</label>
-                        <input type="text"
-                            name="nomor_telepon"
-                            id="quickNomorTelepon"
-                            placeholder="Contoh: 08123456789"
-                            class="w-full border-gray-300 rounded-md shadow-sm">
-                    </div>
-
-                    <div class="md:col-span-2">
-                        <label class="block mb-1 font-medium">NPWP Perusahaan</label>
-                        <input type="text"
-                            name="npwp"
-                            id="quickNpwpSupplier"
-                            placeholder="Contoh: 01.234.567.8-999.000"
-                            class="w-full border-gray-300 rounded-md shadow-sm">
-                    </div>
-
-                    <div class="md:col-span-2">
-                        <label class="block mb-1 font-medium">Alamat</label>
-                        <textarea name="alamat"
-                            id="quickAlamatSupplier"
-                            rows="2"
-                            placeholder="Alamat lengkap perusahaan supplier..."
-                            class="w-full border-gray-300 rounded-md shadow-sm"></textarea>
-                    </div>
-
-                    <div class="md:col-span-2">
-                        <label class="block mb-1 font-medium">Catatan</label>
-                        <textarea name="catatan"
-                            id="quickCatatanSupplier"
-                            rows="2"
-                            placeholder="Catatan tambahan tentang supplier..."
-                            class="w-full border-gray-300 rounded-md shadow-sm"></textarea>
-                    </div>
-                </div>
-
-                <div class="flex justify-end gap-2 mt-6">
+                <div class="flex justify-end gap-2 px-6 py-4 border-t bg-white flex-shrink-0 rounded-b-xl">
                     <button type="button"
                         id="btnBatalSupplier"
                         class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
@@ -469,7 +471,7 @@
 
                     <button type="submit"
                         id="btnSimpanQuickSupplier"
-                        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed">
                         Simpan Supplier
                     </button>
                 </div>
