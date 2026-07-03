@@ -612,15 +612,27 @@
                         Detail Invoice Penjualan
                     </h2>
 
-                    <div class="flex gap-2">
-                        <a href="{{ route('penjualan.exportExcel', $penjualan->id_penjualan) }}"
-                            class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                    <div class="flex gap-2 items-center">
+                        @if(!$isTanpaPpn && $detailPpnKhusus->count() > 0 && $detailUmum->count() > 0)
+                            <form method="GET" class="inline m-0 mr-2">
+                                @if(request()->has('back_url'))
+                                <input type="hidden" name="back_url" value="{{ request('back_url') }}">
+                                @endif
+                                <select name="mode_cetak" onchange="this.form.submit()" class="pl-3 pr-10 py-2 border border-gray-300 rounded-md shadow-sm text-sm" style="padding-top: 0.45rem; padding-bottom: 0.45rem;">
+                                    <option value="pisah" {{ request('mode_cetak', 'pisah') === 'pisah' ? 'selected' : '' }}>Invoice Terpisah (DPP Lain)</option>
+                                    <option value="gabung" {{ request('mode_cetak') === 'gabung' ? 'selected' : '' }}>Invoice Tergabung</option>
+                                </select>
+                            </form>
+                        @endif
+
+                        <a href="{{ $isInvoiceHistoris ? route('invoice-historis.penjualan.exportExcel', $penjualan->id_penjualan) : route('penjualan.exportExcel', $penjualan->id_penjualan) }}"
+                            class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm flex items-center h-[38px]">
                             Export Excel
                         </a>
 
                         <button onclick="cetakInvoiceA4()"
-                            class="px-4 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-900">
-                            Cetak / Download PDF A4
+                            class="px-4 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-900 text-sm flex items-center h-[38px]">
+                            Cetak / Download PDF
                         </button>
                     </div>
                 </div>
@@ -633,43 +645,40 @@
                         @php
                         $adaPpnPadaTransaksi = !$isTanpaPpn && (float) $nilaiPajak > 0;
                         $kelompokCetak = [];
+                        $modeCetakInvoice = request('mode_cetak', 'pisah'); // 'pisah' atau 'gabung'
 
-                        if (!$adaPpnPadaTransaksi) {
-                        // Jika transaksi benar-benar tidak memiliki PPN, invoice cukup 1 lembar saja.
-                        // Semua barang ditampilkan dalam satu daftar agar tidak muncul halaman kosong/kelompok PPN yang tidak relevan.
-                        $kelompokCetak[] = [
-                        'judul' => 'Daftar Barang',
-                        'jenis' => 'tanpa_ppn',
-                        'detail' => $penjualan->detailPenjualan,
-                        ];
+                        if (!$adaPpnPadaTransaksi || $modeCetakInvoice === 'gabung') {
+                            // Jika transaksi benar-benar tidak memiliki PPN atau mode cetak adalah digabung.
+                            $kelompokCetak[] = [
+                                'judul' => 'Daftar Barang',
+                                'jenis' => 'gabung',
+                                'detail' => $penjualan->detailPenjualan,
+                            ];
                         } else {
-                        // Jika ada PPN, tetap pisahkan sesuai permintaan client:
-                        // 1) PPN Normal + Non PPN
-                        // 2) PPN DPP Nilai Lain / Khusus
-                        // Kelompok yang kosong tidak dicetak agar tidak menghasilkan lembar kosong.
-                        if ($detailUmum->count() > 0) {
-                        $kelompokCetak[] = [
-                        'judul' => 'Daftar Barang',
-                        'jenis' => 'umum',
-                        'detail' => $detailUmum,
-                        ];
-                        }
+                            // Jika ada PPN dan mode pisah (default)
+                            if ($detailUmum->count() > 0) {
+                                $kelompokCetak[] = [
+                                    'judul' => 'Daftar Barang',
+                                    'jenis' => 'umum',
+                                    'detail' => $detailUmum,
+                                ];
+                            }
 
-                        if ($detailPpnKhusus->count() > 0) {
-                        $kelompokCetak[] = [
-                        'judul' => 'Daftar Barang',
-                        'jenis' => 'khusus',
-                        'detail' => $detailPpnKhusus,
-                        ];
-                        }
+                            if ($detailPpnKhusus->count() > 0) {
+                                $kelompokCetak[] = [
+                                    'judul' => 'Daftar Barang (DPP Nilai Lain)',
+                                    'jenis' => 'khusus',
+                                    'detail' => $detailPpnKhusus,
+                                ];
+                            }
 
-                        if (count($kelompokCetak) === 0) {
-                        $kelompokCetak[] = [
-                        'judul' => 'Daftar Barang',
-                        'jenis' => 'umum',
-                        'detail' => $penjualan->detailPenjualan,
-                        ];
-                        }
+                            if (count($kelompokCetak) === 0) {
+                                $kelompokCetak[] = [
+                                    'judul' => 'Daftar Barang',
+                                    'jenis' => 'umum',
+                                    'detail' => $penjualan->detailPenjualan,
+                                ];
+                            }
                         }
                         @endphp
 
@@ -745,6 +754,7 @@
                                 <div>
                                     <div class="invoice-section-title">Informasi Transaksi</div>
                                     <table class="info-table">
+                                        @if ($penjualan->status_pembayaran !== 'lunas')
                                         <tr>
                                             <td style="width: 90px;">Jatuh Tempo</td>
                                             <td>: {{ $penjualan->tanggal_jatuh_tempo ? $penjualan->tanggal_jatuh_tempo->format('d-m-Y') : '-' }}</td>
@@ -757,6 +767,7 @@
                                             <td></td>
                                             <td style="font-weight: 800; text-transform: uppercase;">: JATUH TEMPO SEGERA ( MAKSIMAL {{ $selisihHari }} HARI)</td>
                                         </tr>
+                                        @endif
                                         @endif
                                         <tr>
                                             <td>Admin</td>
@@ -782,7 +793,20 @@
                                         </tr>
                                         <tr>
                                             <td>Catatan</td>
-                                            <td>: {{ $penjualan->catatan ?? '-' }}</td>
+                                            <td>: {{ $penjualan->catatan ?? '-' }}
+                                            @if ($penjualan->status_pembayaran === 'lunas' && strtolower($penjualan->metode_pembayaran) === 'kredit')
+                                                @php
+                                                    $caraPembayaran = strtoupper($penjualan->metode_pembayaran);
+                                                    if ($penjualan->piutang && $penjualan->piutang->pembayaranPiutang->count() > 0) {
+                                                        $metodeTerakhir = $penjualan->piutang->pembayaranPiutang->last();
+                                                        if ($metodeTerakhir) {
+                                                            $caraPembayaran = strtoupper($metodeTerakhir->metode_pembayaran);
+                                                        }
+                                                    }
+                                                @endphp
+                                                <br><span style="font-weight: 800; text-transform: uppercase;">(LUNAS DENGAN {{ $caraPembayaran }})</span>
+                                            @endif
+                                            </td>
                                         </tr>
                                     </table>
                                 </div>
@@ -796,6 +820,8 @@
                                         <th>Barang</th>
                                         <th style="width: 70px;">Qty</th>
                                         <th style="width: 78px;">Harga</th>
+                                        <th style="width: 70px;">Diskon</th>
+                                        <th style="width: 70px;">Tgl. Kirim</th>
                                         <th style="width: 88px;">Subtotal</th>
                                     </tr>
                                 </thead>
@@ -825,11 +851,21 @@
                                             Rp {{ number_format($detail->harga_jual, 0, ',', '.') }}
                                             <div class="item-formula">/ {{ $tipePerhitungan === 'isi_kemasan' ? $satuanHitung : $satuanTransaksi }}</div>
                                         </td>
+                                        <td class="text-right">
+                                            @if ((float)($detail->diskon_nominal ?? 0) > 0)
+                                                <span style="color:#b91c1c;">-Rp {{ number_format($detail->diskon_nominal, 0, ',', '.') }}</span>
+                                            @else
+                                                -
+                                            @endif
+                                        </td>
+                                        <td class="text-center">
+                                            {{ $detail->tanggal_pengantaran ? \Carbon\Carbon::parse($detail->tanggal_pengantaran)->format('d/m/Y') : '-' }}
+                                        </td>
                                         <td class="text-right">Rp {{ number_format($detail->subtotal, 0, ',', '.') }}</td>
                                     </tr>
                                     @empty
                                     <tr>
-                                        <td colspan="5" class="text-center">Tidak ada barang pada kelompok detail.</td>
+                                        <td colspan="7" class="text-center">Tidak ada barang pada kelompok detail.</td>
                                     </tr>
                                     @endforelse
                                 </tbody>
@@ -866,6 +902,9 @@
                                     @endif
                                     @if ($copySubtotalNonPpn > 0)
                                     <div class="total-inline-row"><span>Subtotal Barang Non PPN</span><strong>Rp {{ number_format($copySubtotalNonPpn, 0, ',', '.') }}</strong></div>
+                                    @endif
+                                    @if ($copySubtotalPpnKhusus > 0)
+                                    <div class="total-inline-row"><span>Subtotal Barang DPP Nilai Lain</span><strong>Rp {{ number_format($copySubtotalPpnKhusus, 0, ',', '.') }}</strong></div>
                                     @endif
 
                                     @if ($copyDpp > 0 || $copyPpn > 0)
@@ -928,7 +967,7 @@
 
                 function cetakInvoiceA4() {
                     previousDocumentTitle = document.title;
-                    document.title = invoicePrintTitle;
+                    document.title = invoicePrintTitle + "-" + Date.now();
                     window.print();
 
                     setTimeout(function() {
@@ -938,7 +977,7 @@
 
                 window.addEventListener('beforeprint', function() {
                     previousDocumentTitle = document.title;
-                    document.title = invoicePrintTitle;
+                    document.title = invoicePrintTitle + "-" + Date.now();
                 });
 
                 window.addEventListener('afterprint', function() {

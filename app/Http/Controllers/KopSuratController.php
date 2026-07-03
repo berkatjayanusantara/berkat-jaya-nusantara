@@ -142,7 +142,7 @@ class KopSuratController extends Controller
     public function downloadKopKosong()
     {
         $filePath = $this->buatFileWord(null, true);
-        $fileName = 'Kop-Surat-Berkat-Jaya-Nusantara.docx';
+        $fileName = 'Kop-Surat-Berkat-Jaya-Nusantara-' . time() . '.docx';
 
         return response()->download($filePath, $fileName)->deleteFileAfterSend(true);
     }
@@ -152,7 +152,7 @@ class KopSuratController extends Controller
         $filePath = $this->buatFileWord($suratKeluar, false);
         $nomorBersih = Str::slug($suratKeluar->nomor_surat ?: 'surat', '-');
         $perihalBersih = Str::slug($suratKeluar->perihal ?: 'kop-surat', '-');
-        $fileName = 'Surat-' . $nomorBersih . '-' . $perihalBersih . '.docx';
+        $fileName = 'Surat-' . $nomorBersih . '-' . $perihalBersih . '-' . time() . '.docx';
 
         return response()->download($filePath, $fileName)->deleteFileAfterSend(true);
     }

@@ -299,7 +299,14 @@ if ((float) ($persentasePajak ?? 0) <= 0) {
                             @endphp
                             <strong>{{ $detail->barang->kode_barang ?? '-' }}</strong> - {{ $detail->barang->nama_barang ?? '-' }}
                             <br><span class="small-text">{{ $rumus }} = {{ $formatRupiah($detail->subtotal ?? 0) }}</span>
-                            <br><span class="small-text">{{ $tipeHarga === 'isi_kemasan' ? 'Isi Kemasan' : 'Normal' }} | {{ $kenaPpnDetail ? 'Kena PPN' : 'Non PPN' }} | PPN: {{ $formatRupiah($detail->nilai_ppn ?? 0) }}</span>
+                            <br><span class="small-text">{{ $tipeHarga === 'isi_kemasan' ? 'Isi Kemasan' : 'Normal' }} | {{ $kenaPpnDetail ? 'Kena PPN' : 'Non PPN' }} | PPN: {{ $formatRupiah($detail->nilai_ppn ?? 0) }}
+                                @if((float)($detail->diskon_nominal ?? 0) > 0)
+                                | Diskon: {{ $formatRupiah($detail->diskon_nominal) }}
+                                @endif
+                                @if($detail->tanggal_pengantaran)
+                                | Tgl Kirim: {{ \Carbon\Carbon::parse($detail->tanggal_pengantaran)->format('d-m-Y') }}
+                                @endif
+                            </span>
                             @if (!$loop->last)<br><br>@endif
                             @empty
                             Detail barang tidak tersedia.

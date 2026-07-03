@@ -416,7 +416,7 @@
             }
 
             .signature-name {
-                margin-top: 42px;
+                margin-top: 64px;
                 padding-top: 3px;
                 position: relative;
                 z-index: 2;
@@ -1035,7 +1035,7 @@
 
             function cetakInvoiceA4() {
                 previousDocumentTitle = document.title;
-                document.title = invoicePrintTitle;
+                document.title = invoicePrintTitle + "-" + Date.now();
                 window.print();
 
                 setTimeout(function() {
@@ -1045,7 +1045,7 @@
 
             window.addEventListener('beforeprint', function() {
                 previousDocumentTitle = document.title;
-                document.title = invoicePrintTitle;
+                document.title = invoicePrintTitle + "-" + Date.now();
             });
 
             window.addEventListener('afterprint', function() {

@@ -10,7 +10,7 @@ class PembayaranPiutang extends Model
     use HasFactory;
 
     protected $table = 'pembayaran_piutang';
-    protected $primaryKey = 'id_pembayaran_piutang';
+    protected $primaryKey = 'id_pembayaran';
 
     protected $fillable = [
         'id_piutang',

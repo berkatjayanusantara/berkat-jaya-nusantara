@@ -10,7 +10,7 @@
 
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            Pembayaran Piutang
+            Edit Pembayaran Piutang
         </h2>
     </x-slot>
 
@@ -72,8 +72,9 @@
                     </table>
                 </div>
 
-                <form id="formBayarPiutang" action="{{ route('piutang.simpanPembayaran', $piutang->id_piutang) }}" method="POST">
+                <form id="formBayarPiutang" action="{{ route('piutang.updatePembayaran', [$piutang->id_piutang, $pembayaranPiutang->id_pembayaran]) }}" method="POST">
                     @csrf
+                    @method('PUT')
 
                     <input type="hidden" name="back_url" value="{{ $backUrl }}">
 
@@ -81,7 +82,7 @@
                         <label class="block mb-1 font-medium">Tanggal Pembayaran</label>
                         <input type="date"
                             name="tanggal_pembayaran"
-                            value="{{ old('tanggal_pembayaran', date('Y-m-d')) }}"
+                            value="{{ old('tanggal_pembayaran', $pembayaranPiutang->tanggal_pembayaran instanceof \Carbon\Carbon ? $pembayaranPiutang->tanggal_pembayaran->format('Y-m-d') : date('Y-m-d', strtotime($pembayaranPiutang->tanggal_pembayaran))) }}"
                             class="w-full border-gray-300 rounded-md shadow-sm"
                             required>
                     </div>
@@ -100,12 +101,15 @@
                             <input type="hidden"
                                 name="nominal_pembayaran"
                                 id="nominal_pembayaran"
-                                value="{{ old('nominal_pembayaran') }}">
+                                value="{{ old('nominal_pembayaran', $pembayaranPiutang->nominal_pembayaran) }}">
                         </div>
 
+                        @php
+                            $sisaDenganEdit = $piutang->sisa_piutang + $pembayaranPiutang->nominal_pembayaran;
+                        @endphp
                         <p class="text-sm text-gray-500 mt-1">
                             Maksimal pembayaran:
-                            Rp <span id="max_pembayaran_text">{{ number_format($piutang->sisa_piutang, 0, ',', '.') }}</span>
+                            Rp <span id="max_pembayaran_text">{{ number_format($sisaDenganEdit, 0, ',', '.') }}</span>
                         </p>
                         <p id="error_nominal" class="text-sm text-red-600 mt-1 hidden"></p>
                     </div>
@@ -115,16 +119,16 @@
                         <select name="metode_pembayaran"
                             class="w-full border-gray-300 rounded-md shadow-sm"
                             required>
-                            <option value="tunai" {{ old('metode_pembayaran') === 'tunai' ? 'selected' : '' }}>
+                            <option value="tunai" {{ old('metode_pembayaran', $pembayaranPiutang->metode_pembayaran) === 'tunai' ? 'selected' : '' }}>
                                 Tunai
                             </option>
-                            <option value="transfer" {{ old('metode_pembayaran') === 'transfer' ? 'selected' : '' }}>
+                            <option value="transfer" {{ old('metode_pembayaran', $pembayaranPiutang->metode_pembayaran) === 'transfer' ? 'selected' : '' }}>
                                 Transfer
                             </option>
-                            <option value="giro" {{ old('metode_pembayaran') === 'giro' ? 'selected' : '' }}>
+                            <option value="giro" {{ old('metode_pembayaran', $pembayaranPiutang->metode_pembayaran) === 'giro' ? 'selected' : '' }}>
                                 Giro
                             </option>
-                            <option value="lainnya" {{ old('metode_pembayaran') === 'lainnya' ? 'selected' : '' }}>
+                            <option value="lainnya" {{ old('metode_pembayaran', $pembayaranPiutang->metode_pembayaran) === 'lainnya' ? 'selected' : '' }}>
                                 Lainnya
                             </option>
                         </select>
@@ -134,7 +138,7 @@
                         <label class="block mb-1 font-medium">Catatan</label>
                         <textarea name="catatan"
                             rows="3"
-                            class="w-full border-gray-300 rounded-md shadow-sm">{{ old('catatan') }}</textarea>
+                            class="w-full border-gray-300 rounded-md shadow-sm">{{ old('catatan', $pembayaranPiutang->catatan) }}</textarea>
                     </div>
 
                     <div class="flex justify-end gap-2">
@@ -160,8 +164,8 @@
             const displayInput = document.getElementById('nominal_pembayaran_display');
             const hiddenInput = document.getElementById('nominal_pembayaran');
             
-            let maxPembayaran = {{ ceil($piutang->sisa_piutang) }};
-            if (maxPembayaran < 1 && {{ (float)$piutang->sisa_piutang }} > 0) {
+            let maxPembayaran = {{ ceil($sisaDenganEdit) }};
+            if (maxPembayaran < 1 && {{ (float)$sisaDenganEdit }} > 0) {
                 maxPembayaran = 1;
             }
             

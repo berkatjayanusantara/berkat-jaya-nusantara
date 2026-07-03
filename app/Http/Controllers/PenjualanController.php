@@ -247,7 +247,7 @@ class PenjualanController extends Controller
             ->setFitToWidth(1)
             ->setFitToHeight(0);
 
-        foreach (['A' => 6, 'B' => 18, 'C' => 30, 'D' => 12, 'E' => 16, 'F' => 16, 'G' => 18, 'H' => 16, 'I' => 16] as $col => $width) {
+        foreach (['A' => 6, 'B' => 18, 'C' => 30, 'D' => 12, 'E' => 16, 'F' => 16, 'G' => 16, 'H' => 16, 'I' => 18, 'J' => 16, 'K' => 16] as $col => $width) {
             $sheet->getColumnDimension($col)->setWidth($width);
         }
 
@@ -267,12 +267,12 @@ class PenjualanController extends Controller
             ],
         ];
 
-        $sheet->mergeCells('A1:I1');
+        $sheet->mergeCells('A1:K1');
         $sheet->setCellValue('A1', 'CV. BERKAT JAYA NUSANTARA');
         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
         $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
-        $sheet->mergeCells('A2:I2');
+        $sheet->mergeCells('A2:K2');
         $sheet->setCellValue('A2', 'INVOICE / NOTA PENJUALAN');
         $sheet->getStyle('A2')->getFont()->setBold(true)->setSize(13);
         $sheet->getStyle('A2')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
@@ -322,29 +322,29 @@ class PenjualanController extends Controller
         $row = $this->tulisKelompokDetailExcel($sheet, $detailUmum, $row, 'DETAIL 2 - BARANG PPN NORMAL DAN NON PPN', $headerFill, $border);
 
         $row++;
-        $sheet->setCellValue('H' . $row, 'Subtotal');
-        $sheet->setCellValue('I' . $row, (float) $penjualan->subtotal);
+        $sheet->setCellValue('J' . $row, 'Subtotal');
+        $sheet->setCellValue('K' . $row, (float) $penjualan->subtotal);
         $row++;
 
-        $sheet->setCellValue('H' . $row, 'Subtotal Kena PPN');
-        $sheet->setCellValue('I' . $row, (float) ($penjualan->subtotal_kena_ppn ?? 0));
+        $sheet->setCellValue('J' . $row, 'Subtotal Kena PPN');
+        $sheet->setCellValue('K' . $row, (float) ($penjualan->subtotal_kena_ppn ?? 0));
         $row++;
 
-        $sheet->setCellValue('H' . $row, 'Subtotal Non PPN');
-        $sheet->setCellValue('I' . $row, (float) ($penjualan->subtotal_non_ppn ?? 0));
+        $sheet->setCellValue('J' . $row, 'Subtotal Non PPN');
+        $sheet->setCellValue('K' . $row, (float) ($penjualan->subtotal_non_ppn ?? 0));
         $row++;
 
         if ($modePpn !== 'tanpa_ppn') {
-            $sheet->setCellValue('H' . $row, 'DPP');
-            $sheet->setCellValue('I' . $row, (float) ($penjualan->dpp_ppn ?? $penjualan->subtotal));
+            $sheet->setCellValue('J' . $row, 'DPP');
+            $sheet->setCellValue('K' . $row, (float) ($penjualan->dpp_ppn ?? $penjualan->subtotal));
             $row++;
 
-            $sheet->setCellValue('H' . $row, 'Nilai PPN');
-            $sheet->setCellValue('I' . $row, (float) $penjualan->nilai_pajak);
+            $sheet->setCellValue('J' . $row, 'Nilai PPN');
+            $sheet->setCellValue('K' . $row, (float) $penjualan->nilai_pajak);
             $row++;
         } else {
-            $sheet->setCellValue('H' . $row, 'PPN');
-            $sheet->setCellValue('I' . $row, 0);
+            $sheet->setCellValue('J' . $row, 'PPN');
+            $sheet->setCellValue('K' . $row, 0);
             $row++;
         }
 
@@ -352,36 +352,40 @@ class PenjualanController extends Controller
         $jenisPenyesuaian = $penjualan->jenis_penyesuaian_total ?? 'tidak_ada';
         $nominalPenyesuaian = (float) ($penjualan->nominal_penyesuaian_total ?? 0);
 
-        $sheet->setCellValue('H' . $row, 'Total Sebelum Penyesuaian');
-        $sheet->setCellValue('I' . $row, $totalSebelumPenyesuaian);
+        $sheet->setCellValue('J' . $row, 'Total Sebelum Penyesuaian');
+        $sheet->setCellValue('K' . $row, $totalSebelumPenyesuaian);
         $row++;
 
         if ($jenisPenyesuaian !== 'tidak_ada' && $nominalPenyesuaian > 0) {
-            $sheet->setCellValue('H' . $row, $jenisPenyesuaian === 'kurang' ? 'Penyesuaian Kurang' : 'Penyesuaian Tambah');
-            $sheet->setCellValue('I' . $row, $jenisPenyesuaian === 'kurang' ? -$nominalPenyesuaian : $nominalPenyesuaian);
+            $sheet->setCellValue('J' . $row, $jenisPenyesuaian === 'kurang' ? 'Penyesuaian Kurang' : 'Penyesuaian Tambah');
+            $sheet->setCellValue('K' . $row, $jenisPenyesuaian === 'kurang' ? -$nominalPenyesuaian : $nominalPenyesuaian);
             $row++;
 
             if ($penjualan->keterangan_penyesuaian_total) {
-                $sheet->setCellValue('H' . $row, 'Ket. Penyesuaian');
-                $sheet->setCellValue('I' . $row, $penjualan->keterangan_penyesuaian_total);
+                $sheet->setCellValue('J' . $row, 'Ket. Penyesuaian');
+                $sheet->setCellValue('K' . $row, $penjualan->keterangan_penyesuaian_total);
                 $row++;
             }
         }
 
-        $sheet->setCellValue('H' . $row, 'Total Akhir');
-        $sheet->setCellValue('I' . $row, (float) $penjualan->total_akhir);
-        $sheet->getStyle('H' . $row . ':I' . $row)->getFont()->setBold(true);
+        $sheet->setCellValue('J' . $row, 'Total Akhir');
+        $sheet->setCellValue('K' . $row, (float) $penjualan->total_akhir);
+        $sheet->getStyle('J' . $row . ':K' . $row)->getFont()->setBold(true);
 
-        $sheet->getStyle('E1:I' . $row)
+        $sheet->getStyle('E1:F' . $row)
+            ->getNumberFormat()
+            ->setFormatCode('"Rp" #,##0');
+        
+        $sheet->getStyle('I1:K' . $row)
             ->getNumberFormat()
             ->setFormatCode('"Rp" #,##0');
 
-        $sheet->getStyle('A1:I' . $row)->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
-        $sheet->getStyle('A1:I' . $row)->getAlignment()->setWrapText(true);
+        $sheet->getStyle('A1:K' . $row)->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
+        $sheet->getStyle('A1:K' . $row)->getAlignment()->setWrapText(true);
 
         $safeInvoice = preg_replace('/[^A-Za-z0-9\-_]+/', '-', $nomorInvoiceTampil ?? 'nota');
         $safeInvoice = trim(preg_replace('/-+/', '-', $safeInvoice), '-');
-        $fileName = 'Invoice-' . ($safeInvoice ?: 'nota') . '.xlsx';
+        $fileName = 'Invoice-' . ($safeInvoice ?: 'nota') . '-' . time() . '.xlsx';
 
         $writer = new Xlsx($spreadsheet);
 
@@ -399,15 +403,15 @@ class PenjualanController extends Controller
             return $row;
         }
 
-        $sheet->mergeCells('A' . $row . ':I' . $row);
+        $sheet->mergeCells('A' . $row . ':K' . $row);
         $sheet->setCellValue('A' . $row, $judul);
-        $sheet->getStyle('A' . $row . ':I' . $row)->getFont()->setBold(true);
+        $sheet->getStyle('A' . $row . ':K' . $row)->getFont()->setBold(true);
         $row++;
 
-        $sheet->fromArray(['No', 'Kode Barang', 'Nama Barang', 'Qty', 'Harga', 'Jenis PPN', 'DPP', 'PPN', 'Subtotal'], null, 'A' . $row);
-        $sheet->getStyle('A' . $row . ':I' . $row)->applyFromArray($headerFill);
-        $sheet->getStyle('A' . $row . ':I' . $row)->applyFromArray($border);
-        $sheet->getStyle('A' . $row . ':I' . $row)->getFont()->setBold(true);
+        $sheet->fromArray(['No', 'Kode Barang', 'Nama Barang', 'Qty', 'Harga', 'Diskon', 'Tgl. Kirim', 'Jenis PPN', 'DPP', 'PPN', 'Subtotal'], null, 'A' . $row);
+        $sheet->getStyle('A' . $row . ':K' . $row)->applyFromArray($headerFill);
+        $sheet->getStyle('A' . $row . ':K' . $row)->applyFromArray($border);
+        $sheet->getStyle('A' . $row . ':K' . $row)->getFont()->setBold(true);
         $row++;
 
         $no = 1;
@@ -427,11 +431,13 @@ class PenjualanController extends Controller
             $sheet->setCellValue('C' . $row, $namaBarang);
             $sheet->setCellValue('D' . $row, $detail->jumlah . ' ' . $satuanTransaksi);
             $sheet->setCellValue('E' . $row, (float) $detail->harga_jual);
-            $sheet->setCellValue('F' . $row, $this->labelJenisPpn($this->normalisasiJenisPpnDetail($detail)));
-            $sheet->setCellValue('G' . $row, (float) ($detail->dpp_ppn ?? 0));
-            $sheet->setCellValue('H' . $row, (float) ($detail->nilai_ppn ?? 0));
-            $sheet->setCellValue('I' . $row, (float) $detail->subtotal);
-            $sheet->getStyle('A' . $row . ':I' . $row)->applyFromArray($border);
+            $sheet->setCellValue('F' . $row, (float) ($detail->diskon_nominal ?? 0));
+            $sheet->setCellValue('G' . $row, $detail->tanggal_pengantaran ? \Carbon\Carbon::parse($detail->tanggal_pengantaran)->format('d-m-Y') : '-');
+            $sheet->setCellValue('H' . $row, $this->labelJenisPpn($this->normalisasiJenisPpnDetail($detail)));
+            $sheet->setCellValue('I' . $row, (float) ($detail->dpp_ppn ?? 0));
+            $sheet->setCellValue('J' . $row, (float) ($detail->nilai_ppn ?? 0));
+            $sheet->setCellValue('K' . $row, (float) $detail->subtotal);
+            $sheet->getStyle('A' . $row . ':K' . $row)->applyFromArray($border);
             $row++;
         }
 
@@ -499,16 +505,22 @@ class PenjualanController extends Controller
             'jumlah.*' => 'required|integer|min:1',
             'harga_jual' => 'required|array|min:1',
             'harga_jual.*' => 'required|numeric|min:0',
+            'diskon_nominal' => 'nullable|array',
+            'diskon_nominal.*' => 'nullable|numeric|min:0',
+            'tanggal_pengantaran' => 'nullable|array',
+            'tanggal_pengantaran.*' => 'nullable|date',
         ];
     }
 
-    private function hitungSubtotalDetail(Barang $barang, int $jumlah, float $hargaJual): float
+    private function hitungSubtotalDetail(Barang $barang, int $jumlah, float $hargaJual, float $diskonNominal = 0): float
     {
         if (($barang->tipe_perhitungan_harga ?? 'normal') === 'isi_kemasan') {
-            return round($jumlah * (float) ($barang->isi_per_satuan ?? 1) * $hargaJual, 2);
+            $raw = round($jumlah * (float) ($barang->isi_per_satuan ?? 1) * $hargaJual, 2);
+        } else {
+            $raw = round($jumlah * $hargaJual, 2);
         }
 
-        return round($jumlah * $hargaJual, 2);
+        return round(max($raw - $diskonNominal, 0), 2);
     }
 
     private function hitungRingkasanPenjualanDariRequest(Request $request, bool $cekStok = true): array
@@ -532,7 +544,8 @@ class PenjualanController extends Controller
                 ]);
             }
 
-            $subtotalDetail = $this->hitungSubtotalDetail($barang, $jumlah, (float) $request->harga_jual[$index]);
+            $diskonNominal = (float) ($request->diskon_nominal[$index] ?? 0);
+            $subtotalDetail = $this->hitungSubtotalDetail($barang, $jumlah, (float) $request->harga_jual[$index], $diskonNominal);
             $jenisPpn = $this->normalisasiJenisPpnBarang($barang);
             $ppnDetail = $this->hitungPpnDetail($subtotalDetail, $jenisPpn, $modePpn);
 
@@ -629,6 +642,7 @@ class PenjualanController extends Controller
             $barang = Barang::where('id_barang', $idBarang)->lockForUpdate()->firstOrFail();
             $jumlah = (int) $request->jumlah[$index];
             $hargaJual = (float) $request->harga_jual[$index];
+            $diskonNominal = (float) ($request->diskon_nominal[$index] ?? 0);
 
             if ($affectStock && $jumlah > $barang->stok_saat_ini) {
                 throw ValidationException::withMessages([
@@ -640,7 +654,7 @@ class PenjualanController extends Controller
             $satuanTransaksi = $barang->satuan;
             $satuanHitungHarga = $tipePerhitunganHarga === 'isi_kemasan' ? $barang->satuan_hitung_harga : $barang->satuan;
             $isiPerSatuan = $tipePerhitunganHarga === 'isi_kemasan' ? (float) $barang->isi_per_satuan : 1;
-            $subtotalDetail = $this->hitungSubtotalDetail($barang, $jumlah, $hargaJual);
+            $subtotalDetail = $this->hitungSubtotalDetail($barang, $jumlah, $hargaJual, $diskonNominal);
             $jenisPpn = $this->normalisasiJenisPpnBarang($barang);
             $ppnDetail = $this->hitungPpnDetail($subtotalDetail, $jenisPpn, $modePpn);
 
@@ -649,6 +663,8 @@ class PenjualanController extends Controller
                 'id_barang' => $barang->id_barang,
                 'jumlah' => $jumlah,
                 'harga_jual' => $hargaJual,
+                'diskon_nominal' => $diskonNominal,
+                'tanggal_pengantaran' => $request->tanggal_pengantaran[$index] ?? null,
                 'tipe_perhitungan_harga' => $tipePerhitunganHarga,
                 'satuan_transaksi' => $satuanTransaksi,
                 'satuan_hitung_harga' => $satuanHitungHarga,

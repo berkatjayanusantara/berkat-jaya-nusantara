@@ -480,6 +480,12 @@
                                                 {{ $kenaPpnDetail ? 'Kena PPN' : 'Non PPN' }} |
                                                 DPP: {{ $formatRupiah($detail->dpp_ppn ?? 0) }} |
                                                 PPN: {{ $formatRupiah($detail->nilai_ppn ?? 0) }}
+                                                @if((float)($detail->diskon_nominal ?? 0) > 0)
+                                                | Diskon: {{ $formatRupiah($detail->diskon_nominal) }}
+                                                @endif
+                                                @if($detail->tanggal_pengantaran)
+                                                | Tgl Kirim: {{ \Carbon\Carbon::parse($detail->tanggal_pengantaran)->format('d-m-Y') }}
+                                                @endif
                                             </div>
                                         </div>
                                         @empty

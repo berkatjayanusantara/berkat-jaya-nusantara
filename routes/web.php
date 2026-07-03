@@ -74,6 +74,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/piutang/{piutang}', [PiutangController::class, 'show'])->name('piutang.show');
     Route::get('/piutang/{piutang}/bayar', [PiutangController::class, 'bayar'])->name('piutang.bayar');
     Route::post('/piutang/{piutang}/bayar', [PiutangController::class, 'simpanPembayaran'])->name('piutang.simpanPembayaran');
+    Route::get('/piutang/{piutang}/pembayaran/{pembayaranPiutang}/edit', [PiutangController::class, 'editPembayaran'])->name('piutang.editPembayaran');
+    Route::put('/piutang/{piutang}/pembayaran/{pembayaranPiutang}', [PiutangController::class, 'updatePembayaran'])->name('piutang.updatePembayaran');
 
     Route::get('/riwayat-stok', [RiwayatStokController::class, 'index'])->name('riwayat-stok.index');
 

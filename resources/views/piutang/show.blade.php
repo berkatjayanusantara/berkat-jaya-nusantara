@@ -162,6 +162,7 @@
                                 <th class="border px-3 py-2 text-center">Metode</th>
                                 <th class="border px-3 py-2 text-left">Catatan</th>
                                 <th class="border px-3 py-2 text-left">Dibuat Oleh</th>
+                                <th class="border px-3 py-2 text-center">Aksi</th>
                             </tr>
                         </thead>
 
@@ -191,10 +192,15 @@
                                 <td class="border px-3 py-2">
                                     {{ $pembayaran->user->nama_user ?? '-' }}
                                 </td>
+
+                                <td class="border px-3 py-2 text-center">
+                                    <a href="{{ route('piutang.editPembayaran', [$piutang->id_piutang, $pembayaran->id_pembayaran, 'back_url' => url()->current()]) }}" 
+                                       class="text-blue-600 hover:text-blue-900 text-sm font-medium">Edit</a>
+                                </td>
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="6" class="border px-3 py-4 text-center text-gray-500">
+                                <td colspan="7" class="border px-3 py-4 text-center text-gray-500">
                                     Belum ada pembayaran untuk piutang ini.
                                 </td>
                             </tr>

@@ -1029,7 +1029,7 @@ class PembelianController extends Controller
 
         $safeNomor = preg_replace('/[^A-Za-z0-9\-_]+/', '-', $nomorPembelianTampil ?? 'nota');
         $safeNomor = trim(preg_replace('/-+/', '-', $safeNomor), '-');
-        $fileName = 'Nota-Pembelian-' . ($safeNomor ?: 'nota') . '.xlsx';
+        $fileName = 'Nota-Pembelian-' . ($safeNomor ?: 'nota') . '-' . time() . '.xlsx';
 
         $writer = new Xlsx($spreadsheet);
 

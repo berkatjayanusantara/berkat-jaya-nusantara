@@ -63,9 +63,15 @@ class PiutangController extends Controller
 
     public function simpanPembayaran(Request $request, Piutang $piutang)
     {
+        $maxPembayaran = ceil($piutang->sisa_piutang);
+        // Jika sisa piutang kurang dari 1 (misal 0.8), set max minimal 1 agar bisa dilunasi.
+        if ($maxPembayaran < 1 && $piutang->sisa_piutang > 0) {
+            $maxPembayaran = 1;
+        }
+
         $request->validate([
             'tanggal_pembayaran' => 'required|date',
-            'nominal_pembayaran' => 'required|numeric|min:1|max:' . $piutang->sisa_piutang,
+            'nominal_pembayaran' => 'required|numeric|min:1|max:' . $maxPembayaran,
             'metode_pembayaran' => 'required|in:tunai,transfer,giro,lainnya',
             'catatan' => 'nullable|string',
             'back_url' => 'nullable|string',
@@ -113,5 +119,81 @@ class PiutangController extends Controller
                 'back_url' => $backUrl,
             ])
             ->with('success', 'Pembayaran piutang berhasil disimpan.');
+    }
+
+    public function editPembayaran(Request $request, Piutang $piutang, PembayaranPiutang $pembayaranPiutang)
+    {
+        $piutang->load(['customer', 'penjualan']);
+        
+        if ($pembayaranPiutang->id_piutang !== $piutang->id_piutang) {
+            abort(404);
+        }
+
+        $backUrl = $request->query('back_url', route('piutang.index'));
+
+        return view('piutang.edit-pembayaran', compact('piutang', 'pembayaranPiutang', 'backUrl'));
+    }
+
+    public function updatePembayaran(Request $request, Piutang $piutang, PembayaranPiutang $pembayaranPiutang)
+    {
+        if ($pembayaranPiutang->id_piutang !== $piutang->id_piutang) {
+            abort(404);
+        }
+
+        // Hitung ulang sisa_piutang jika pembayaran ini dibatalkan
+        $sisaDenganEdit = $piutang->sisa_piutang + $pembayaranPiutang->nominal_pembayaran;
+        $maxPembayaran = ceil($sisaDenganEdit);
+        if ($maxPembayaran < 1 && $sisaDenganEdit > 0) {
+            $maxPembayaran = 1;
+        }
+
+        $request->validate([
+            'tanggal_pembayaran' => 'required|date',
+            'nominal_pembayaran' => 'required|numeric|min:1|max:' . $maxPembayaran,
+            'metode_pembayaran' => 'required|in:tunai,transfer,giro,lainnya',
+            'catatan' => 'nullable|string',
+            'back_url' => 'nullable|string',
+        ]);
+
+        $backUrl = $request->input('back_url', route('piutang.index'));
+
+        DB::transaction(function () use ($request, $piutang, $pembayaranPiutang) {
+            $pembayaranPiutang->update([
+                'tanggal_pembayaran' => $request->tanggal_pembayaran,
+                'nominal_pembayaran' => $request->nominal_pembayaran,
+                'metode_pembayaran' => $request->metode_pembayaran,
+                'catatan' => $request->catatan,
+            ]);
+
+            $totalDibayarBaru = PembayaranPiutang::where('id_piutang', $piutang->id_piutang)->sum('nominal_pembayaran');
+            $sisaPiutangBaru = $piutang->total_piutang - $totalDibayarBaru;
+
+            if ($sisaPiutangBaru <= 0) {
+                $statusPiutang = 'lunas';
+                $statusPembayaran = 'lunas';
+                $sisaPiutangBaru = 0;
+            } else {
+                $statusPiutang = 'sebagian_dibayar';
+                $statusPembayaran = 'sebagian';
+            }
+
+            $piutang->update([
+                'total_dibayar' => $totalDibayarBaru,
+                'sisa_piutang' => $sisaPiutangBaru,
+                'status_piutang' => $statusPiutang,
+            ]);
+
+            Penjualan::where('id_penjualan', $piutang->id_penjualan)
+                ->update([
+                    'status_pembayaran' => $statusPembayaran,
+                ]);
+        });
+
+        return redirect()
+            ->route('piutang.show', [
+                'piutang' => $piutang->id_piutang,
+                'back_url' => $backUrl,
+            ])
+            ->with('success', 'Pembayaran piutang berhasil diperbarui.');
     }
 }

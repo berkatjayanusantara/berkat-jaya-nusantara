@@ -618,6 +618,10 @@ class InvoiceHistorisController extends Controller
             'jumlah.*' => 'required|integer|min:1',
             'harga_jual' => 'required|array|min:1',
             'harga_jual.*' => 'required|numeric|min:0',
+            'diskon_nominal' => 'nullable|array',
+            'diskon_nominal.*' => 'nullable|numeric|min:0',
+            'tanggal_pengantaran' => 'nullable|array',
+            'tanggal_pengantaran.*' => 'nullable|date',
         ];
     }
 
@@ -636,7 +640,8 @@ class InvoiceHistorisController extends Controller
             $barang = Barang::where('id_barang', $idBarang)->lockForUpdate()->firstOrFail();
             $jumlah = (int) $request->jumlah[$index];
             $hargaJual = (float) $request->harga_jual[$index];
-            $subtotalDetail = $this->hitungSubtotalDetailPenjualanHistoris($barang, $jumlah, $hargaJual);
+            $diskonNominal = (float) ($request->diskon_nominal[$index] ?? 0);
+            $subtotalDetail = $this->hitungSubtotalDetailPenjualanHistoris($barang, $jumlah, $hargaJual, $diskonNominal);
             $jenisPpn = $this->normalisasiJenisPpnBarangHistoris($barang);
             $ppnDetail = $this->hitungPpnDetailHistoris($subtotalDetail, $jenisPpn, $modePpn);
 
@@ -677,13 +682,15 @@ class InvoiceHistorisController extends Controller
         ];
     }
 
-    private function hitungSubtotalDetailPenjualanHistoris(Barang $barang, int $jumlah, float $hargaJual): float
+    private function hitungSubtotalDetailPenjualanHistoris(Barang $barang, int $jumlah, float $hargaJual, float $diskonNominal = 0): float
     {
         if (($barang->tipe_perhitungan_harga ?? 'normal') === 'isi_kemasan') {
-            return round($jumlah * (float) ($barang->isi_per_satuan ?? 1) * $hargaJual, 2);
+            $raw = round($jumlah * (float) ($barang->isi_per_satuan ?? 1) * $hargaJual, 2);
+        } else {
+            $raw = round($jumlah * $hargaJual, 2);
         }
 
-        return round($jumlah * $hargaJual, 2);
+        return round(max($raw - $diskonNominal, 0), 2);
     }
 
     private function hitungPpnDetailHistoris(float $subtotalDetail, string $jenisPpn, string $modePpn): array
@@ -744,11 +751,12 @@ class InvoiceHistorisController extends Controller
             $barang = Barang::where('id_barang', $idBarang)->lockForUpdate()->firstOrFail();
             $jumlah = (int) $request->jumlah[$index];
             $hargaJual = (float) $request->harga_jual[$index];
+            $diskonNominal = (float) ($request->diskon_nominal[$index] ?? 0);
             $tipePerhitunganHarga = $barang->tipe_perhitungan_harga ?? 'normal';
             $satuanTransaksi = $barang->satuan;
             $satuanHitungHarga = $tipePerhitunganHarga === 'isi_kemasan' ? $barang->satuan_hitung_harga : $barang->satuan;
             $isiPerSatuan = $tipePerhitunganHarga === 'isi_kemasan' ? (float) ($barang->isi_per_satuan ?? 1) : 1;
-            $subtotalDetail = $this->hitungSubtotalDetailPenjualanHistoris($barang, $jumlah, $hargaJual);
+            $subtotalDetail = $this->hitungSubtotalDetailPenjualanHistoris($barang, $jumlah, $hargaJual, $diskonNominal);
             $jenisPpn = $this->normalisasiJenisPpnBarangHistoris($barang);
             $ppnDetail = $this->hitungPpnDetailHistoris($subtotalDetail, $jenisPpn, $modePpn);
 
@@ -757,6 +765,8 @@ class InvoiceHistorisController extends Controller
                 'id_barang' => $barang->id_barang,
                 'jumlah' => $jumlah,
                 'harga_jual' => $hargaJual,
+                'diskon_nominal' => $diskonNominal,
+                'tanggal_pengantaran' => $request->tanggal_pengantaran[$index] ?? null,
                 'tipe_perhitungan_harga' => $tipePerhitunganHarga,
                 'satuan_transaksi' => $satuanTransaksi,
                 'satuan_hitung_harga' => $satuanHitungHarga,

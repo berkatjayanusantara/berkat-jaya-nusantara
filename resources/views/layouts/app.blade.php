@@ -45,6 +45,28 @@
     </div>
 
     @stack('scripts')
+    
+    <script>
+        // Mencegah submit form otomatis dengan tombol Enter pada form transaksi
+        // (Penjualan, Pembelian, Historis) agar tidak terjadi human error.
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                const target = event.target;
+                
+                // Tetap izinkan enter jika sedang mengetik di textarea
+                if (target.tagName === 'TEXTAREA') {
+                    return;
+                }
+                
+                // Cegah default action jika berada di dalam form transaksi
+                const form = target.closest('#formPenjualan, #formPembelian, #formPembelianHistoris');
+                if (form) {
+                    event.preventDefault();
+                    return false;
+                }
+            }
+        });
+    </script>
 </body>
 
 </html>

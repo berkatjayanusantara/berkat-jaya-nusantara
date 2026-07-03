@@ -1476,6 +1476,7 @@ class LaporanController extends Controller
         $namaFile = $prefix . '-' . $awal . '-sd-' . $akhir;
         $namaFile = preg_replace('/[^A-Za-z0-9\-_]+/', '-', $namaFile);
         $namaFile = trim(preg_replace('/-+/', '-', $namaFile), '-');
+        $namaFile .= '-' . time();
 
         return $namaFile . '.' . $extension;
     }

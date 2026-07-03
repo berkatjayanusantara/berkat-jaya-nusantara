@@ -19,6 +19,8 @@ class DetailPenjualan extends Model
         'id_barang',
         'jumlah',
         'harga_jual',
+        'diskon_nominal',
+        'tanggal_pengantaran',
         'tipe_perhitungan_harga',
         'satuan_transaksi',
         'satuan_hitung_harga',
@@ -33,6 +35,8 @@ class DetailPenjualan extends Model
 
     protected $casts = [
         'harga_jual' => 'decimal:2',
+        'diskon_nominal' => 'decimal:2',
+        'tanggal_pengantaran' => 'date',
         'isi_per_satuan' => 'decimal:3',
         'kena_ppn' => 'boolean',
         'tarif_ppn' => 'decimal:2',

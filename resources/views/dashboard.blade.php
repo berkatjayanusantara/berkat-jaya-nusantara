@@ -210,7 +210,7 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
                 <div class="bg-white border rounded-2xl p-5 shadow-sm">
                     <p class="text-sm text-gray-500">Total Barang</p>
                     <div class="flex items-end justify-between mt-2">
@@ -270,6 +270,21 @@
                         Aktif: {{ $formatAngka($totalSupplierAktif ?? 0) }} · Nonaktif: {{ $formatAngka($totalSupplierNonaktif ?? 0) }}
                     </p>
                 </div>
+
+                <div class="bg-white border rounded-2xl p-5 shadow-sm">
+                    <p class="text-sm text-gray-500">Kop Surat / Surat</p>
+                    <div class="flex items-end justify-between mt-2">
+                        <h3 class="text-2xl font-bold text-gray-900">
+                            {{ $formatAngka($totalSuratKeluar ?? 0) }}
+                        </h3>
+                        <a href="{{ route('kop-surat.index') }}" class="text-sm text-blue-600 hover:underline">
+                            Lihat
+                        </a>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2">
+                        Final: {{ $formatAngka($totalSuratFinal ?? 0) }} · Draft: {{ $formatAngka($totalSuratDraft ?? 0) }}
+                    </p>
+                </div>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
@@ -284,7 +299,7 @@
                         </a>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
                         <div>
                             <p class="text-xs text-gray-500">Total Nilai</p>
                             <p class="text-xl font-bold text-gray-900 mt-1">
@@ -293,6 +308,14 @@
                             <p class="text-xs text-gray-500 mt-1">
                                 {{ $formatAngka($jumlahPembelianHariIni ?? 0) }} transaksi
                             </p>
+                        </div>
+
+                        <div>
+                            <p class="text-xs text-gray-500">Penyesuaian</p>
+                            <p class="text-xl font-bold text-orange-700 mt-1">
+                                {{ $formatRupiah(($biayaLainPembelianHariIni ?? 0) - ($potonganDiskonPembelianHariIni ?? 0)) }}
+                            </p>
+                            <p class="text-xs text-gray-500 mt-1">Biaya: {{ $formatAngka($biayaLainPembelianHariIni ?? 0) }} · Diskon: {{ $formatAngka($potonganDiskonPembelianHariIni ?? 0) }}</p>
                         </div>
 
                         <div>
@@ -324,7 +347,7 @@
                         </a>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-5 gap-4">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
                         <div>
                             <p class="text-xs text-gray-500">Total Nilai</p>
                             <p class="text-lg font-bold text-gray-900 mt-1">
@@ -357,6 +380,16 @@
                         </div>
 
                         <div>
+                            <p class="text-xs text-gray-500">Penyesuaian</p>
+                            <p class="text-lg font-bold {{ ($penyesuaianBersihPenjualanHariIni ?? 0) >= 0 ? 'text-green-700' : 'text-red-700' }} mt-1">
+                                {{ ($penyesuaianBersihPenjualanHariIni ?? 0) > 0 ? '+' : '' }}{{ $formatRupiah($penyesuaianBersihPenjualanHariIni ?? 0) }}
+                            </p>
+                            <p class="text-xs text-gray-500 mt-1">
+                                +{{ $formatAngka($penyesuaianTambahPenjualanHariIni ?? 0) }} / -{{ $formatAngka($penyesuaianKurangPenjualanHariIni ?? 0) }}
+                            </p>
+                        </div>
+
+                        <div>
                             <p class="text-xs text-gray-500">Terjual</p>
                             <p class="text-lg font-bold text-purple-700 mt-1">
                                 {{ $formatAngka($barangTerjualHariIni ?? 0) }}
@@ -384,8 +417,8 @@
                     <p class="text-xs text-gray-500 mt-2">
                         Sistem: {{ $formatAngka($invoiceSistemBerjalan ?? 0) }} · Historis: {{ $formatAngka($invoiceHistoris ?? 0) }} · Hari ini: {{ $formatAngka($invoiceHariIni ?? 0) }} · Historis hari ini: {{ $formatAngka($invoiceHistorisHariIni ?? 0) }}
                     </p>
-                    <a href="{{ route('invoice-historis.index') }}" class="text-sm text-purple-600 hover:underline mt-3 inline-block">
-                        Invoice history
+                    <a href="{{ route('arsip-invoice.index') }}" class="text-sm text-purple-600 hover:underline mt-3 inline-block">
+                        Arsip Invoice
                     </a>
                 </div>
 

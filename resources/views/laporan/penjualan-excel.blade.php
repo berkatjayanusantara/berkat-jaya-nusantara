@@ -271,6 +271,8 @@ if ((float) ($persentasePajak ?? 0) <= 0) {
                     <td>Isi Per Satuan</td>
                     <td>Satuan Hitung Harga</td>
                     <td>Harga Jual</td>
+                    <td>Diskon Nominal</td>
+                    <td>Tanggal Pengantaran</td>
                     <td>Rumus Perhitungan</td>
                     <td>Subtotal Barang</td>
                     <td>DPP Barang</td>
@@ -344,6 +346,8 @@ if ((float) ($persentasePajak ?? 0) <= 0) {
                     <td class="text-center number-format">{{ $tipeHarga === 'isi_kemasan' ? $isiPerSatuan : 1 }}</td>
                     <td class="text-center">{{ $satuanHitungHarga }}</td>
                     <td class="text-right currency">{{ $detail->harga_jual }}</td>
+                    <td class="text-right currency">{{ $detail->diskon_nominal ?? 0 }}</td>
+                    <td class="text-center">{{ $detail->tanggal_pengantaran ? \Carbon\Carbon::parse($detail->tanggal_pengantaran)->format('d-m-Y') : '-' }}</td>
                     <td>{{ $rumusPerhitungan }}</td>
                     <td class="text-right currency">{{ $detail->subtotal }}</td>
                     <td class="text-right currency">{{ $detail->dpp_ppn ?? 0 }}</td>

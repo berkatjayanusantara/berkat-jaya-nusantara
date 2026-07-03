@@ -55,7 +55,7 @@
             </h2>
 
             <div class="flex gap-2">
-                <button onclick="window.print()"
+                <button onclick="cetakSuratJalan()"
                     class="px-4 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-900">
                     Cetak
                 </button>
@@ -229,4 +229,30 @@
             </div>
         </div>
     </div>
+
+    <script>
+        const suratJalanPrintTitle = "Surat-Jalan-{{ preg_replace('/[^A-Za-z0-9\-_]+/', '-', $nomorDokumen) }}";
+        let previousDocumentTitle = document.title;
+
+        function cetakSuratJalan() {
+            previousDocumentTitle = document.title;
+            document.title = suratJalanPrintTitle + "-" + Date.now();
+            window.print();
+
+            setTimeout(function() {
+                document.title = previousDocumentTitle;
+            }, 1500);
+        }
+
+        window.addEventListener('beforeprint', function() {
+            previousDocumentTitle = document.title;
+            document.title = suratJalanPrintTitle + "-" + Date.now();
+        });
+
+        window.addEventListener('afterprint', function() {
+            setTimeout(function() {
+                document.title = previousDocumentTitle;
+            }, 500);
+        });
+    </script>
 </x-app-layout>

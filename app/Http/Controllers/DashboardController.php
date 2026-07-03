@@ -11,6 +11,7 @@ use App\Models\Penjualan;
 use App\Models\Piutang;
 use App\Models\RiwayatStok;
 use App\Models\Supplier;
+use App\Models\SuratKeluar;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
@@ -158,6 +159,9 @@ class DashboardController extends Controller
             $query->whereDate('tanggal_pembelian', $today);
         })->sum('jumlah');
 
+        $biayaLainPembelianHariIni = Pembelian::whereDate('tanggal_pembelian', $today)->sum('biaya_lain');
+        $potonganDiskonPembelianHariIni = Pembelian::whereDate('tanggal_pembelian', $today)->sum('potongan_diskon');
+
         $pembelianTerbaru = Pembelian::with(['supplier', 'detailPembelian'])
             ->orderBy('created_at', 'desc')
             ->limit(5)
@@ -220,6 +224,16 @@ class DashboardController extends Controller
         $penjualanButuhFakturPajakHariIni = Penjualan::whereDate('tanggal_penjualan', $today)
             ->where('butuh_faktur_pajak', true)
             ->count();
+
+        $penyesuaianTambahPenjualanHariIni = Penjualan::whereDate('tanggal_penjualan', $today)
+            ->where('jenis_penyesuaian_total', 'tambah')
+            ->sum('nominal_penyesuaian_total');
+
+        $penyesuaianKurangPenjualanHariIni = Penjualan::whereDate('tanggal_penjualan', $today)
+            ->where('jenis_penyesuaian_total', 'kurang')
+            ->sum('nominal_penyesuaian_total');
+
+        $penyesuaianBersihPenjualanHariIni = $penyesuaianTambahPenjualanHariIni - $penyesuaianKurangPenjualanHariIni;
 
         $penjualanModePpnTanpa = Penjualan::where('mode_ppn', 'tanpa_ppn')->count();
         $penjualanModePpnInclude = Penjualan::where('mode_ppn', 'include')->count();
@@ -382,7 +396,17 @@ class DashboardController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Grafik Penjualan 7 Hari Terakhir
+        | Surat Keluar / Kop Surat
+        |--------------------------------------------------------------------------
+        */
+        $totalSuratKeluar = SuratKeluar::count();
+        $suratKeluarHariIni = SuratKeluar::whereDate('tanggal_surat', $today)->count();
+        $totalSuratDraft = SuratKeluar::where('status_surat', 'draft')->count();
+        $totalSuratFinal = SuratKeluar::where('status_surat', 'final')->count();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Grafik Penjualan (7 Hari Terakhir)
         |--------------------------------------------------------------------------
         */
         $grafikPenjualanRaw = Penjualan::select(
@@ -445,6 +469,8 @@ class DashboardController extends Controller
             'pembelianBelumDikirim',
             'barangDipesanHariIni',
             'barangDiterimaHariIni',
+            'biayaLainPembelianHariIni',
+            'potonganDiskonPembelianHariIni',
             'pembelianTerbaru',
             'pembelianBelumSelesai',
             'penjualanHariIni',
@@ -458,6 +484,9 @@ class DashboardController extends Controller
             'ppnPenjualanHariIni',
             'dppPpnPenjualanHariIni',
             'penjualanButuhFakturPajakHariIni',
+            'penyesuaianTambahPenjualanHariIni',
+            'penyesuaianKurangPenjualanHariIni',
+            'penyesuaianBersihPenjualanHariIni',
             'penjualanModePpnTanpa',
             'penjualanModePpnInclude',
             'penjualanModePpnExclude',
@@ -496,6 +525,10 @@ class DashboardController extends Controller
             'nettoPerubahanStokHariIni',
             'riwayatStokTerbaru',
             'stockOpnameTerbaru',
+            'totalSuratKeluar',
+            'suratKeluarHariIni',
+            'totalSuratDraft',
+            'totalSuratFinal',
             'grafikPenjualan7Hari'
         ));
     }

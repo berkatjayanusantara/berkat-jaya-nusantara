@@ -220,7 +220,7 @@
                                             </select>
                                         </td>
 
-                                        <td class="border px-3 py-2">
+                                        <td class="border px-3 py-2 min-w-[100px]">
                                             <input type="number"
                                                 name="jumlah_dipesan[]"
                                                 value="{{ $row['jumlah_dipesan'] }}"
@@ -229,7 +229,7 @@
                                                 required>
                                         </td>
 
-                                        <td class="border px-3 py-2">
+                                        <td class="border px-3 py-2 min-w-[150px]">
                                             <input type="number"
                                                 name="jumlah[]"
                                                 value="{{ $row['jumlah'] }}"
@@ -238,7 +238,7 @@
                                                 required>
                                         </td>
 
-                                        <td class="border px-3 py-2">
+                                        <td class="border px-3 py-2 min-w-[100px]">
                                             <input type="number"
                                                 name="harga_beli[]"
                                                 value="{{ $row['harga_beli'] }}"
@@ -281,7 +281,7 @@
                                         </select>
                                     </td>
 
-                                    <td class="border px-3 py-2">
+                                    <td class="border px-3 py-2 min-w-[150px]">
                                         <input type="number"
                                             name="jumlah_dipesan[]"
                                             value="1"
@@ -299,7 +299,7 @@
                                             required>
                                     </td>
 
-                                    <td class="border px-3 py-2">
+                                    <td class="border px-3 py-2 min-w-[100px]">
                                         <input type="number"
                                             name="harga_beli[]"
                                             value="0"
@@ -814,6 +814,20 @@
             initSupplierSelect();
             initAllBarangSelect();
             hitungTotal();
+            // Human Error Prevention: Unsaved Changes Warning
+            let isFormDirty = false;
+            const mainForm = document.getElementById('formPenjualan') || document.getElementById('formPembelian');
+            if (mainForm) {
+                mainForm.addEventListener('input', function () { isFormDirty = true; });
+                mainForm.addEventListener('change', function () { isFormDirty = true; });
+                mainForm.addEventListener('submit', function () { isFormDirty = false; });
+                window.addEventListener('beforeunload', function (e) {
+                    if (isFormDirty) {
+                        e.preventDefault();
+                        e.returnValue = '';
+                    }
+                });
+            }
         });
     </script>
 </x-app-layout>

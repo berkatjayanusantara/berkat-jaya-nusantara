@@ -66,6 +66,8 @@
                                         <th class="border px-3 py-2 text-left">Barang</th>
                                         <th class="border px-3 py-2 text-right">Jumlah</th>
                                         <th class="border px-3 py-2 text-right">Harga Jual</th>
+                                        <th class="border px-3 py-2 text-right">Diskon (Rp)</th>
+                                        <th class="border px-3 py-2 text-center">Tgl. Kirim</th>
                                         <th class="border px-3 py-2 text-right">Subtotal</th>
                                         <th class="border px-3 py-2 text-center">Aksi</th>
                                     </tr>
@@ -111,13 +113,20 @@
                                             <p class="text-sm text-blue-600 mt-1 perhitungan-info">Perhitungan: -</p>
                                             <p class="text-sm text-purple-600 mt-1 ppn-info">PPN: -</p>
                                         </td>
-                                        <td class="border px-3 py-2">
+                                        <td class="border px-3 py-2 min-w-[100px]">
                                             <input type="number" name="jumlah[]" value="1" min="1" class="w-full border-gray-300 rounded-md shadow-sm text-right jumlah-input" required>
                                             <p class="text-xs text-gray-500 mt-1 satuan-jumlah-info text-right">-</p>
                                         </td>
-                                        <td class="border px-3 py-2">
+                                        <td class="border px-3 py-2 min-w-[100px]">
                                             <input type="number" name="harga_jual[]" value="0" min="0" step="0.01" class="w-full border-gray-300 rounded-md shadow-sm text-right harga-input" required>
                                             <p class="text-xs text-gray-500 mt-1 harga-info text-right">-</p>
+                                        </td>
+                                        <td class="border px-3 py-2 min-w-[150px]">
+                                            <input type="number" name="diskon_nominal[]" value="0" min="0" step="0.01" class="w-full border-gray-300 rounded-md shadow-sm text-right diskon-input" placeholder="0">
+                                            <p class="text-xs text-green-600 mt-1 diskon-info text-right">-</p>
+                                        </td>
+                                        <td class="border px-3 py-2 min-w-[150px]">
+                                            <input type="date" name="tanggal_pengantaran[]" class="w-full border-gray-300 rounded-md shadow-sm text-center">
                                         </td>
                                         <td class="border px-3 py-2 text-right min-w-[160px]"><span class="subtotal-text">Rp 0</span></td>
                                         <td class="border px-3 py-2 text-center">
@@ -173,9 +182,16 @@
                                         <input type="number" name="jumlah[]" value="1" min="1" class="w-full border-gray-300 rounded-md shadow-sm text-right jumlah-input" required>
                                         <p class="text-xs text-gray-500 mt-1 satuan-jumlah-info text-right">-</p>
                                     </td>
-                                    <td class="border px-3 py-2">
+                                    <td class="border px-3 py-2 min-w-[100px]">
                                         <input type="number" name="harga_jual[]" value="0" min="0" step="0.01" class="w-full border-gray-300 rounded-md shadow-sm text-right harga-input" required>
                                         <p class="text-xs text-gray-500 mt-1 harga-info text-right">-</p>
+                                    </td>
+                                    <td class="border px-3 py-2 min-w-[150px]">
+                                        <input type="number" name="diskon_nominal[]" value="0" min="0" step="0.01" class="w-full border-gray-300 rounded-md shadow-sm text-right diskon-input" placeholder="0">
+                                        <p class="text-xs text-green-600 mt-1 diskon-info text-right">-</p>
+                                    </td>
+                                    <td class="border px-3 py-2 min-w-[150px]">
+                                        <input type="date" name="tanggal_pengantaran[]" class="w-full border-gray-300 rounded-md shadow-sm text-center">
                                     </td>
                                     <td class="border px-3 py-2 text-right min-w-[160px]"><span class="subtotal-text">Rp 0</span></td>
                                     <td class="border px-3 py-2 text-center">
@@ -470,9 +486,20 @@
             const detail = getDetailBarangDariRow(row);
             const jumlah = parseFloat(row.querySelector('.jumlah-input').value) || 0;
             const harga = parseFloat(row.querySelector('.harga-input').value) || 0;
-            if (!detail) return jumlah * harga;
-            if (detail.tipePerhitungan === 'isi_kemasan') return jumlah * detail.isiPerSatuan * harga;
-            return jumlah * harga;
+            const diskon = parseFloat(row.querySelector('.diskon-input')?.value) || 0;
+            let raw = 0;
+            if (!detail) raw = jumlah * harga;
+            else if (detail.tipePerhitungan === 'isi_kemasan') raw = jumlah * detail.isiPerSatuan * harga;
+            else raw = jumlah * harga;
+            return Math.max(raw - diskon, 0);
+        }
+
+        function updateDiskonInfo(row) {
+            const diskonInput = row.querySelector('.diskon-input');
+            const diskonInfo = row.querySelector('.diskon-info');
+            if (!diskonInput || !diskonInfo) return;
+            const diskon = parseFloat(diskonInput.value) || 0;
+            diskonInfo.innerText = diskon > 0 ? 'Diskon: ' + formatRupiah(diskon) : '-';
         }
 
         function hitungPpnDetail(subtotal, jenisPpn, modePpn) {
@@ -543,6 +570,7 @@
                 const detail = getDetailBarangDariRow(row);
                 const subtotal = hitungSubtotalRow(row);
                 row.querySelector('.subtotal-text').innerText = formatRupiah(subtotal);
+                updateDiskonInfo(row);
                 totalSubtotal += subtotal;
                 if (!detail || detail.jenisPpn === 'non_ppn' || modePpn === 'tanpa_ppn') {
                     subtotalNonPpn += subtotal;
@@ -688,7 +716,7 @@
             }
         }
         document.addEventListener('input', e => {
-            if (e.target.classList.contains('jumlah-input') || e.target.classList.contains('harga-input') || e.target.id === 'nominalPenyesuaianTotal') hitungTotal();
+            if (e.target.classList.contains('jumlah-input') || e.target.classList.contains('harga-input') || e.target.classList.contains('diskon-input') || e.target.id === 'nominalPenyesuaianTotal') hitungTotal();
         });
         document.addEventListener('change', e => {
             if (e.target.id === 'metodePembayaran') updateMetodePembayaran();
@@ -771,6 +799,20 @@
             document.getElementById('btnTutupModalCustomer')?.addEventListener('click', tutupModalCustomer);
             document.getElementById('btnBatalCustomer')?.addEventListener('click', tutupModalCustomer);
             document.getElementById('formQuickCustomer')?.addEventListener('submit', simpanQuickCustomer);
+            // Human Error Prevention: Unsaved Changes Warning
+            let isFormDirty = false;
+            const mainForm = document.getElementById('formPenjualan') || document.getElementById('formPembelian');
+            if (mainForm) {
+                mainForm.addEventListener('input', function () { isFormDirty = true; });
+                mainForm.addEventListener('change', function () { isFormDirty = true; });
+                mainForm.addEventListener('submit', function () { isFormDirty = false; });
+                window.addEventListener('beforeunload', function (e) {
+                    if (isFormDirty) {
+                        e.preventDefault();
+                        e.returnValue = '';
+                    }
+                });
+            }
         });
     </script>
 
