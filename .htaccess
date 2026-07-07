@@ -1,0 +1,10 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Prevent direct access to sensitive files
+    RedirectMatch 404 ^/\.(env|git|gitignore|editorconfig|npmrc|phpunit\.result\.cache)$
+    RedirectMatch 404 ^/(app|bootstrap|config|database|resources|routes|storage|tests|vendor|composer\.(json|lock)|package(-lock)?\.json|postcss\.config\.js|tailwind\.config\.js|vite\.config\.js|artisan|phpunit\.xml)($|/)
+
+    # Send all requests to the public folder
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>

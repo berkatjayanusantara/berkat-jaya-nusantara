@@ -851,7 +851,7 @@
                                             Rp {{ number_format($detail->harga_jual, 0, ',', '.') }}
                                             <div class="item-formula">/ {{ $tipePerhitungan === 'isi_kemasan' ? $satuanHitung : $satuanTransaksi }}</div>
                                         </td>
-                                        <td class="text-right">
+                                        <td class="{{ ((float)($detail->diskon_nominal ?? 0) > 0) ? 'text-right' : 'text-center' }}">
                                             @if ((float)($detail->diskon_nominal ?? 0) > 0)
                                                 <span style="color:#b91c1c;">-Rp {{ number_format($detail->diskon_nominal, 0, ',', '.') }}</span>
                                             @else

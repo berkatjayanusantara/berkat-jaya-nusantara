@@ -13,7 +13,7 @@ use App\Models\Supplier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
+
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Schema;
 
@@ -70,13 +70,15 @@ class InvoiceHistorisController extends Controller
                 'nullable',
                 'string',
                 'max:100',
-                Rule::unique('pembelian', 'nomor_delivery_order'),
+                // Nomor DO dari supplier boleh sama di beberapa transaksi pembelian
+                // (sama seperti perilaku nomor invoice di penjualan)
             ],
             'nomor_surat_jalan' => [
                 'nullable',
                 'string',
                 'max:100',
-                Rule::unique('pembelian', 'nomor_surat_jalan'),
+                // Nomor surat jalan dari supplier boleh sama di beberapa transaksi pembelian
+                // (sama seperti perilaku nomor invoice di penjualan)
             ],
             'tanggal_pembelian' => 'required|date',
             'id_supplier' => 'required|exists:suppliers,id_supplier',
@@ -245,15 +247,15 @@ class InvoiceHistorisController extends Controller
                 'nullable',
                 'string',
                 'max:100',
-                Rule::unique('pembelian', 'nomor_delivery_order')
-                    ->ignore($pembelian->id_pembelian, 'id_pembelian'),
+                // Nomor DO dari supplier boleh sama di beberapa transaksi pembelian
+                // (sama seperti perilaku nomor invoice di penjualan)
             ],
             'nomor_surat_jalan' => [
                 'nullable',
                 'string',
                 'max:100',
-                Rule::unique('pembelian', 'nomor_surat_jalan')
-                    ->ignore($pembelian->id_pembelian, 'id_pembelian'),
+                // Nomor surat jalan dari supplier boleh sama di beberapa transaksi pembelian
+                // (sama seperti perilaku nomor invoice di penjualan)
             ],
             'tanggal_pembelian' => 'required|date',
             'id_supplier' => 'required|exists:suppliers,id_supplier',
