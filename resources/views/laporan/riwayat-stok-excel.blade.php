@@ -1,4 +1,4 @@
-﻿@php
+@php
 $namaPerusahaan = 'CV. BERKAT JAYA NUSANTARA';
 $alamatPerusahaan = 'Jl. Jelambar Utama 1 No. 6A RT. 007 RW. 004, Jakarta Barat 11460';
 $teleponPerusahaan = '(021) 5664892, 5676277 | WA: 085691801290';

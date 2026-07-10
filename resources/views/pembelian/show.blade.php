@@ -1,4 +1,4 @@
-﻿<x-app-layout>
+<x-app-layout>
     @php
     $pajakDitambahkan = $pembelian->pajak_ditambahkan ?? true;
     $statusPenerimaan = $pembelian->status_penerimaan ?? 'lengkap';

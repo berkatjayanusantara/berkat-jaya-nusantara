@@ -1,4 +1,4 @@
-﻿<x-app-layout>
+<x-app-layout>
     @php
     $pajakDitambahkan = $penjualan->pajak_ditambahkan ?? true;
     $modePpn = $penjualan->mode_ppn
