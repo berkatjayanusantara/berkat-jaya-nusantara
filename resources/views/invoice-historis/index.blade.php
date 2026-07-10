@@ -49,6 +49,27 @@
                 </p>
             </div>
 
+            {{-- Form Pencarian --}}
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-4 mb-6">
+                <form method="GET" action="{{ route('invoice-historis.index') }}" class="flex gap-2">
+                    <input type="text"
+                        name="search"
+                        value="{{ $search }}"
+                        placeholder="Cari nomor invoice, supplier, customer..."
+                        class="w-full border-gray-300 rounded-md shadow-sm">
+
+                    <button type="submit"
+                        class="px-4 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-900">
+                        Cari
+                    </button>
+
+                    <a href="{{ route('invoice-historis.index') }}"
+                        class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
+                        Reset
+                    </a>
+                </form>
+            </div>
+
             <div class="grid grid-cols-1 gap-6">
 
                 {{-- INVOICE PEMBELIAN LAMA --}}
@@ -95,7 +116,7 @@
 
                                 <tr>
                                     <td class="border px-3 py-2">
-                                        {{ $loop->iteration }}
+                                        {{ $loop->iteration + ($pembelianHistoris->currentPage() - 1) * $pembelianHistoris->perPage() }}
                                     </td>
 
                                     <td class="border px-3 py-2">
@@ -162,7 +183,11 @@
 
                                     <td class="border px-3 py-2">
                                         <div class="flex flex-wrap justify-center gap-2">
-                                            <a href="{{ route('invoice-historis.pembelian.show', ['pembelian' => $item->id_pembelian, 'back_url' => route('invoice-historis.index')]) }}"
+                                            @php
+                                            $backUrlPembelianDetail = route('invoice-historis.index', ['search' => $search, 'page_pembelian' => $pembelianHistoris->currentPage()]);
+                                            $showUrlPembelian = route('invoice-historis.pembelian.show', ['pembelian' => $item->id_pembelian, 'back_url' => $backUrlPembelianDetail]);
+                                            @endphp
+                                            <a href="{{ $showUrlPembelian }}"
                                                 class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
                                                 Detail / Print
                                             </a>
@@ -172,7 +197,7 @@
                                                 Excel
                                             </a>
 
-                                            <a href="{{ route('invoice-historis.pembelian.edit', $item->id_pembelian) }}"
+                                            <a href="{{ route('invoice-historis.pembelian.edit', ['pembelian' => $item->id_pembelian, 'back_url' => $showUrlPembelian]) }}"
                                                 class="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600">
                                                 Edit
                                             </a>
@@ -188,6 +213,10 @@
                                 @endforelse
                             </tbody>
                         </table>
+                    </div>
+
+                    <div class="mt-4">
+                        {{ $pembelianHistoris->appends(['search' => $search, 'page_penjualan' => $penjualanHistoris->currentPage()])->links() }}
                     </div>
                 </div>
 
@@ -233,7 +262,7 @@
 
                                 <tr>
                                     <td class="border px-3 py-2">
-                                        {{ $loop->iteration }}
+                                        {{ $loop->iteration + ($penjualanHistoris->currentPage() - 1) * $penjualanHistoris->perPage() }}
                                     </td>
 
                                     <td class="border px-3 py-2">
@@ -276,7 +305,11 @@
 
                                     <td class="border px-3 py-2">
                                         <div class="flex flex-wrap justify-center gap-2">
-                                            <a href="{{ route('invoice-historis.penjualan.show', ['penjualan' => $item->id_penjualan, 'back_url' => route('invoice-historis.index')]) }}"
+                                            @php
+                                            $backUrlPenjualanDetail = route('invoice-historis.index', ['search' => $search, 'page_penjualan' => $penjualanHistoris->currentPage()]);
+                                            $showUrlPenjualan = route('invoice-historis.penjualan.show', ['penjualan' => $item->id_penjualan, 'back_url' => $backUrlPenjualanDetail]);
+                                            @endphp
+                                            <a href="{{ $showUrlPenjualan }}"
                                                 class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
                                                 Detail / Print
                                             </a>
@@ -286,7 +319,7 @@
                                                 Excel
                                             </a>
 
-                                            <a href="{{ route('invoice-historis.penjualan.edit', $item->id_penjualan) }}"
+                                            <a href="{{ route('invoice-historis.penjualan.edit', ['penjualan' => $item->id_penjualan, 'back_url' => $showUrlPenjualan]) }}"
                                                 class="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600">
                                                 Edit
                                             </a>
@@ -302,6 +335,10 @@
                                 @endforelse
                             </tbody>
                         </table>
+                    </div>
+
+                    <div class="mt-4">
+                        {{ $penjualanHistoris->appends(['search' => $search, 'page_pembelian' => $pembelianHistoris->currentPage()])->links() }}
                     </div>
                 </div>
 

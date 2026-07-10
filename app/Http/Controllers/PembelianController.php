@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Http\Controllers;
 
@@ -527,7 +527,7 @@ class PembelianController extends Controller
 
         $namaPerusahaan = 'CV. BERKAT JAYA NUSANTARA';
         $alamatPerusahaan = 'Jl. Jelambar Utama 1 No. 6A RT. 007 RW. 004, Jakarta Barat 11460';
-        $teleponPerusahaan = '(021) 5664892, 5676277';
+        $teleponPerusahaan = '(021) 5664892, 5676277 | WA: 085691801290';
 
         $statusText = match ($statusPenerimaan) {
             'lengkap' => 'Lengkap',
@@ -735,7 +735,7 @@ class PembelianController extends Controller
 
         $sheet->setCellValue('B1', $namaPerusahaan);
         $sheet->setCellValue('B2', $alamatPerusahaan);
-        $sheet->setCellValue('B3', 'Telp: ' . $teleponPerusahaan);
+        $sheet->setCellValue('B3', 'Telp: ' . $teleponPerusahaan . ' | WA: 085691801290');
         $sheet->setCellValue('J1', 'SUPPLIER');
 
         $sheet->getStyle('A1:J3')->applyFromArray($centerStyle);

@@ -1,4 +1,4 @@
-<x-app-layout>
+﻿<x-app-layout>
     <x-slot name="header">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div>
@@ -19,7 +19,7 @@
     @php
     $namaPerusahaan = 'CV. BERKAT JAYA NUSANTARA';
     $alamatPerusahaan = 'Jl. Jelambar Utama 1 No. 6A RT. 007 RW. 004, Jakarta Barat 11460';
-    $teleponPerusahaan = '(021) 5664892, 5676277';
+    $teleponPerusahaan = '(021) 5664892, 5676277 | WA: 085691801290';
     $maxGrafik = max($grafikPenjualan7Hari->max('total') ?? 0, 1);
 
     $formatRupiah = function ($nilai) {

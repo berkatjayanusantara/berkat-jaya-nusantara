@@ -1,8 +1,8 @@
 <x-app-layout>
     @php
     $namaPerusahaan = 'CV. BERKAT JAYA NUSANTARA';
-    $alamatPerusahaan = 'Alamat perusahaan belum diisi';
-    $teleponPerusahaan = 'Telepon belum diisi';
+    $alamatPerusahaan = 'Jl. Jelambar Utama 1 No. 6A RT. 007 RW. 004, Jakarta Barat 11460';
+    $teleponPerusahaan = '(021) 5664892, 5676277 | WA: 085691801290';
 
     $nomorDokumen = $pembelian->nomor_delivery_order ?: 'DO-SUP-' . $pembelian->nomor_pembelian;
     $statusPenerimaan = $pembelian->status_penerimaan ?? 'lengkap';

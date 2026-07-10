@@ -154,22 +154,30 @@
                                 <td class="border px-3 py-2 text-center">
                                     <div class="flex flex-wrap justify-center gap-2">
                                         @if ($isHistoris)
-                                        <a href="{{ route('invoice-historis.pembelian.show', ['pembelian' => $item->id_pembelian, 'back_url' => route('pembelian.index', ['search' => $search])]) }}"
+                                        @php
+                                        $backUrlListPembelian = route('pembelian.index', ['search' => $search, 'page' => $pembelian->currentPage()]);
+                                        $showUrlHistorisPembelian = route('invoice-historis.pembelian.show', ['pembelian' => $item->id_pembelian, 'back_url' => $backUrlListPembelian]);
+                                        @endphp
+                                        <a href="{{ $showUrlHistorisPembelian }}"
                                             class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
                                             Detail
                                         </a>
 
-                                        <a href="{{ route('invoice-historis.pembelian.edit', $item->id_pembelian) }}"
+                                        <a href="{{ route('invoice-historis.pembelian.edit', ['pembelian' => $item->id_pembelian, 'back_url' => $showUrlHistorisPembelian]) }}"
                                             class="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600">
                                             Edit
                                         </a>
                                         @else
-                                        <a href="{{ route('pembelian.show', $item->id_pembelian) }}"
+                                        @php
+                                        $backUrlListPembelianReguler = route('pembelian.index', ['search' => $search, 'page' => $pembelian->currentPage()]);
+                                        $showUrlRegulerPembelian = route('pembelian.show', ['pembelian' => $item->id_pembelian, 'back_url' => $backUrlListPembelianReguler]);
+                                        @endphp
+                                        <a href="{{ $showUrlRegulerPembelian }}"
                                             class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
                                             Detail
                                         </a>
 
-                                        <a href="{{ route('pembelian.edit', $item->id_pembelian) }}"
+                                        <a href="{{ route('pembelian.edit', ['pembelian' => $item->id_pembelian, 'back_url' => $showUrlRegulerPembelian]) }}"
                                             class="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600">
                                             Edit
                                         </a>

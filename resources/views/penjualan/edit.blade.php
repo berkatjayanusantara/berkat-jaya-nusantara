@@ -325,7 +325,8 @@
                     </div>
 
                     <div class="flex justify-end gap-2 mt-6">
-                        <a href="{{ route('penjualan.show', $penjualan->id_penjualan) }}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">Batal</a>
+                        @php $batalUrl = request('back_url', route('penjualan.show', $penjualan->id_penjualan)); @endphp
+                        <a href="{{ $batalUrl }}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">Batal</a>
                         <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700" onclick="return confirm('Update transaksi penjualan ini? Stok lama akan dikembalikan lalu stok baru akan dihitung ulang.')">Update Penjualan</button>
                     </div>
                 </form>

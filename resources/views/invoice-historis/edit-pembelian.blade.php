@@ -415,7 +415,8 @@
                     </div>
 
                     <div class="flex justify-end gap-2 mt-6">
-                        <a href="{{ route('invoice-historis.index') }}"
+                        @php $batalUrl = request('back_url', route('invoice-historis.pembelian.show', ['pembelian' => $pembelian->id_pembelian, 'back_url' => route('invoice-historis.index')])); @endphp
+                        <a href="{{ $batalUrl }}"
                             class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
                             Batal
                         </a>

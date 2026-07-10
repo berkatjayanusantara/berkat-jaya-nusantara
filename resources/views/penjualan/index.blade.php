@@ -137,22 +137,30 @@
                                 <td class="border px-3 py-2 text-center">
                                     <div class="flex flex-wrap justify-center gap-2">
                                         @if ($isHistoris)
-                                        <a href="{{ route('invoice-historis.penjualan.show', ['penjualan' => $item->id_penjualan, 'back_url' => route('penjualan.index', ['search' => $search])]) }}"
+                                        @php
+                                        $backUrlListPenjualan = route('penjualan.index', ['search' => $search, 'page' => $penjualan->currentPage()]);
+                                        $showUrlHistorisPenjualan = route('invoice-historis.penjualan.show', ['penjualan' => $item->id_penjualan, 'back_url' => $backUrlListPenjualan]);
+                                        @endphp
+                                        <a href="{{ $showUrlHistorisPenjualan }}"
                                             class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
                                             Detail
                                         </a>
 
-                                        <a href="{{ route('invoice-historis.penjualan.edit', $item->id_penjualan) }}"
+                                        <a href="{{ route('invoice-historis.penjualan.edit', ['penjualan' => $item->id_penjualan, 'back_url' => $showUrlHistorisPenjualan]) }}"
                                             class="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600">
                                             Edit
                                         </a>
                                         @else
-                                        <a href="{{ route('penjualan.show', $item->id_penjualan) }}"
+                                        @php
+                                        $backUrlListPenjualanReguler = route('penjualan.index', ['search' => $search, 'page' => $penjualan->currentPage()]);
+                                        $showUrlRegulerPenjualan = route('penjualan.show', ['penjualan' => $item->id_penjualan, 'back_url' => $backUrlListPenjualanReguler]);
+                                        @endphp
+                                        <a href="{{ $showUrlRegulerPenjualan }}"
                                             class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
                                             Detail
                                         </a>
 
-                                        <a href="{{ route('penjualan.edit', $item->id_penjualan) }}"
+                                        <a href="{{ route('penjualan.edit', ['penjualan' => $item->id_penjualan, 'back_url' => $showUrlRegulerPenjualan]) }}"
                                             class="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600">
                                             Edit
                                         </a>

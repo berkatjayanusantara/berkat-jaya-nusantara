@@ -1,4 +1,4 @@
-<x-app-layout>
+﻿<x-app-layout>
     @php
     $pajakDitambahkan = $pembelian->pajak_ditambahkan ?? true;
     $statusPenerimaan = $pembelian->status_penerimaan ?? 'lengkap';
@@ -13,7 +13,7 @@
 
     $namaPerusahaan = 'CV. BERKAT JAYA NUSANTARA';
     $alamatPerusahaan = 'Jl. Jelambar Utama 1 No. 6A RT. 007 RW. 004, Jakarta Barat 11460';
-    $teleponPerusahaan = '(021) 5664892, 5676277';
+    $teleponPerusahaan = '(021) 5664892, 5676277 | WA: 085691801290';
 
     $formatAngkaInvoice = function ($angka) {
     return rtrim(rtrim(number_format((float) $angka, 3, ',', '.'), '0'), ',');
@@ -728,7 +728,11 @@
                 </h2>
 
                 <div class="flex flex-wrap gap-2">
-                    <a href="{{ route('pembelian.exportExcel', $pembelian->id_pembelian) }}"
+                    <a href="{{ $backUrl }}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 no-print">
+                        ← Kembali
+                    </a>
+
+                    <a href="{{ $isPembelianHistoris ? route('invoice-historis.pembelian.exportExcel', $pembelian->id_pembelian) : route('pembelian.exportExcel', $pembelian->id_pembelian) }}"
                         class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
                         Export Excel
                     </a>

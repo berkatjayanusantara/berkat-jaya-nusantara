@@ -104,7 +104,7 @@
                                 Jl. Jelambar Utama 1 No. 6A RT. 007 RW. 004, Jakarta Barat 11460
                             </div>
                             <div style="font-size: 14px; margin-top: 3px; line-height: 1.35;">
-                                Telp: (021) 5664892, 5676277
+                                Telp: (021) 5664892, 5676277 | WA: 085691801290
                             </div>
                         </div>
 

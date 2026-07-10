@@ -1,4 +1,4 @@
-<x-app-layout>
+﻿<x-app-layout>
     @php
     $pajakDitambahkan = $penjualan->pajak_ditambahkan ?? true;
     $modePpn = $penjualan->mode_ppn
@@ -75,7 +75,7 @@
         $backUrl = request('back_url', route('penjualan.index'));
         $namaPerusahaan = 'CV. BERKAT JAYA NUSANTARA';
         $alamatPerusahaan = 'Jl. Jelambar Utama 1 No. 6A RT. 007 RW. 004, Jakarta Barat 11460';
-        $teleponPerusahaan = '(021) 5664892, 5676277';
+        $teleponPerusahaan = '(021) 5664892, 5676277 | WA: 085691801290';
 
         $isInvoiceHistoris = (bool) ($penjualan->is_historical ?? false);
         $nomorInvoiceTampil = !empty($penjualan->nomor_dokumen_asli)
@@ -612,31 +612,35 @@
                         Detail Invoice Penjualan
                     </h2>
 
-                    <div class="flex gap-2 items-center">
-                        @if(!$isTanpaPpn && $detailPpnKhusus->count() > 0 && $detailUmum->count() > 0)
-                            <form method="GET" class="inline m-0 mr-2">
-                                @if(request()->has('back_url'))
-                                <input type="hidden" name="back_url" value="{{ request('back_url') }}">
-                                @endif
-                                <select name="mode_cetak" onchange="this.form.submit()" class="pl-3 pr-10 py-2 border border-gray-300 rounded-md shadow-sm text-sm" style="padding-top: 0.45rem; padding-bottom: 0.45rem;">
-                                    <option value="pisah" {{ request('mode_cetak', 'pisah') === 'pisah' ? 'selected' : '' }}>Invoice Terpisah (DPP Lain)</option>
-                                    <option value="gabung" {{ request('mode_cetak') === 'gabung' ? 'selected' : '' }}>Invoice Tergabung</option>
-                                </select>
-                            </form>
-                        @endif
+                <div class="flex gap-2 items-center">
+                    <a href="{{ $backUrl }}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm flex items-center h-[38px] no-print">
+                        ← Kembali
+                    </a>
 
-                        <a href="{{ $isInvoiceHistoris ? route('invoice-historis.penjualan.exportExcel', $penjualan->id_penjualan) : route('penjualan.exportExcel', $penjualan->id_penjualan) }}"
-                            class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm flex items-center h-[38px]">
-                            Export Excel
-                        </a>
+                    @if(!$isTanpaPpn && $detailPpnKhusus->count() > 0 && $detailUmum->count() > 0)
+                        <form method="GET" class="inline m-0 mr-2">
+                            @if(request()->has('back_url'))
+                            <input type="hidden" name="back_url" value="{{ request('back_url') }}">
+                            @endif
+                            <select name="mode_cetak" onchange="this.form.submit()" class="pl-3 pr-10 py-2 border border-gray-300 rounded-md shadow-sm text-sm" style="padding-top: 0.45rem; padding-bottom: 0.45rem;">
+                                <option value="pisah" {{ request('mode_cetak', 'pisah') === 'pisah' ? 'selected' : '' }}>Invoice Terpisah (DPP Lain)</option>
+                                <option value="gabung" {{ request('mode_cetak') === 'gabung' ? 'selected' : '' }}>Invoice Tergabung</option>
+                            </select>
+                        </form>
+                    @endif
 
-                        <button onclick="cetakInvoiceA4()"
-                            class="px-4 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-900 text-sm flex items-center h-[38px]">
-                            Cetak / Download PDF
-                        </button>
-                    </div>
+                    <a href="{{ $isInvoiceHistoris ? route('invoice-historis.penjualan.exportExcel', $penjualan->id_penjualan) : route('penjualan.exportExcel', $penjualan->id_penjualan) }}"
+                        class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm flex items-center h-[38px]">
+                        Export Excel
+                    </a>
+
+                    <button onclick="cetakInvoiceA4()"
+                        class="px-4 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-900 text-sm flex items-center h-[38px]">
+                        Cetak / Download PDF
+                    </button>
                 </div>
-            </x-slot>
+            </div>
+        </x-slot>
 
             <div class="py-6 print-wrapper">
                 <div class="max-w-5xl mx-auto sm:px-6 lg:px-8 print-container">

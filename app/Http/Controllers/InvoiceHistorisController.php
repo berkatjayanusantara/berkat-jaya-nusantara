@@ -15,27 +15,51 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 use Illuminate\Validation\ValidationException;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Schema;
 
 class InvoiceHistorisController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $search = $request->search;
+
         $pembelianHistoris = Pembelian::with('supplier')
             ->where('is_historical', true)
+            ->when($search, function ($query, $search) {
+                $query->where(function ($sub) use ($search) {
+                    $sub->where('nomor_dokumen_asli', 'like', "%{$search}%")
+                        ->orWhere('nomor_pembelian', 'like', "%{$search}%")
+                        ->orWhere('nomor_delivery_order', 'like', "%{$search}%")
+                        ->orWhere('nomor_surat_jalan', 'like', "%{$search}%")
+                        ->orWhereHas('supplier', function ($q) use ($search) {
+                            $q->where('nama_supplier', 'like', "%{$search}%");
+                        });
+                });
+            })
             ->orderBy('tanggal_pembelian', 'desc')
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->paginate(10, ['*'], 'page_pembelian');
 
         $penjualanHistoris = Penjualan::with('customer')
             ->where('is_historical', true)
+            ->when($search, function ($query, $search) {
+                $query->where(function ($sub) use ($search) {
+                    $sub->where('nomor_dokumen_asli', 'like', "%{$search}%")
+                        ->orWhere('nomor_invoice', 'like', "%{$search}%")
+                        ->orWhereHas('customer', function ($q) use ($search) {
+                            $q->where('nama_customer', 'like', "%{$search}%");
+                        });
+                });
+            })
             ->orderBy('tanggal_penjualan', 'desc')
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->paginate(10, ['*'], 'page_penjualan');
 
         return view('invoice-historis.index', compact(
             'pembelianHistoris',
-            'penjualanHistoris'
+            'penjualanHistoris',
+            'search'
         ));
     }
 

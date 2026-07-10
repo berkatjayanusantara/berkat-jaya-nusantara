@@ -385,7 +385,7 @@ class KopSuratController extends Controller
             </w:tcPr>
             ' . $this->paragraphKopXml('CV. BERKAT JAYA NUSANTARA', true, 30, 35) . '
             ' . $this->paragraphKopXml('Jl. Jelambar Utama 1 No. 6A RT. 007 RW. 004, Jakarta Barat 11460', false, 20, 20) . '
-            ' . $this->paragraphKopXml('Telp: (021) 5664892, 5676277', false, 20, 0) . '
+            ' . $this->paragraphKopXml('Telp: (021) 5664892, 5676277 | WA: 085691801290', false, 20, 0) . '
         </w:tc>
         <w:tc>
             <w:tcPr>
