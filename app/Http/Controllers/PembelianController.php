@@ -66,49 +66,7 @@ class PembelianController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
-            'nomor_pembelian' => [
-                'required',
-                'string',
-                'max:100',
-            ],
-            'nomor_delivery_order' => [
-                'nullable',
-                'string',
-                'max:100',
-                // Nomor DO dari supplier boleh sama di beberapa transaksi pembelian
-                // (sama seperti perilaku nomor invoice di penjualan)
-            ],
-            'nomor_surat_jalan' => [
-                'nullable',
-                'string',
-                'max:100',
-                // Nomor surat jalan dari supplier boleh sama di beberapa transaksi pembelian
-                // (sama seperti perilaku nomor invoice di penjualan)
-            ],
-            'tanggal_pembelian' => 'required|date',
-            'id_supplier' => 'required|exists:suppliers,id_supplier',
-
-            // Pajak pembelian dibuat manual sesuai dokumen/nota supplier.
-            'nilai_pajak' => 'nullable|numeric|min:0',
-            'biaya_lain' => 'nullable|numeric|min:0',
-            'potongan_diskon' => 'nullable|numeric|min:0',
-            'keterangan_penyesuaian_total' => 'nullable|string',
-
-            'catatan' => 'nullable|string',
-
-            'id_barang' => 'required|array|min:1',
-            'id_barang.*' => 'required|exists:barang,id_barang',
-
-            'jumlah_dipesan' => 'required|array|min:1',
-            'jumlah_dipesan.*' => 'required|integer|min:1',
-
-            'jumlah' => 'required|array|min:1',
-            'jumlah.*' => 'required|integer|min:0',
-
-            'harga_beli' => 'required|array|min:1',
-            'harga_beli.*' => 'required|numeric|min:0',
-        ]);
+        $request->validate($this->rulesPembelian());
 
         DB::transaction(function () use ($request) {
             $subtotalPembelian = 0;
@@ -189,10 +147,21 @@ class PembelianController extends Controller
                 'dibuat_oleh' => Auth::id(),
             ]);
 
+            // Bulk preload: 1 query untuk semua barang, bukan N query di dalam loop
+            $idBarangList = collect($request->id_barang)->map(fn($id) => (int) $id)->unique()->values()->all();
+            $barangMap = Barang::whereIn('id_barang', $idBarangList)
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id_barang');
+
             foreach ($request->id_barang as $index => $idBarang) {
-                $barang = Barang::where('id_barang', $idBarang)
-                    ->lockForUpdate()
-                    ->firstOrFail();
+                $barang = $barangMap->get((int) $idBarang);
+
+                if (!$barang) {
+                    throw ValidationException::withMessages([
+                        'id_barang' => 'Barang dengan ID ' . $idBarang . ' tidak ditemukan.',
+                    ]);
+                }
 
                 $jumlahDipesan = (int) $request->jumlah_dipesan[$index];
                 $jumlahDiterima = (int) $request->jumlah[$index];
@@ -264,49 +233,7 @@ class PembelianController extends Controller
 
     public function update(Request $request, Pembelian $pembelian)
     {
-        $request->validate([
-            'nomor_pembelian' => [
-                'required',
-                'string',
-                'max:100',
-            ],
-            'nomor_delivery_order' => [
-                'nullable',
-                'string',
-                'max:100',
-                // Nomor DO dari supplier boleh sama di beberapa transaksi pembelian
-                // (sama seperti perilaku nomor invoice di penjualan)
-            ],
-            'nomor_surat_jalan' => [
-                'nullable',
-                'string',
-                'max:100',
-                // Nomor surat jalan dari supplier boleh sama di beberapa transaksi pembelian
-                // (sama seperti perilaku nomor invoice di penjualan)
-            ],
-            'tanggal_pembelian' => 'required|date',
-            'id_supplier' => 'required|exists:suppliers,id_supplier',
-
-            // Pajak pembelian dibuat manual sesuai dokumen/nota supplier.
-            'nilai_pajak' => 'nullable|numeric|min:0',
-            'biaya_lain' => 'nullable|numeric|min:0',
-            'potongan_diskon' => 'nullable|numeric|min:0',
-            'keterangan_penyesuaian_total' => 'nullable|string',
-
-            'catatan' => 'nullable|string',
-
-            'id_barang' => 'required|array|min:1',
-            'id_barang.*' => 'required|exists:barang,id_barang',
-
-            'jumlah_dipesan' => 'required|array|min:1',
-            'jumlah_dipesan.*' => 'required|integer|min:1',
-
-            'jumlah' => 'required|array|min:1',
-            'jumlah.*' => 'required|integer|min:0',
-
-            'harga_beli' => 'required|array|min:1',
-            'harga_beli.*' => 'required|numeric|min:0',
-        ]);
+        $request->validate($this->rulesPembelian());
 
         DB::transaction(function () use ($request, $pembelian) {
             $pembelian->load('detailPembelian');
@@ -340,6 +267,19 @@ class PembelianController extends Controller
             $affectStock = $pembelian->affect_stock ?? true;
 
             if ($affectStock) {
+                // Bulk preload barang lama: 1 query untuk semua detail lama
+                $idBarangLamaList = $pembelian->detailPembelian
+                    ->where('jumlah', '>', 0)
+                    ->pluck('id_barang')
+                    ->unique()
+                    ->values()
+                    ->all();
+
+                $barangLamaMap = Barang::whereIn('id_barang', $idBarangLamaList)
+                    ->lockForUpdate()
+                    ->get()
+                    ->keyBy('id_barang');
+
                 foreach ($pembelian->detailPembelian as $detailLama) {
                     $jumlahLama = (int) $detailLama->jumlah;
 
@@ -347,9 +287,7 @@ class PembelianController extends Controller
                         continue;
                     }
 
-                    $barangLama = Barang::where('id_barang', $detailLama->id_barang)
-                        ->lockForUpdate()
-                        ->first();
+                    $barangLama = $barangLamaMap->get($detailLama->id_barang);
 
                     if (!$barangLama) {
                         continue;
@@ -433,10 +371,21 @@ class PembelianController extends Controller
 
             $pembelian->detailPembelian()->delete();
 
+            // Bulk preload barang baru: 1 query untuk semua item request
+            $idBarangBaruList = collect($request->id_barang)->map(fn($id) => (int) $id)->unique()->values()->all();
+            $barangBaruMap = Barang::whereIn('id_barang', $idBarangBaruList)
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id_barang');
+
             foreach ($request->id_barang as $index => $idBarang) {
-                $barang = Barang::where('id_barang', $idBarang)
-                    ->lockForUpdate()
-                    ->firstOrFail();
+                $barang = $barangBaruMap->get((int) $idBarang);
+
+                if (!$barang) {
+                    throw ValidationException::withMessages([
+                        'id_barang' => 'Barang dengan ID ' . $idBarang . ' tidak ditemukan.',
+                    ]);
+                }
 
                 $jumlahDipesan = (int) $request->jumlah_dipesan[$index];
                 $jumlahDiterima = (int) $request->jumlah[$index];
@@ -548,70 +497,7 @@ class PembelianController extends Controller
             return rtrim(rtrim(number_format((float) $angka, 3, ',', '.'), '0'), ',');
         };
 
-        $terbilang = function ($nilai) use (&$terbilang) {
-            $nilai = abs((int) $nilai);
-
-            $huruf = [
-                '',
-                'satu',
-                'dua',
-                'tiga',
-                'empat',
-                'lima',
-                'enam',
-                'tujuh',
-                'delapan',
-                'sembilan',
-                'sepuluh',
-                'sebelas',
-            ];
-
-            if ($nilai < 12) {
-                return $huruf[$nilai];
-            }
-
-            if ($nilai < 20) {
-                return $terbilang($nilai - 10) . ' belas';
-            }
-
-            if ($nilai < 100) {
-                return $terbilang(floor($nilai / 10)) . ' puluh ' . $terbilang($nilai % 10);
-            }
-
-            if ($nilai < 200) {
-                return 'seratus ' . $terbilang($nilai - 100);
-            }
-
-            if ($nilai < 1000) {
-                return $terbilang(floor($nilai / 100)) . ' ratus ' . $terbilang($nilai % 100);
-            }
-
-            if ($nilai < 2000) {
-                return 'seribu ' . $terbilang($nilai - 1000);
-            }
-
-            if ($nilai < 1000000) {
-                return $terbilang(floor($nilai / 1000)) . ' ribu ' . $terbilang($nilai % 1000);
-            }
-
-            if ($nilai < 1000000000) {
-                return $terbilang(floor($nilai / 1000000)) . ' juta ' . $terbilang($nilai % 1000000);
-            }
-
-            if ($nilai < 1000000000000) {
-                return $terbilang(floor($nilai / 1000000000)) . ' miliar ' . $terbilang($nilai % 1000000000);
-            }
-
-            return $terbilang(floor($nilai / 1000000000000)) . ' triliun ' . $terbilang($nilai % 1000000000000);
-        };
-
-        $bersihkanTerbilang = function ($teks) {
-            $teks = trim(preg_replace('/\s+/', ' ', $teks));
-
-            return $teks === '' ? 'nol' : $teks;
-        };
-
-        $terbilangTotal = $bersihkanTerbilang($terbilang(round($pembelian->total_akhir))) . ' rupiah';
+        $terbilangTotal = terbilang_rupiah((int) round($pembelian->total_akhir));
         $nomorPembelianTampil = $pembelian->nomor_dokumen_asli ?: $pembelian->nomor_pembelian;
 
         $spreadsheet = new Spreadsheet();
@@ -1042,6 +928,45 @@ class PembelianController extends Controller
         ]);
     }
 
+
+    private function rulesPembelian(): array
+    {
+        return [
+            'nomor_pembelian' => [
+                'required',
+                'string',
+                'max:100',
+            ],
+            'nomor_delivery_order' => [
+                'nullable',
+                'string',
+                'max:100',
+                // Nomor DO dari supplier boleh sama di beberapa transaksi pembelian
+            ],
+            'nomor_surat_jalan' => [
+                'nullable',
+                'string',
+                'max:100',
+                // Nomor surat jalan dari supplier boleh sama di beberapa transaksi pembelian
+            ],
+            'tanggal_pembelian'             => 'required|date',
+            'id_supplier'                   => 'required|exists:suppliers,id_supplier',
+            // Pajak pembelian dibuat manual sesuai dokumen/nota supplier.
+            'nilai_pajak'                   => 'nullable|numeric|min:0',
+            'biaya_lain'                    => 'nullable|numeric|min:0',
+            'potongan_diskon'               => 'nullable|numeric|min:0',
+            'keterangan_penyesuaian_total'  => 'nullable|string',
+            'catatan'                       => 'nullable|string',
+            'id_barang'                     => 'required|array|min:1',
+            'id_barang.*'                   => 'required|exists:barang,id_barang',
+            'jumlah_dipesan'                => 'required|array|min:1',
+            'jumlah_dipesan.*'              => 'required|integer|min:1',
+            'jumlah'                        => 'required|array|min:1',
+            'jumlah.*'                      => 'required|integer|min:0',
+            'harga_beli'                    => 'required|array|min:1',
+            'harga_beli.*'                  => 'required|numeric|min:0',
+        ];
+    }
 
     private function generateNomorPembelian(bool $lock = false)
     {

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -44,6 +45,38 @@ class DetailPenjualan extends Model
         'nilai_ppn' => 'decimal:2',
         'subtotal' => 'decimal:2',
     ];
+
+    /**
+     * Filter detail penjualan berdasarkan jenis PPN.
+     * Mendukung data lama (kena_ppn boolean) dan data baru (jenis_ppn enum).
+     *
+     * Nilai $jenisPpn yang valid: 'non_ppn' | 'ppn_normal' | 'ppn_dpp_nilai_lain'
+     */
+    public function scopeByJenisPpn(Builder $query, string $jenisPpn): Builder
+    {
+        return match ($jenisPpn) {
+            'non_ppn' => $query->where(function (Builder $q) {
+                $q->where('jenis_ppn', 'non_ppn')
+                    ->orWhere(function (Builder $legacy) {
+                        $legacy->whereNull('jenis_ppn')->where('kena_ppn', false);
+                    });
+            }),
+
+            'ppn_normal' => $query->where(function (Builder $q) {
+                $q->where('jenis_ppn', 'ppn_normal')
+                    ->orWhere(function (Builder $legacy) {
+                        $legacy->whereNull('jenis_ppn')
+                            ->where(function (Builder $k) {
+                                $k->where('kena_ppn', true)->orWhereNull('kena_ppn');
+                            });
+                    });
+            }),
+
+            'ppn_dpp_nilai_lain' => $query->where('jenis_ppn', 'ppn_dpp_nilai_lain'),
+
+            default => $query, // jenis tidak dikenal → tidak filter apapun
+        };
+    }
 
     public function penjualan()
     {

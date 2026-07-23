@@ -8,9 +8,22 @@ use App\Models\Piutang;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class PiutangController extends Controller
 {
+    /**
+     * Validasi back_url agar tidak bisa diarahkan ke domain luar (open redirect).
+     */
+    private function safeBackUrl(?string $url): string
+    {
+        $base = rtrim(url('/'), '/') . '/';
+
+        return (is_string($url) && Str::startsWith($url, $base))
+            ? $url
+            : route('piutang.index');
+    }
+
     public function index(Request $request)
     {
         $search = $request->search;
@@ -47,7 +60,7 @@ class PiutangController extends Controller
     {
         $piutang->load(['customer', 'penjualan']);
 
-        $backUrl = $request->query('back_url', route('piutang.index'));
+        $backUrl = $this->safeBackUrl($request->query('back_url'));
 
         if ($piutang->status_piutang === 'lunas') {
             return redirect()
@@ -77,11 +90,16 @@ class PiutangController extends Controller
             'back_url' => 'nullable|string',
         ]);
 
-        $backUrl = $request->input('back_url', route('piutang.index'));
+        $backUrl = $this->safeBackUrl($request->input('back_url'));
 
         DB::transaction(function () use ($request, $piutang) {
+            // Lock row piutang untuk cegah race condition pada pembayaran concurrent
+            $piutangLocked = Piutang::where('id_piutang', $piutang->id_piutang)
+                ->lockForUpdate()
+                ->first();
+
             PembayaranPiutang::create([
-                'id_piutang' => $piutang->id_piutang,
+                'id_piutang' => $piutangLocked->id_piutang,
                 'tanggal_pembayaran' => $request->tanggal_pembayaran,
                 'nominal_pembayaran' => $request->nominal_pembayaran,
                 'metode_pembayaran' => $request->metode_pembayaran,
@@ -89,8 +107,8 @@ class PiutangController extends Controller
                 'dibuat_oleh' => Auth::id(),
             ]);
 
-            $totalDibayarBaru = $piutang->total_dibayar + $request->nominal_pembayaran;
-            $sisaPiutangBaru = $piutang->total_piutang - $totalDibayarBaru;
+            $totalDibayarBaru = $piutangLocked->total_dibayar + $request->nominal_pembayaran;
+            $sisaPiutangBaru = $piutangLocked->total_piutang - $totalDibayarBaru;
 
             if ($sisaPiutangBaru <= 0) {
                 $statusPiutang = 'lunas';
@@ -101,13 +119,13 @@ class PiutangController extends Controller
                 $statusPembayaran = 'sebagian';
             }
 
-            $piutang->update([
+            $piutangLocked->update([
                 'total_dibayar' => $totalDibayarBaru,
                 'sisa_piutang' => $sisaPiutangBaru,
                 'status_piutang' => $statusPiutang,
             ]);
 
-            Penjualan::where('id_penjualan', $piutang->id_penjualan)
+            Penjualan::where('id_penjualan', $piutangLocked->id_penjualan)
                 ->update([
                     'status_pembayaran' => $statusPembayaran,
                 ]);
@@ -129,7 +147,7 @@ class PiutangController extends Controller
             abort(404);
         }
 
-        $backUrl = $request->query('back_url', route('piutang.index'));
+        $backUrl = $this->safeBackUrl($request->query('back_url'));
 
         return view('piutang.edit-pembayaran', compact('piutang', 'pembayaranPiutang', 'backUrl'));
     }
@@ -155,9 +173,14 @@ class PiutangController extends Controller
             'back_url' => 'nullable|string',
         ]);
 
-        $backUrl = $request->input('back_url', route('piutang.index'));
+        $backUrl = $this->safeBackUrl($request->input('back_url'));
 
         DB::transaction(function () use ($request, $piutang, $pembayaranPiutang) {
+            // Lock row piutang untuk cegah race condition pada edit pembayaran concurrent
+            $piutangLocked = Piutang::where('id_piutang', $piutang->id_piutang)
+                ->lockForUpdate()
+                ->first();
+
             $pembayaranPiutang->update([
                 'tanggal_pembayaran' => $request->tanggal_pembayaran,
                 'nominal_pembayaran' => $request->nominal_pembayaran,
@@ -165,8 +188,8 @@ class PiutangController extends Controller
                 'catatan' => $request->catatan,
             ]);
 
-            $totalDibayarBaru = PembayaranPiutang::where('id_piutang', $piutang->id_piutang)->sum('nominal_pembayaran');
-            $sisaPiutangBaru = $piutang->total_piutang - $totalDibayarBaru;
+            $totalDibayarBaru = PembayaranPiutang::where('id_piutang', $piutangLocked->id_piutang)->sum('nominal_pembayaran');
+            $sisaPiutangBaru = $piutangLocked->total_piutang - $totalDibayarBaru;
 
             if ($sisaPiutangBaru <= 0) {
                 $statusPiutang = 'lunas';
@@ -177,13 +200,13 @@ class PiutangController extends Controller
                 $statusPembayaran = 'sebagian';
             }
 
-            $piutang->update([
+            $piutangLocked->update([
                 'total_dibayar' => $totalDibayarBaru,
                 'sisa_piutang' => $sisaPiutangBaru,
                 'status_piutang' => $statusPiutang,
             ]);
 
-            Penjualan::where('id_penjualan', $piutang->id_penjualan)
+            Penjualan::where('id_penjualan', $piutangLocked->id_penjualan)
                 ->update([
                     'status_pembayaran' => $statusPembayaran,
                 ]);

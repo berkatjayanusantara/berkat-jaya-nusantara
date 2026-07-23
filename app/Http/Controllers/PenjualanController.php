@@ -146,8 +146,20 @@ class PenjualanController extends Controller
             $affectStock = $penjualan->affect_stock ?? true;
 
             if ($affectStock) {
+                // Bulk preload barang lama: 1 query untuk semua detail lama
+                $idBarangLamaList = $penjualan->detailPenjualan
+                    ->pluck('id_barang')
+                    ->unique()
+                    ->values()
+                    ->all();
+
+                $barangLamaMap = Barang::whereIn('id_barang', $idBarangLamaList)
+                    ->lockForUpdate()
+                    ->get()
+                    ->keyBy('id_barang');
+
                 foreach ($penjualan->detailPenjualan as $detailLama) {
-                    $barangLama = Barang::where('id_barang', $detailLama->id_barang)->lockForUpdate()->first();
+                    $barangLama = $barangLamaMap->get($detailLama->id_barang);
 
                     if (!$barangLama) {
                         continue;
@@ -534,8 +546,22 @@ class PenjualanController extends Controller
         $adaPpnNormal = false;
         $adaPpnKhusus = false;
 
+        // Bulk preload: 1 query untuk semua barang, bukan N query di dalam loop
+        $idBarangList = collect($request->id_barang)->map(fn($id) => (int) $id)->unique()->values()->all();
+        $barangMap = Barang::whereIn('id_barang', $idBarangList)
+            ->lockForUpdate()
+            ->get()
+            ->keyBy('id_barang');
+
         foreach ($request->id_barang as $index => $idBarang) {
-            $barang = Barang::where('id_barang', $idBarang)->lockForUpdate()->firstOrFail();
+            $barang = $barangMap->get((int) $idBarang);
+
+            if (!$barang) {
+                throw ValidationException::withMessages([
+                    'id_barang' => 'Barang dengan ID ' . $idBarang . ' tidak ditemukan.',
+                ]);
+            }
+
             $jumlah = (int) $request->jumlah[$index];
 
             if ($cekStok && $jumlah > $barang->stok_saat_ini) {
@@ -638,8 +664,22 @@ class PenjualanController extends Controller
     {
         $modePpn = $this->normalisasiModePpn($request->mode_ppn ?? null);
 
+        // Bulk preload: 1 query untuk semua barang, bukan N query di dalam loop
+        $idBarangList = collect($request->id_barang)->map(fn($id) => (int) $id)->unique()->values()->all();
+        $barangMap = Barang::whereIn('id_barang', $idBarangList)
+            ->lockForUpdate()
+            ->get()
+            ->keyBy('id_barang');
+
         foreach ($request->id_barang as $index => $idBarang) {
-            $barang = Barang::where('id_barang', $idBarang)->lockForUpdate()->firstOrFail();
+            $barang = $barangMap->get((int) $idBarang);
+
+            if (!$barang) {
+                throw ValidationException::withMessages([
+                    'id_barang' => 'Barang dengan ID ' . $idBarang . ' tidak ditemukan.',
+                ]);
+            }
+
             $jumlah = (int) $request->jumlah[$index];
             $hargaJual = (float) $request->harga_jual[$index];
             $diskonNominal = (float) ($request->diskon_nominal[$index] ?? 0);

@@ -38,25 +38,24 @@ class DashboardController extends Controller
 
         $totalBarangIsiKemasan = Barang::where('tipe_perhitungan_harga', 'isi_kemasan')->count();
 
-        $totalBarangNonPpn = $this->queryBarangByJenisPpn('non_ppn')->count();
-        $totalBarangPpnNormal = $this->queryBarangByJenisPpn('ppn_normal')->count();
-        $totalBarangPpnDppNilaiLain = $this->queryBarangByJenisPpn('ppn_dpp_nilai_lain')->count();
+        $totalBarangNonPpn = Barang::byJenisPpn('non_ppn')->count();
+        $totalBarangPpnNormal = Barang::byJenisPpn('ppn_normal')->count();
+        $totalBarangPpnDppNilaiLain = Barang::byJenisPpn('ppn_dpp_nilai_lain')->count();
         $totalBarangKenaPpn = $totalBarangPpnNormal + $totalBarangPpnDppNilaiLain;
 
         $totalStok = Barang::sum('stok_saat_ini');
 
-        $totalBarangKosong = Barang::where('status_aktif', true)
-            ->where('stok_saat_ini', '<=', 0)
-            ->count();
+        // Konsolidasi 3 COUNT aktif barang jadi 1 query
+        $statsStokBarang = Barang::where('status_aktif', true)->selectRaw(
+            'SUM(stok_saat_ini <= 0) AS kosong,
+             SUM(stok_saat_ini > 0 AND stok_saat_ini <= ?) AS stok_rendah,
+             SUM(stok_saat_ini > ?) AS stok_aman',
+            [$batasStokRendah, $batasStokRendah]
+        )->first();
 
-        $totalBarangStokRendah = Barang::where('status_aktif', true)
-            ->where('stok_saat_ini', '>', 0)
-            ->where('stok_saat_ini', '<=', $batasStokRendah)
-            ->count();
-
-        $totalBarangStokAman = Barang::where('status_aktif', true)
-            ->where('stok_saat_ini', '>', $batasStokRendah)
-            ->count();
+        $totalBarangKosong     = (int) ($statsStokBarang->kosong ?? 0);
+        $totalBarangStokRendah = (int) ($statsStokBarang->stok_rendah ?? 0);
+        $totalBarangStokAman   = (int) ($statsStokBarang->stok_aman ?? 0);
 
         $barangUntukNilai = Barang::select([
             'stok_saat_ini',
@@ -94,13 +93,13 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
 
-        $barangNonPpn = $this->queryBarangByJenisPpn('non_ppn')
+        $barangNonPpn = Barang::byJenisPpn('non_ppn')
             ->where('status_aktif', true)
             ->orderBy('nama_barang')
             ->limit(5)
             ->get();
 
-        $barangPpnDppNilaiLain = $this->queryBarangByJenisPpn('ppn_dpp_nilai_lain')
+        $barangPpnDppNilaiLain = Barang::byJenisPpn('ppn_dpp_nilai_lain')
             ->where('status_aktif', true)
             ->orderBy('nama_barang')
             ->limit(5)
@@ -253,9 +252,9 @@ class DashboardController extends Controller
         })->count();
 
         $detailPenjualanIsiKemasan = DetailPenjualan::where('tipe_perhitungan_harga', 'isi_kemasan')->count();
-        $detailPenjualanNonPpn = $this->queryDetailPenjualanByJenisPpn('non_ppn')->count();
-        $detailPenjualanPpnNormal = $this->queryDetailPenjualanByJenisPpn('ppn_normal')->count();
-        $detailPenjualanPpnDppNilaiLain = $this->queryDetailPenjualanByJenisPpn('ppn_dpp_nilai_lain')->count();
+        $detailPenjualanNonPpn = DetailPenjualan::byJenisPpn('non_ppn')->count();
+        $detailPenjualanPpnNormal = DetailPenjualan::byJenisPpn('ppn_normal')->count();
+        $detailPenjualanPpnDppNilaiLain = DetailPenjualan::byJenisPpn('ppn_dpp_nilai_lain')->count();
 
         $invoiceHariIni = Penjualan::whereDate('tanggal_penjualan', $today)->count();
 
@@ -531,63 +530,5 @@ class DashboardController extends Controller
             'totalSuratFinal',
             'grafikPenjualan7Hari'
         ));
-    }
-
-    private function queryBarangByJenisPpn(string $jenisPpn)
-    {
-        return Barang::query()
-            ->when($jenisPpn === 'non_ppn', function ($query) {
-                $query->where(function ($subQuery) {
-                    $subQuery->where('jenis_ppn', 'non_ppn')
-                        ->orWhere(function ($legacyQuery) {
-                            $legacyQuery->whereNull('jenis_ppn')
-                                ->where('kena_ppn', false);
-                        });
-                });
-            })
-            ->when($jenisPpn === 'ppn_normal', function ($query) {
-                $query->where(function ($subQuery) {
-                    $subQuery->where('jenis_ppn', 'ppn_normal')
-                        ->orWhere(function ($legacyQuery) {
-                            $legacyQuery->whereNull('jenis_ppn')
-                                ->where(function ($kenaPpnQuery) {
-                                    $kenaPpnQuery->where('kena_ppn', true)
-                                        ->orWhereNull('kena_ppn');
-                                });
-                        });
-                });
-            })
-            ->when($jenisPpn === 'ppn_dpp_nilai_lain', function ($query) {
-                $query->where('jenis_ppn', 'ppn_dpp_nilai_lain');
-            });
-    }
-
-    private function queryDetailPenjualanByJenisPpn(string $jenisPpn)
-    {
-        return DetailPenjualan::query()
-            ->when($jenisPpn === 'non_ppn', function ($query) {
-                $query->where(function ($subQuery) {
-                    $subQuery->where('jenis_ppn', 'non_ppn')
-                        ->orWhere(function ($legacyQuery) {
-                            $legacyQuery->whereNull('jenis_ppn')
-                                ->where('kena_ppn', false);
-                        });
-                });
-            })
-            ->when($jenisPpn === 'ppn_normal', function ($query) {
-                $query->where(function ($subQuery) {
-                    $subQuery->where('jenis_ppn', 'ppn_normal')
-                        ->orWhere(function ($legacyQuery) {
-                            $legacyQuery->whereNull('jenis_ppn')
-                                ->where(function ($kenaPpnQuery) {
-                                    $kenaPpnQuery->where('kena_ppn', true)
-                                        ->orWhereNull('kena_ppn');
-                                });
-                        });
-                });
-            })
-            ->when($jenisPpn === 'ppn_dpp_nilai_lain', function ($query) {
-                $query->where('jenis_ppn', 'ppn_dpp_nilai_lain');
-            });
     }
 }
